@@ -1,0 +1,52 @@
+{
+  "languages": [
+    {
+      "grammar": "textmate/kotlin/Kotlin.tmLanguage",
+      "name": "kotlin",
+      "scopeName": "source.kotlin",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/java/java.tmLanguage.json",
+      "name": "java",
+      "scopeName": "source.java",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/javascript/JavaScript.tmLanguage.json",
+      "name": "javascript",
+      "scopeName": "source.js",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/json/JSON.tmLanguage.json",
+      "name": "json",
+      "scopeName": "source.json",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/html/html.tmLanguage.json",
+      "name": "html",
+      "scopeName": "text.html.basic",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/css/css.tmLanguage.json",
+      "name": "css",
+      "scopeName": "source.css",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/python/MagicPython.tmLanguage.json",
+      "name": "python",
+      "scopeName": "source.python",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/markdown/markdown.tmLanguage.json",
+      "name": "markdown",
+      "scopeName": "text.html.markdown",
+      "languageConfiguration": ""
+    }
+  ]
+}
