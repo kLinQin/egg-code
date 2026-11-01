@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -130,6 +131,7 @@ fun CloudConnectDialog(
     var bucket by remember { mutableStateOf("kode-eggs-2026") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RectangleShape,
         title = { Text("Connect Backblaze B2") },
         text = {
             Column {

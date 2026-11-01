@@ -36,10 +36,11 @@ fun SidebarButton(
             icon,
             label,
             tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            // Ukuran ikon TIDAK diubah (tetap default 24dp).
         )
         Text(
             label,
-            fontSize = 9.sp,
+            fontSize = 12.sp, // ← naik dari 9.sp ke 12.sp (+3 point)
             maxLines = 1,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

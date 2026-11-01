@@ -2,11 +2,11 @@ package com.egg.codeeditor.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Add
@@ -16,10 +16,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.egg.codeeditor.model.EditorTab
+
+/** Item menu teks ringkas (tanpa padding besar ala DropdownMenuItem). */
+@Composable
+private fun MenuTextAction(text: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    )
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -73,6 +92,8 @@ private fun EditorTabItem(
     onDelete: (EditorTab) -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+
     Box {
         Row(
             modifier = Modifier
@@ -105,7 +126,7 @@ private fun EditorTabItem(
                 Box(
                     Modifier
                         .size(6.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, RectangleShape)
                 )
                 Spacer(Modifier.width(4.dp))
             }
@@ -116,12 +137,36 @@ private fun EditorTabItem(
                 Icon(Icons.Default.Close, "Close Tab", Modifier.size(12.dp))
             }
         }
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            DropdownMenuItem(text = { Text("Save") }, onClick = { menuOpen = false; onSave(tab) })
-            DropdownMenuItem(text = { Text("Close") }, onClick = { menuOpen = false; onClose(tab) })
-            DropdownMenuItem(text = { Text("Close Others") }, onClick = { menuOpen = false; onCloseOthers(tab.id) })
-            if (tab.uri != null) {
-                DropdownMenuItem(text = { Text("Delete File") }, onClick = { menuOpen = false; onDelete(tab) })
+
+        // Menu konteks tab: 1 baris kompak, muncul 4dp di bawah tab, rata kiri.
+        if (menuOpen) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = with(density) { IntOffset(0, 44.dp.roundToPx()) },
+                onDismissRequest = { menuOpen = false },
+                properties = PopupProperties(focusable = true)
+            ) {
+                Surface(
+                    shape = RectangleShape,
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.widthIn(max = 360.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MenuTextAction("Save") { menuOpen = false; onSave(tab) }
+                        MenuTextAction("Close") { menuOpen = false; onClose(tab) }
+                        MenuTextAction("Close Others") { menuOpen = false; onCloseOthers(tab.id) }
+                        if (tab.uri != null) {
+                            MenuTextAction("Delete File") { menuOpen = false; onDelete(tab) }
+                        }
+                    }
+                }
             }
         }
     }
