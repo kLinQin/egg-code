@@ -17,4 +17,8 @@ local.properties
 # Project-specific (bukan source aktif / artefak build)
 app/src/main/java.bak/
 app/libs/pdn_extract/
-.kotlin/
+.kotlin//.idea/
+/.idea/
+app/release/
+pdn-classes.jar
+termlib-local/

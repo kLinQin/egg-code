@@ -1,11 +1,21 @@
 package com.egg.codeeditor.ui
 
+import android.Manifest
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,6 +60,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -62,6 +73,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.documentfile.provider.DocumentFile
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.egg.codeeditor.MainActivity
 import com.egg.codeeditor.R
 import com.egg.codeeditor.model.EditorSettings
 import com.egg.codeeditor.model.EditorTab
@@ -77,6 +91,8 @@ import com.egg.codeeditor.ui.components.GitActionBar
 import com.egg.codeeditor.ui.components.InputDialog
 import com.egg.codeeditor.ui.components.SettingsDialog
 import com.egg.codeeditor.ui.components.SidebarButton
+import com.egg.codeeditor.ui.components.TerminalShortcutBar
+import com.egg.codeeditor.ui.components.TreeGuides
 import com.egg.codeeditor.ui.editor.SoraCodeEditor
 import com.egg.codeeditor.ui.editor.applyColorScheme
 import com.egg.codeeditor.ui.cloud.CloudPanel
@@ -141,35 +157,17 @@ private const val KEY_INDENT_GUIDE = "indent_guide"
 private const val KEY_HIGHLIGHT_ACTIVE_LINE = "highlight_active_line"
 private const val KEY_CLOSE_BRACKET = "close_bracket"
 
+// ── Terminal session notification ──
+private const val TERMINAL_CHANNEL_ID = "terminal_session"
+private const val TERMINAL_NOTIFICATION_ID = 9001
+private const val ACTION_CLOSE_TERMINAL = "com.egg.codeeditor.CLOSE_TERMINAL"
+
 /** App's GitHub repository URL. Fill with the real URL; if empty,
  *  the GitHub row in the "About" dialog is not shown. */
 private const val GITHUB_URL = ""
 
 /** True once the splash has been shown for this process (cold start only). */
 private var splashShownForProcess = false
-
-/** Claude-flavored 16-color ANSI palette (warm, muted, off-white). */
-private fun claudeAnsiPalette(): IntArray = intArrayOf(
-    0xFF1F1E1D.toInt(), // 0 black
-    0xFFFF8A7A.toInt(), // 1 red
-    0xFFA8CC8C.toInt(), // 2 green
-    0xFFE2C08D.toInt(), // 3 yellow
-    0xFF8FAFDD.toInt(), // 4 blue
-    0xFFC89BC9.toInt(), // 5 magenta
-    0xFF7CC6C0.toInt(), // 6 cyan
-    0xFFD6D3D2.toInt(), // 7 white
-    0xFF555352.toInt(), // 8 bright black
-    0xFFFFA18E.toInt(), // 9 bright red
-    0xFFB8DE9E.toInt(), // 10 bright green
-    0xFFECD3A0.toInt(), // 11 bright yellow
-    0xFFA8C6EC.toInt(), // 12 bright blue
-    0xFFDBB3DC.toInt(), // 13 bright magenta
-    0xFF9BDCD6.toInt(), // 14 bright cyan
-    0xFFFFFFFF.toInt(), // 15 bright white
-)
-
-private fun claudeDefaultForeground(): Int = 0xFFD6D3D2.toInt()
-private fun claudeDefaultBackground(): Int = 0xFF262624.toInt()
 
 private fun loadSettings(context: Context): EditorSettings {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -211,6 +209,126 @@ private fun saveSettings(context: Context, settings: EditorSettings) {
         .apply()
 }
 
+/** Create the notification channel for the terminal session (Android 8+). */
+private fun ensureTerminalChannel(context: Context) {
+    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val channel = NotificationChannel(TERMINAL_CHANNEL_ID, "Terminal Session", NotificationManager.IMPORTANCE_LOW).apply {
+        description = "Shows the active terminal session"
+    }
+    nm.createNotificationChannel(channel)
+}
+
+/** Show the "active session" notification in the notification drawer, with a Close Session action. */
+private fun postTerminalNotification(context: Context, folderPath: String?) {
+    ensureTerminalChannel(context)
+
+    // "Close Session" action → sent to the dynamic BroadcastReceiver in EggApp
+    val closeIntent = PendingIntent.getBroadcast(
+        context, 0,
+        Intent(ACTION_CLOSE_TERMINAL),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    // Tap notification → reopen the app
+    val openIntent = PendingIntent.getActivity(
+        context, 1,
+        Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    // Detect the currently active File Manager folder
+    val text = folderPath?.let { "Active folder: $it" } ?: "Alpine shell is running"
+
+    val notification = NotificationCompat.Builder(context, TERMINAL_CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setContentTitle("Alpine Terminal — Session Active")
+        .setContentText(text)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        .setOngoing(true)
+        .setContentIntent(openIntent)
+        .addAction(0, "Close Session", closeIntent)
+        .setAutoCancel(false)
+        .build()
+
+    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    nm.notify(TERMINAL_NOTIFICATION_ID, notification)
+}
+
+/** Remove the terminal session notification. */
+private fun cancelTerminalNotification(context: Context) {
+    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    nm.cancel(TERMINAL_NOTIFICATION_ID)
+}
+
+/** Escape a path for safe use inside a single-quoted POSIX shell string. */
+private fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+/** Build a `cd` command that prefers the /mnt/sdcard bind, then falls back to other aliases. */
+private fun buildCdCommand(androidPath: String): String {
+    val suffix = androidPath.removePrefix("/storage/emulated/0")
+    val candidates = listOf(
+        "/mnt/sdcard$suffix",
+        androidPath,
+        "/sdcard$suffix"
+    ).filter { it.isNotEmpty() }.distinct()
+    return candidates.joinToString(" || ") { "cd ${shellQuote(it)} 2>/dev/null" }
+}
+
+/** Spesifikasi ikon: ImageVector + warna. */
+private data class IconSpec(val icon: ImageVector, val color: Color)
+
+/** Palet warna folder: disiklus berdasarkan kedalaman. */
+private val FOLDER_PALETTE = listOf(
+    Color(0xFFFFB74D), Color(0xFF4FC3F7), Color(0xFF81C784),
+    Color(0xFFBA68C8), Color(0xFFE57373), Color(0xFF4DB6AC),
+    Color(0xFFFFD54F), Color(0xFF7986CB)
+)
+
+private fun folderIconSpec(depth: Int): IconSpec =
+    IconSpec(Icons.Default.Folder, FOLDER_PALETTE[depth % FOLDER_PALETTE.size])
+
+/** Ikon file sesuai jenis/bahasa, bukan satu ikon monoton. */
+private fun fileIconSpec(fileName: String): IconSpec {
+    val n = fileName.lowercase()
+    return when {
+        n.endsWith(".kt") || n.endsWith(".kts") || n.endsWith(".java") ||
+                n.endsWith(".js") || n.endsWith(".ts") || n.endsWith(".py") ||
+                n.endsWith(".sh") || n.endsWith(".cpp") || n.endsWith(".c") ||
+                n.endsWith(".h") || n.endsWith(".rs") || n.endsWith(".go") ||
+                n.endsWith(".rb") || n.endsWith(".php") ->
+            IconSpec(Icons.Default.Code, Color(0xFF64B5F6))
+        n.endsWith(".json") || n.endsWith(".xml") || n.endsWith(".yaml") ||
+                n.endsWith(".yml") || n.endsWith(".toml") ->
+            IconSpec(Icons.Default.DataObject, Color(0xFFFFD54F))
+        n.endsWith(".html") || n.endsWith(".htm") || n.endsWith(".css") ||
+                n.endsWith(".scss") ->
+            IconSpec(Icons.Default.Language, Color(0xFFFF8A65))
+        n.endsWith(".md") || n.endsWith(".txt") ->
+            IconSpec(Icons.Default.Notes, Color(0xFF90A4AE))
+        n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") ||
+                n.endsWith(".gif") || n.endsWith(".webp") || n.endsWith(".svg") ->
+            IconSpec(Icons.Default.Image, Color(0xFF81C784))
+        n.endsWith(".mp3") || n.endsWith(".wav") || n.endsWith(".flac") ||
+                n.endsWith(".ogg") ->
+            IconSpec(Icons.Default.Audiotrack, Color(0xFFBA68C8))
+        n.endsWith(".mp4") || n.endsWith(".mkv") || n.endsWith(".avi") ||
+                n.endsWith(".mov") ->
+            IconSpec(Icons.Default.Movie, Color(0xFF4DB6AC))
+        n.endsWith(".pdf") ->
+            IconSpec(Icons.Default.PictureAsPdf, Color(0xFFE57373))
+        n.endsWith(".zip") || n.endsWith(".tar") || n.endsWith(".gz") ||
+                n.endsWith(".7z") || n.endsWith(".rar") ->
+            IconSpec(Icons.Default.FolderZip, Color(0xFFFFB74D))
+        n.endsWith(".csv") || n.endsWith(".xls") || n.endsWith(".xlsx") ->
+            IconSpec(Icons.Default.TableChart, Color(0xFF81C784))
+        n.endsWith(".sql") || n.endsWith(".db") || n.endsWith(".sqlite") ->
+            IconSpec(Icons.Default.Storage, Color(0xFF64B5F6))
+        n.endsWith(".apk") ->
+            IconSpec(Icons.Default.Android, Color(0xFFAED581))
+        else -> IconSpec(Icons.Default.Description, Color(0xFF90A4AE))
+    }
+}
+
 /** Convert any drawable (incl. vector/adaptive-icon foregrounds) into a bitmap for Canvas slicing. */
 private fun drawableToBitmap(drawable: Drawable, sidePx: Int): Bitmap {
     val bitmap = Bitmap.createBitmap(sidePx, sidePx, Bitmap.Config.ARGB_8888)
@@ -250,9 +368,13 @@ private fun buildHalfPath(pts: List<Offset>, left: Boolean, w: Float, h: Float):
     return path
 }
 
-/** Splash overlay shown once per process (cold start). */
+/** Splash overlay shown once per process (cold start). Mengikuti tema aktif (MaterialTheme). */
 @Composable
 private fun SplashOverlay() {
+    val bgColor = MaterialTheme.colorScheme.surface
+    val fgColor = MaterialTheme.colorScheme.onSurface
+    val accentColor = MaterialTheme.colorScheme.primary
+
     val bobTransition = rememberInfiniteTransition(label = "splash_bob")
     val bob by bobTransition.animateFloat(
         initialValue = -5f,
@@ -294,7 +416,7 @@ private fun SplashOverlay() {
     val splitT = ((progress.value - 0.55f) / 0.45f).coerceIn(0f, 1f)
     val splitEased = if (splitT <= 0f) 0f else 1f - (1f - splitT).pow(2)
 
-    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF262624)) {
+    Surface(modifier = Modifier.fillMaxSize(), color = bgColor) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -315,22 +437,21 @@ private fun SplashOverlay() {
                 val leftOff = -splitEased * w * 0.14f
                 val rightOff = splitEased * w * 0.14f
                 val alpha = 1f - 0.4f * splitEased
-                val egg = eggBitmap
-                if (egg != null) {
-                    val srcSize = IntSize(egg.width, egg.height)
+                if (eggBitmap != null) {
+                    val srcSize = IntSize(eggBitmap.width, eggBitmap.height)
                     val dstSize = IntSize(w.toInt(), h.toInt())
 
                     // Left half
                     withTransform({ translate(leftOff, 0f) }) {
                         clipPath(buildHalfPath(pts, left = true, w = w, h = h)) {
-                            drawImage(egg, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
+                            drawImage(eggBitmap, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
                         }
                     }
 
                     // Right half
                     withTransform({ translate(rightOff, 0f) }) {
                         clipPath(buildHalfPath(pts, left = false, w = w, h = h)) {
-                            drawImage(egg, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
+                            drawImage(eggBitmap, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
                         }
                     }
                 }
@@ -352,7 +473,7 @@ private fun SplashOverlay() {
                     }
                     drawPath(
                         crackPath,
-                        color = Color(0xFFFF8A7A),
+                        color = accentColor,
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
                     )
                 }
@@ -361,7 +482,7 @@ private fun SplashOverlay() {
             Spacer(Modifier.height(20.dp))
             Text(
                 "EGG",
-                color = Color(0xFFF5EFE0),
+                color = fgColor,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 6.sp
@@ -379,7 +500,7 @@ private fun SplashOverlay() {
                         modifier = Modifier
                             .size(8.dp)
                             .graphicsLayer { translationY = (sin(wave + phase) * 8f * density).toFloat() }
-                            .background(Color(0xFFFF8A7A), CircleShape)
+                            .background(accentColor, CircleShape)
                     )
                 }
             }
@@ -522,10 +643,49 @@ fun EggApp() {
     val terminalFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    // ── Terminal session notification: permission + receiver for "Close Session" action ──
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* permission result does not need processing */ }
+
+    val closeTerminalReceiver = remember {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == ACTION_CLOSE_TERMINAL) {
+                    terminalVisible = false // close terminal → notification gets cleaned up too
+                }
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        val filter = IntentFilter(ACTION_CLOSE_TERMINAL)
+        ContextCompat.registerReceiver(context, closeTerminalReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        onDispose {
+            runCatching { context.unregisterReceiver(closeTerminalReceiver) }
+        }
+    }
+
     var currentSection by remember { mutableStateOf("File Manager") }
 
     var rootFolderUri by remember { mutableStateOf<Uri?>(null) }
     var rootFolderPath by remember { mutableStateOf<String?>(null) }
+
+    // Post / clear notification when terminal opens/closes & when folder changes
+    // NOTE: placed AFTER rootFolderPath declaration to avoid unresolved reference.
+    LaunchedEffect(terminalVisible, rootFolderPath) {
+        if (terminalVisible) {
+            // Android 13+ requires POST_NOTIFICATIONS permission for notifications to appear
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            postTerminalNotification(context, rootFolderPath)
+        } else {
+            cancelTerminalNotification(context)
+        }
+    }
+
     var visibleNodes by remember { mutableStateOf<List<FileNode>>(emptyList()) }
     var expandedPaths by remember { mutableStateOf<Set<String>>(emptySet()) }
     val folderCache = remember { mutableStateMapOf<String, List<FileNode>>() }
@@ -826,19 +986,6 @@ fun EggApp() {
                     }
                 )
 
-                // Claude theme: apply the ANSI palette + default colors when dark theme is active
-                if (settings.themeName == "darcula") {
-                    try {
-                        emulator.applyColorScheme(
-                            claudeAnsiPalette(),
-                            claudeDefaultForeground(),
-                            claudeDefaultBackground()
-                        )
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
                 terminalEmulator = emulator
             }
 
@@ -866,8 +1013,32 @@ fun EggApp() {
 
             if (terminalSession == null) {
                 try {
+                    // Android 11+ (API 30+): tanpa izin "All files access", storage tampak
+                    // kosong/filtered di dalam sandbox (scoped storage). Minta akses penuh.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                        printToScreen("Grant All Files Access to see your storage...\r\n")
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    Uri.parse("package:${context.packageName}")
+                                )
+                            )
+                        }.recoverCatching {
+                            context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                        }
+                    }
+
                     printToScreen("Starting Alpine shell...\r\n")
-                    val loginBuilder = pdnRuntime.login("alpine")
+                    // Bind Android storage ke sandbox agar terminal bisa mengakses folder File Manager.
+                    // /storage/emulated/0 → /mnt/sdcard (diteruskan PRoot sebagai --bind).
+                    val pdnConfig = PdnConfiguration(
+                        "root",
+                        "/workspace",
+                        listOf(PdnBind(File("/storage/emulated/0"), "/mnt/sdcard")),
+                        emptyMap()
+                    )
+                    val loginBuilder = pdnRuntime.login("alpine", pdnConfig)
                     val listener = object : PdnTerminalListener {}
                     val session = pdnTerminal.start(loginBuilder, 80, 24, listener)
                     terminalSession = session
@@ -877,6 +1048,21 @@ fun EggApp() {
                         session.resize(emulator.dimensions.rows, emulator.dimensions.columns)
                     } catch (e: Exception) {
                         e.printStackTrace()
+                    }
+
+                    // 💡 Langsung pindah ke folder yang sedang aktif di File Manager.
+                    // Utamakan /mnt/sdcard (bind), lalu path asli, lalu /sdcard; kalau semuanya
+                    // gagal, tetap di home default.
+                    rootFolderPath?.let { folder ->
+                        val cdCmd = buildCdCommand(folder)
+                        scope.launch {
+                            delay(600.milliseconds) // tunggu prompt shell siap
+                            try {
+                                terminalSession?.write((cdCmd + "\r\n").toByteArray())
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
                     }
 
                     scope.launch(Dispatchers.IO) {
@@ -940,6 +1126,22 @@ fun EggApp() {
         }
         walk(rootUri, 0)
         visibleNodes = result
+    }
+
+    // Hitung untuk tiap node: di level mana saja garis vertikal harus diteruskan
+    // ke bawah. Level l lanjut jika masih ada node SETELAH ini yang kedalamannya
+    // > l (masih di dalam subtree yang sama). Scan dari kanan ke kiri.
+    val guidesByUri = remember(visibleNodes) {
+        val laterHasBelow = mutableMapOf<Int, Boolean>()
+        val result = mutableMapOf<String, List<Boolean>>()
+        for (i in visibleNodes.indices.reversed()) {
+            val node = visibleNodes[i]
+            result[node.uri.toString()] = (0 until node.depth).map { l -> laterHasBelow[l] == true }
+            // Node ini menjadi "di bawah" bagi baris-baris di atasnya:
+            // tandai semua level nenek-moyangnya.
+            for (l in 0 until node.depth) laterHasBelow[l] = true
+        }
+        result
     }
 
     val openFolderLauncher = rememberLauncherForActivityResult(
@@ -1231,8 +1433,13 @@ fun EggApp() {
 
     // Global theme: follows the "Theme" setting (Light/Dark), not the system setting
     EggTheme(darkTheme = settings.themeName == "darcula", dynamicColor = false) {
-        // Sync status bar & navigation bar with the theme background color
-        EggSystemBarStyle(darkTheme = settings.themeName == "darcula")
+        // Sync status bar & navigation bar:
+        // - Terminal open → follows terminal color (black, white icons)
+        // - Terminal closed → follows active theme (dark/light)
+        EggSystemBarStyle(
+            darkTheme = settings.themeName == "darcula" || terminalVisible,
+            customBg = if (terminalVisible) 0xFF000000.toInt() else null // black = default terminal
+        )
 
         Box(modifier = Modifier.fillMaxSize()) {
             ModalNavigationDrawer(
@@ -1380,43 +1587,65 @@ fun EggApp() {
                                                     items(visibleNodes, key = { it.uri.toString() }) { node ->
                                                         var showContextMenu by remember { mutableStateOf(false) }
                                                         Row(
-                                                            modifier = Modifier.fillMaxWidth().combinedClickable(
-                                                                onClick = {
-                                                                    if (node.isDirectory) {
-                                                                        scope.launch {
-                                                                            val path = node.uri.toString()
-                                                                            expandedPaths = if (expandedPaths.contains(path)) expandedPaths - path else expandedPaths + path
-                                                                            rebuildVisibleNodes()
-                                                                        }
-                                                                    } else {
-                                                                        scope.launch {
-                                                                            val existing = tabs.indexOfFirst { it.uri == node.uri }
-                                                                            if (existing >= 0) {
-                                                                                captureActiveTabContent()
-                                                                                activeTabId = tabs[existing].id
-                                                                            } else {
-                                                                                val content = readFileContent(context, node.uri)
-                                                                                captureActiveTabContent()
-                                                                                val tab = EditorTab(nextTabId++, node.name, node.uri, content)
-                                                                                tabs.add(tab)
-                                                                                activeTabId = tab.id
+                                                            modifier = Modifier.fillMaxWidth()
+                                                                .height(48.dp) // ← tinggi baris tetap (harus sama dengan TreeGuides.height)
+                                                                .combinedClickable(
+                                                                    onClick = {
+                                                                        if (node.isDirectory) {
+                                                                            scope.launch {
+                                                                                val path = node.uri.toString()
+                                                                                expandedPaths = if (expandedPaths.contains(path)) expandedPaths - path else expandedPaths + path
+                                                                                rebuildVisibleNodes()
                                                                             }
-                                                                            drawerState.close()
+                                                                        } else {
+                                                                            scope.launch {
+                                                                                val existing = tabs.indexOfFirst { it.uri == node.uri }
+                                                                                if (existing >= 0) {
+                                                                                    captureActiveTabContent()
+                                                                                    activeTabId = tabs[existing].id
+                                                                                } else {
+                                                                                    val content = readFileContent(context, node.uri)
+                                                                                    captureActiveTabContent()
+                                                                                    val tab = EditorTab(nextTabId++, node.name, node.uri, content)
+                                                                                    tabs.add(tab)
+                                                                                    activeTabId = tab.id
+                                                                                }
+                                                                                drawerState.close()
+                                                                            }
                                                                         }
-                                                                    }
-                                                                },
-                                                                onLongClick = { showContextMenu = true }
-                                                            ).padding(start = (node.depth * 16).dp, top = 12.dp, bottom = 12.dp),
+                                                                    },
+                                                                    onLongClick = { showContextMenu = true }
+                                                                )
+                                                                .padding(end = 8.dp), // ← padding vertikal dihapus agar garis tersambung
                                                             verticalAlignment = Alignment.CenterVertically
                                                         ) {
+                                                            if (node.depth > 0) {
+                                                                TreeGuides(
+                                                                    depth = node.depth,
+                                                                    hasGuide = guidesByUri[node.uri.toString()] ?: emptyList(),
+                                                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                                                    height = 48.dp // ← harus SAMA dengan tinggi Row
+                                                                )
+                                                            }
                                                             if (node.isDirectory) {
                                                                 val isExpanded = expandedPaths.contains(node.uri.toString())
-                                                                Icon(if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight, "Expand", modifier = Modifier.size(16.dp))
-                                                                Spacer(Modifier.width(4.dp))
-                                                                Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary)
+                                                                val folderSpec = folderIconSpec(node.depth)
+                                                                Icon(
+                                                                    if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                                    "Expand",
+                                                                    modifier = Modifier.size(18.dp)
+                                                                )
+                                                                Spacer(Modifier.width(6.dp)) // ← jarak panah ↔ folder
+                                                                Icon(
+                                                                    if (isExpanded) Icons.Default.FolderOpen else folderSpec.icon,
+                                                                    null,
+                                                                    modifier = Modifier.size(20.dp), // ← offset negatif dihapus
+                                                                    tint = folderSpec.color
+                                                                )
                                                             } else {
                                                                 Spacer(Modifier.width(20.dp))
-                                                                Icon(Icons.AutoMirrored.Filled.InsertDriveFile, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                                val fileSpec = fileIconSpec(node.name)
+                                                                Icon(fileSpec.icon, null, tint = fileSpec.color)
                                                             }
                                                             Spacer(Modifier.width(8.dp))
                                                             Text(node.name, maxLines = 1)
@@ -1776,24 +2005,41 @@ fun EggApp() {
                 )
             }
 
-            // ── Terminal follows the theme ──
+            // ── Terminal (default theme, no color overrides) ──
             if (terminalVisible) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Column(Modifier.fillMaxSize()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Terminal header: title + active File Manager folder location
+                        Column(
+                            modifier = Modifier.fillMaxWidth().height(52.dp).padding(start = 16.dp, end = 4.dp),
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Alpine Terminal", color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-                            IconButton(onClick = {
-                                terminalVisible = false
-                                editorState.editor?.requestFocus()
-                            }) {
-                                Icon(Icons.Default.Close, "Close Terminal", tint = MaterialTheme.colorScheme.onBackground)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Alpine Terminal",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = {
+                                    terminalVisible = false
+                                    editorState.editor?.requestFocus()
+                                }) {
+                                    Icon(Icons.Default.Close, "Close Terminal", tint = MaterialTheme.colorScheme.onBackground)
+                                }
                             }
+                            Text(
+                                "Folder: ${rootFolderPath ?: "No folder open"}",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         val emulator = terminalEmulator
                         if (emulator != null) {
@@ -1826,16 +2072,22 @@ fun EggApp() {
                                     },
                                 keyboardEnabled = true,
                                 showSoftKeyboard = true,
-                                focusRequester = terminalFocusRequester, // if the compiler rejects this, remove this line
-                                // Claude theme (dark) or Material theme when light
-                                backgroundColor = if (settings.themeName == "darcula") Color(0xFF262624) else MaterialTheme.colorScheme.background,
-                                foregroundColor = if (settings.themeName == "darcula") Color(0xFFD6D3D2) else MaterialTheme.colorScheme.onBackground
+                                focusRequester = terminalFocusRequester // if the compiler rejects this, remove this line
                             )
                         } else {
                             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 Text("Loading terminal...", color = MaterialTheme.colorScheme.primary)
                             }
                         }
+
+                        // ── Terminal shortcut bottom bar (horizontal scroll) ──
+                        TerminalShortcutBar(
+                            onCommand = { cmd ->
+                                terminalSession?.let { session ->
+                                    runCatching { session.write((cmd + "\r\n").toByteArray()) }
+                                }
+                            }
+                        )
                     }
                 }
             }

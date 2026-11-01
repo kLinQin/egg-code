@@ -67,7 +67,7 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r")
     implementation(files("libs/pdn-engine-0.6.18.aar"))
 
-    implementation("org.connectbot:termlib:0.0.40")
+    implementation(project(":termlib-local"))
 
     // TAMBAHKAN BARIS INI UNTUK DESUGARING
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")

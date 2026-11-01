@@ -4,6 +4,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Izin notifikasi (Android 13+ / API 33+): dipakai untuk
+         notifikasi "Alpine Terminal — Sesi Aktif" di notification drawer -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Izin akses penuh ke storage (Android 11+): dibutuhkan agar folder
+         File Manager terbaca utuh di dalam sandbox PRoot/Pdn (scoped storage). -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <application
         android:extractNativeLibs="true"
         android:allowBackup="true"

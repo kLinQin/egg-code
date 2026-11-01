@@ -42,10 +42,11 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun EggSystemBarStyle(darkTheme: Boolean) {
+fun EggSystemBarStyle(darkTheme: Boolean, customBg: Int? = null) {
     val view = LocalView.current
     if (!view.isInEditMode) {
-        val bg = MaterialTheme.colorScheme.background.toArgb()
+        // Pakai customBg (misal warna terminal) kalau ada; kalau tidak, ikut background tema aktif
+        val bg = customBg ?: MaterialTheme.colorScheme.background.toArgb()
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = bg
