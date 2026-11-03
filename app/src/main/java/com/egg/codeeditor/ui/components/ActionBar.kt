@@ -39,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.egg.codeeditor.R
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -66,7 +68,7 @@ fun FileManagerActionBar(
         ) {
             ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File")
             ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder")
-            ActionPillVertical(onRefresh, Icons.Default.Refresh, "Refresh")
+            ActionPillVertical(onRefresh, painterResource(R.drawable.ic_git_branch), "Refresh")
             ActionPillVertical(onToggleCollapse,
                 if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore, "Collapse")
             ActionPillVertical(onCloseProject, Icons.Default.ExitToApp, "Close")
@@ -124,28 +126,19 @@ fun GitActionBar(
         }
     } else {
         Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            GitActionPill(onClick = onRefresh, enabled = !gitBusy, icon = Icons.Default.Refresh, label = "Refresh")
+            ActionPillVertical(onRefresh, Icons.Default.Refresh, "Refresh", enabled = !gitBusy)
             if (remoteUrl == null) {
-                GitActionPill(onClick = onAddRemote, enabled = !gitBusy, icon = Icons.Default.Link, label = "Remote")
+                ActionPillVertical(onAddRemote, Icons.Default.Link, "Remote", enabled = !gitBusy)
             } else {
-                GitActionPill(onClick = onFetch, enabled = !gitBusy, icon = Icons.Default.Sync, label = "Fetch")
-                GitActionPill(onClick = onPull, enabled = !gitBusy, icon = Icons.Default.ArrowDownward, label = "Pull")
-                GitActionPill(onClick = onPush, enabled = !gitBusy, icon = Icons.Default.ArrowUpward, label = "Push")
+                ActionPillVertical(onFetch, painterResource(R.drawable.ic_git_fetch), "Fetch", enabled = !gitBusy)
+                ActionPillVertical(onPull, painterResource(R.drawable.ic_git_pull), "Pull", enabled = !gitBusy)
+                ActionPillVertical(onPush, painterResource(R.drawable.ic_git_push), "Push", enabled = !gitBusy)
             }
-            Button(
-                onClick = onCommit,
-                enabled = !gitBusy && commitMessage.isNotBlank(),
-                shape = RectangleShape,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 3.dp)
-            ) {
-                Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Commit", fontSize = 12.sp)
-            }
+            ActionPillVertical(onCommit, painterResource(R.drawable.ic_git_commit), "Commit", enabled = !gitBusy && commitMessage.isNotBlank())
         }
     }
 }
@@ -192,17 +185,21 @@ fun CloudActionBar(
 }
 
 @Composable
-private fun ActionPillVertical(onClick: () -> Unit, icon: ImageVector, label: String) {
+private fun ActionPillVertical(onClick: () -> Unit, icon: Any, label: String, enabled: Boolean = true) {
+    val tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     Column(
         modifier = Modifier
             .width(64.dp)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Icon(icon, label, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(label, fontSize = 11.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        when (icon) {
+            is ImageVector -> Icon(icon, label, tint = tint)
+            is androidx.compose.ui.graphics.painter.Painter -> Icon(icon, label, tint = tint)
+        }
+        Text(label, fontSize = 11.sp, maxLines = 1, color = tint)
     }
 }
 

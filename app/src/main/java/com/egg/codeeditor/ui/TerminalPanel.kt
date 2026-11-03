@@ -139,7 +139,10 @@ internal fun TerminalPanel(
                 val pdnConfig = PdnConfiguration(
                     "root",
                     "/workspace",
-                    listOf(PdnBind(File("/storage/emulated/0"), "/mnt/sdcard")),
+                    listOf(
+                        PdnBind(File("/storage/emulated/0"), "/mnt/sdcard"),
+                        PdnBind(context.filesDir, "/mnt/appdata")
+                    ),
                     emptyMap()
                 )
                 val loginBuilder = pdnRuntime.login("alpine", pdnConfig)
@@ -151,18 +154,6 @@ internal fun TerminalPanel(
                     session.resize(emulator.dimensions.rows, emulator.dimensions.columns)
                 } catch (e: Exception) {
                     e.printStackTrace()
-                }
-
-                vm.rootFolderPath?.let { folder ->
-                    val cdCmd = buildCdCommand(folder)
-                    scope.launch {
-                        delay(600.milliseconds)
-                        try {
-                            terminalSession?.write((cdCmd + "\r\n").toByteArray())
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
                 }
 
                 scope.launch(Dispatchers.IO) {
@@ -194,6 +185,19 @@ internal fun TerminalPanel(
             delay(200.milliseconds)
             terminalFocusRequester.requestFocus()
             keyboardController?.show()
+        }
+    }
+
+    // Auto-cd saat rootFolderPath berubah (File Manager <-> Git <-> B2)
+    LaunchedEffect(vm.rootFolderPath) {
+        val folder = vm.rootFolderPath ?: return@LaunchedEffect
+        val session = terminalSession ?: return@LaunchedEffect
+        val cmd = buildCdCommand(folder)
+        delay(300.milliseconds) // beri waktu shell siap jika baru start
+        try {
+            session.write((cmd + "\r\n").toByteArray())
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

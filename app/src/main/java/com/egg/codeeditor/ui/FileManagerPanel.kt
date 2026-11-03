@@ -1,6 +1,7 @@
 package com.egg.codeeditor.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -113,13 +115,13 @@ internal fun FileManagerPanel(
                         Icon(
                             if (isExpanded) Icons.Default.FolderOpen else folderSpec.icon,
                             null,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(18.dp),
                             tint = folderSpec.color
                         )
                     } else {
                         Spacer(Modifier.width(20.dp))
                         val fileSpec = fileIconSpec(node.name)
-                        Icon(fileSpec.icon, null, tint = fileSpec.color)
+                        Icon(fileSpec.icon, null, modifier = Modifier.size(18.dp), tint = fileSpec.color)
                     }
 
                     Spacer(Modifier.width(8.dp))
@@ -129,25 +131,26 @@ internal fun FileManagerPanel(
                 // Menu konteks ala TabBar: 1 baris horizontal + scroll,
                 // muncul 4dp di bawah baris, rata kiri dengan awal baris.
                 if (showContextMenu) {
-                    Popup(
-                        alignment = Alignment.TopStart,
-                        offset = with(density) { IntOffset(0, 52.dp.roundToPx()) }, // 48dp + 4dp jarak
-                        onDismissRequest = { showContextMenu = false },
-                        properties = PopupProperties(focusable = true)
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = with(density) { IntOffset(4.dp.roundToPx() - (if (node.isDirectory) (node.depth * 16 + 24).dp.roundToPx() else 0), 44.dp.roundToPx()) },
+                    onDismissRequest = { showContextMenu = false },
+                    properties = PopupProperties(focusable = true, clippingEnabled = true)
+                ) {
+                    Surface(
+                        shape = RectangleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 6.dp,
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.widthIn(max = 360.dp)
                     ) {
-                        Surface(
-                            shape = RectangleShape,
-                            color = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 6.dp,
-                            shadowElevation = 8.dp,
-                            modifier = Modifier.widthIn(max = 360.dp) // batas lebar, sisanya scroll
+                        val scrollState = rememberScrollState()
+                        Row(
+                            modifier = Modifier
+                                .horizontalScroll(scrollState)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
                                 MenuTextAction("Copy Path") {
                                     clipboardManager.setText(AnnotatedString(node.uri.toString()))
                                     showContextMenu = false
@@ -174,9 +177,9 @@ internal fun FileManagerPanel(
                                         showContextMenu = false
                                     }
                                 }
-                            }
                         }
                     }
+                }
                 }
             }
         }

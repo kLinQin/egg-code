@@ -6,6 +6,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.vectorResource
+import com.egg.codeeditor.R
 
 /** Spesifikasi ikon: ImageVector + warna. */
 internal data class IconSpec(val icon: ImageVector, val color: Color)
@@ -21,9 +25,24 @@ internal fun folderIconSpec(depth: Int): IconSpec =
     IconSpec(Icons.Default.Folder, FOLDER_PALETTE[depth % FOLDER_PALETTE.size])
 
 /** Ikon file sesuai jenis/bahasa, bukan satu ikon monoton. */
+@Composable
 internal fun fileIconSpec(fileName: String): IconSpec {
     val n = fileName.lowercase()
+    val dark = isSystemInDarkTheme()
     return when {
+        n.endsWith(".js") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_js_dark else R.drawable.ic_file_js), Color.Unspecified)
+        n.endsWith(".ts") || n.endsWith(".tsx") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_ts_dark else R.drawable.ic_file_ts), Color.Unspecified)
+        n.endsWith(".kt") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_kt_dark else R.drawable.ic_file_kt), Color.Unspecified)
+        n.endsWith(".kts") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_kts_dark else R.drawable.ic_file_kts), Color.Unspecified)
+        n.endsWith(".java") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_java_dark else R.drawable.ic_file_java), Color.Unspecified)
+        n.endsWith(".py") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_py_dark else R.drawable.ic_file_py), Color.Unspecified)
+        n.endsWith(".html") || n.endsWith(".htm") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_html_dark else R.drawable.ic_file_html), Color.Unspecified)
+        n.endsWith(".css") || n.endsWith(".scss") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_css_dark else R.drawable.ic_file_css), Color.Unspecified)
+        n.endsWith(".json") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_json_dark else R.drawable.ic_file_json), Color.Unspecified)
+        n.endsWith(".md") || n.endsWith(".markdown") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_md_dark else R.drawable.ic_file_md), Color.Unspecified)
+        n.endsWith(".xml") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_xml_dark else R.drawable.ic_file_xml), Color.Unspecified)
+        n.endsWith(".php") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_php_dark else R.drawable.ic_file_php), Color.Unspecified)
+        n.endsWith(".sql") -> IconSpec(ImageVector.vectorResource(if (dark) R.drawable.ic_file_sql_dark else R.drawable.ic_file_sql), Color.Unspecified)
         n.endsWith(".kt") || n.endsWith(".kts") || n.endsWith(".java") ||
                 n.endsWith(".js") || n.endsWith(".ts") || n.endsWith(".py") ||
                 n.endsWith(".sh") || n.endsWith(".cpp") || n.endsWith(".c") ||

@@ -228,10 +228,21 @@ fun EggApp() {
         scope.launch { drawerState.close() }
     }
     BackHandler(enabled = !drawerState.isOpen) {
-        if (vm.settings.confirmExit) {
-            vm.showExitConfirm = true
-        } else {
-            (context as? Activity)?.finish()
+        when {
+            vm.showSettings -> vm.showSettings = false
+            vm.showAboutDialog -> vm.showAboutDialog = false
+            vm.showExitConfirm -> vm.showExitConfirm = false
+            vm.terminalVisible -> {
+                vm.terminalVisible = false
+                editorState.editor?.requestFocus()
+            }
+            vm.tabs.size > 1 -> {
+                val activeId = vm.activeTabId
+                if (activeId != null) vm.requestCloseTab(vm.tabs.first { it.id == activeId })
+            }
+            vm.currentSection != "File Manager" -> vm.currentSection = "File Manager"
+            vm.settings.confirmExit -> vm.showExitConfirm = true
+            else -> (context as? Activity)?.finish()
         }
     }
 
@@ -563,8 +574,8 @@ fun EggApp() {
                                     enabled = vm.activeTab?.isDirty == true,
                                     colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                 ) { Icon(Icons.Default.Save, "Save") }
-                                IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, "Settings") }
                                 IconButton(onClick = { vm.terminalVisible = true }) { Icon(Icons.Default.Terminal, "Terminal") }
+                                IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, "Settings") }
                             }
                         )
                     },

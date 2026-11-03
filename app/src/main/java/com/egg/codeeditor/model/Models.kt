@@ -57,10 +57,12 @@ data class EditorSettings(
     val showBottomBar: Boolean = true,
     // ── Apps ──
     val fontFamily: String = "monospace", // "monospace" | "sans" | "serif" | "custom"
-    val customFontPath: String? = null,   // path to uploaded font
+    val customFontPath: String? = null,   // path to uploaded font (deprecated)
     // ── App UI font (separate from editor) ──
     val appFontFamily: String = "sans", // "sans" | "serif" | "monospace" | "custom"
     val appCustomFontPath: String? = null,
+    val editorFontList: List<String> = emptyList(), // list of absolute paths
+    val appFontList: List<String> = emptyList(),
     val appFontScale: Float = 1.0f,
     // ── Editor ──
     val confirmExit: Boolean = true,

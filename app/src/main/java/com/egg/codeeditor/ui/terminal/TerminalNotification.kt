@@ -69,11 +69,15 @@ internal fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''
 
 /** Build a `cd` command that prefers the /mnt/sdcard bind, then falls back to other aliases. */
 internal fun buildCdCommand(androidPath: String): String {
-    val suffix = androidPath.removePrefix("/storage/emulated/0")
-    val candidates = listOf(
-        "/mnt/sdcard$suffix",
-        androidPath,
-        "/sdcard$suffix"
-    ).filter { it.isNotEmpty() }.distinct()
-    return candidates.joinToString(" || ") { "cd ${shellQuote(it)} 2>/dev/null" }
+    val candidates = mutableListOf<String>()
+    if (androidPath.startsWith("/storage/emulated/0")) {
+        val suffix = androidPath.removePrefix("/storage/emulated/0")
+        candidates.add("/mnt/sdcard$suffix")
+        candidates.add("/sdcard$suffix")
+    } else if (androidPath.contains("/files")) {
+        val suffix = androidPath.substringAfter("/files")
+        candidates.add("/mnt/appdata$suffix")
+    }
+    candidates.add(androidPath)
+    return "cd ${shellQuote(candidates.first())}"
 }

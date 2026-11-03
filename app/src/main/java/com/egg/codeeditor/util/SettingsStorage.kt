@@ -28,6 +28,10 @@ private const val KEY_OPEN_TABS = "open_tabs"
 private const val KEY_B2_KEY_ID = "b2_key_id"
 private const val KEY_B2_APP_KEY = "b2_app_key"
 private const val KEY_B2_BUCKET = "b2_bucket"
+private const val KEY_GITHUB_USER = "github_user"
+private const val KEY_GITHUB_TOKEN = "github_token"
+private const val KEY_EDITOR_FONT_LIST = "editor_font_list"
+private const val KEY_APP_FONT_LIST = "app_font_list"
 
 /** Load editor settings from SharedPreferences (moved from EggApp.kt). */
 fun loadSettings(context: Context): EditorSettings {
@@ -162,4 +166,17 @@ fun loadOpenTabs(context: Context): String? =
 fun clearOpenTabs(context: Context) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().remove(KEY_OPEN_TABS).apply()
+}
+
+fun saveGitCredentials(context: Context, user: String, token: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_GITHUB_USER, user).putString(KEY_GITHUB_TOKEN, token).apply()
+}
+
+fun loadGitCredentials(context: Context): Pair<String, String>? {
+    val p = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val u = p.getString(KEY_GITHUB_USER, null) ?: return null
+    val t = p.getString(KEY_GITHUB_TOKEN, null) ?: return null
+    if (u.isEmpty() && t.isEmpty()) return null
+    return Pair(u, t)
 }

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -206,7 +207,7 @@ fun FindBar(
                     modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
-                        if (replaceMode) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        Icons.Default.SwapVert,
                         if (replaceMode) "Hide replace" else "Show replace",
                         Modifier.size(16.dp)
                     )

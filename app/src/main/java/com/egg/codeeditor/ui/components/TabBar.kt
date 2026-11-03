@@ -1,6 +1,9 @@
 package com.egg.codeeditor.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -25,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.egg.codeeditor.model.EditorTab
+import com.egg.codeeditor.ui.components.fileIconSpec
 
 /** Item menu teks ringkas (tanpa padding besar ala DropdownMenuItem). */
 @Composable
@@ -54,14 +58,20 @@ fun EditorTabBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth().height(40.dp)
+        modifier = Modifier.fillMaxWidth().height(36.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                modifier = Modifier.weight(1f).fillMaxHeight().horizontalScroll(rememberScrollState()),
+            val listState = rememberLazyListState()
+            LaunchedEffect(activeTabId) {
+                val idx = tabs.indexOfFirst { it.id == activeTabId }
+                if (idx >= 0) listState.animateScrollToItem(idx)
+            }
+            LazyRow(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                state = listState,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                tabs.forEach { tab ->
+                items(items = tabs, key = { it.id }) { tab ->
                     EditorTabItem(
                         tab = tab,
                         isActive = tab.id == activeTabId,
@@ -97,7 +107,7 @@ private fun EditorTabItem(
     Box {
         Row(
             modifier = Modifier
-                .height(40.dp)
+                .height(36.dp)
                 .combinedClickable(
                     onClick = { onSelect(tab.id) },
                     onLongClick = { menuOpen = true }
@@ -108,11 +118,12 @@ private fun EditorTabItem(
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val fileSpec = fileIconSpec(tab.name)
             Icon(
-                Icons.AutoMirrored.Filled.InsertDriveFile,
+                fileSpec.icon,
                 null,
-                Modifier.size(15.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Modifier.size(13.dp),
+                tint = fileSpec.color
             )
             Spacer(Modifier.width(6.dp))
             Text(

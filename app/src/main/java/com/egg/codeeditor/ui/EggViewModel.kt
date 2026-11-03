@@ -3,7 +3,6 @@ package com.egg.codeeditor.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -48,6 +47,8 @@ import com.egg.codeeditor.util.saveOpenTabs
 import com.egg.codeeditor.util.loadOpenTabs
 import com.egg.codeeditor.util.clearOpenTabs
 import com.egg.codeeditor.util.saveB2Credentials
+import com.egg.codeeditor.util.saveGitCredentials
+import com.egg.codeeditor.util.loadGitCredentials
 import com.egg.codeeditor.util.loadB2Credentials
 import com.egg.codeeditor.util.loadRecentProjects
 import com.egg.codeeditor.util.clearLastPrivateRoot
@@ -200,6 +201,7 @@ class EggViewModel(private val context: Context) {
     fun notify(msg: String) { _uiMessages.tryEmit(msg) }
 
     init {
+        loadGitCredentials(appContext)?.let { (u, t) -> gitUser = u; gitToken = t }
         restoreLastProject()
         loadRecentFromPrefs()
         restoreTabs()
@@ -785,8 +787,9 @@ class EggViewModel(private val context: Context) {
                 gitStatus = readGitStatus(g)
                 gitCommits = readGitLog(g)
                 gitRemoteUrl = getGitRemoteUrl(g)
-                gitMessage = "Commit succeeded."
+                gitMessage = "Commit succeeded. Pushing..."
                 notify(gitMessage!!)
+                gitPush()
             } catch (e: Exception) { gitMessage = "Commit failed: ${e.message}"; notify(gitMessage!!) } finally { gitBusy = false }
         }
     }
@@ -823,6 +826,7 @@ class EggViewModel(private val context: Context) {
                 gitCommits = readGitLog(cloned)
                 gitRemoteUrl = getGitRemoteUrl(cloned)
                 gitUser = user; gitToken = token
+                saveGitCredentials(appContext, user, token)
                 rootFolderUri = null
                 rootFolderPath = dest.absolutePath
                 rootIsPrivate = true
@@ -1100,7 +1104,6 @@ class EggViewModel(private val context: Context) {
                 cloudHistory = b2ListFileVersions(acc, bucketInfo.bucketId)
                 cloudMessage = "Connected to bucket '${bucketInfo.bucketName}'."
            } catch (e: Exception) {
-                Log.e("EggB2", "connect failed", e)
                 cloudMessage = "Connect failed:\n${e.stackTraceToString().take(1500)}"
            } finally {
                 cloudBusy = false; cloudMessage?.let { notify(it) }

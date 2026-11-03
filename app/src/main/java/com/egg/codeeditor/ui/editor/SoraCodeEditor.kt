@@ -100,7 +100,11 @@ private fun applyEditorSettings(editor: CodeEditor, settings: EditorSettings) {
         editor.setBlockLineEnabled(settings.indentGuide)
         editor.getProps().autoIndent = settings.autoIndent
         editor.getProps().symbolPairAutoCompletion = settings.closeBracket
-        editor.getComponent(EditorAutoCompletion::class.java).setEnabled(settings.autocomplete)
+        val completion = editor.getComponent(EditorAutoCompletion::class.java)
+        completion.setEnabled(settings.autocomplete)
+        if (!settings.autocomplete) {
+            runCatching { completion.hide() }
+        }
         editor.setTypefaceText(resolveTypeface(settings))
     } catch (e: Exception) {
         e.printStackTrace()
