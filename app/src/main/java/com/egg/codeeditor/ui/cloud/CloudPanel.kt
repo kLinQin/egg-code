@@ -1,5 +1,16 @@
 package com.egg.codeeditor.ui.cloud
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.egg.codeeditor.util.B2FileInfo
 import com.egg.codeeditor.util.CloudChange
+import com.egg.codeeditor.util.isErrorMessage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -42,7 +54,11 @@ fun CloudPanel(
     cloudChanges: List<CloudChange>,
     cloudHistory: List<B2FileInfo>,
     cloudBusy: Boolean,
-    cloudMessage: String?
+    cloudMessage: String?,
+    onPushFile: (String) -> Unit = {},
+    onDiscardFile: (String, Boolean) -> Unit = { _, _ -> },
+    onDeleteRemote: (String) -> Unit = {},
+    onDiscardAll: () -> Unit = {}
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         // Busy indicator: always visible when an operation is running
@@ -57,7 +73,7 @@ fun CloudPanel(
             Spacer(Modifier.height(8.dp))
             Text(
                 cloudMessage,
-                color = if (cloudMessage.contains("failed")) Color.Red else MaterialTheme.colorScheme.primary,
+                color = if (isErrorMessage(cloudMessage)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 fontSize = 12.sp
             )
         }
@@ -81,15 +97,56 @@ fun CloudPanel(
         Spacer(Modifier.height(8.dp))
 
         if (tab == 0) {
+            val hasDiscardable = cloudChanges.any { it is CloudChange.New || it is CloudChange.Modified }
+            if (hasDiscardable) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDiscardAll, enabled = !cloudBusy) { Text("Discard All", fontSize = 12.sp) }
+                }
+            }
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (cloudChanges.isEmpty()) {
                     item { Text("(In sync)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
                 }
                 items(cloudChanges) { c ->
-                    when (c) {
-                        is CloudChange.New -> Text("+  ${c.relPath}", fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                        is CloudChange.Modified -> Text("~  ${c.relPath}", fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                        is CloudChange.RemoteOnly -> Text("-  ${c.relPath}", fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                    val relPath = when (c) {
+                        is CloudChange.New -> c.relPath
+                        is CloudChange.Modified -> c.relPath
+                        is CloudChange.RemoteOnly -> c.relPath
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        val label = when (c) {
+                            is CloudChange.New -> "U  $relPath"
+                            is CloudChange.Modified -> "M  $relPath"
+                            is CloudChange.RemoteOnly -> "D  $relPath"
+                        }
+                        Text(label, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
+                        when (c) {
+                            is CloudChange.New -> {
+                                IconButton(onClick = { onPushFile(relPath) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Default.Upload, "Push", Modifier.size(16.dp))
+                                }
+                                IconButton(onClick = { onDiscardFile(relPath, true) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.Undo, "Discard", Modifier.size(16.dp))
+                                }
+                            }
+                            is CloudChange.Modified -> {
+                                IconButton(onClick = { onPushFile(relPath) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Default.Upload, "Push", Modifier.size(16.dp))
+                                }
+                                IconButton(onClick = { onDiscardFile(relPath, false) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.Undo, "Discard", Modifier.size(16.dp))
+                                }
+                            }
+                            is CloudChange.RemoteOnly -> {
+                                IconButton(onClick = { onDeleteRemote(relPath) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Default.Delete, "Delete remote", Modifier.size(16.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -20,7 +20,21 @@ data class GitCommitInfo(
 
 suspend fun readGitStatus(git: Git): GitStatusInfo = withContext(Dispatchers.IO) {
     val s = git.status().call()
-    GitStatusInfo(s.added.toList(), s.modified.toList(), s.untracked.toList(), s.removed.toList(), s.missing.toList())
+    val staged = runCatching {
+        git.diff().setCached(true).call().map { it.newPath ?: it.oldPath }
+    }.getOrDefault(emptyList())
+    val unstaged = runCatching {
+        git.diff().call().map { it.newPath ?: it.oldPath }
+    }.getOrDefault(emptyList())
+    GitStatusInfo(
+        added = s.added.toList(),
+        modified = s.modified.toList(),
+        untracked = s.untracked.toList(),
+        removed = s.removed.toList(),
+        missing = s.missing.toList(),
+        staged = staged,
+        unstaged = unstaged
+    )
 }
 
 suspend fun readGitLog(git: Git): List<GitCommitInfo> = withContext(Dispatchers.IO) {
@@ -46,13 +60,25 @@ fun getGitRemoteUrl(git: Git): String? {
 
 suspend fun readFileContent(context: Context, uri: Uri): String {
     return withContext(Dispatchers.IO) {
-        try { context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() } ?: "" } catch (e: Exception) { "Error: ${e.message}" }
+        try {
+            if (uri.scheme == "file") {
+                uri.path?.let { java.io.File(it).readText() } ?: ""
+            } else {
+                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() } ?: ""
+            }
+        } catch (e: Exception) { "Error: ${e.message}" }
     }
 }
 
 suspend fun writeFileContent(context: Context, uri: Uri, content: String) {
     withContext(Dispatchers.IO) {
-        try { context.contentResolver.openOutputStream(uri, "wt")?.use { it.bufferedWriter().write(content) } } catch (e: Exception) { e.printStackTrace() }
+        try {
+            if (uri.scheme == "file") {
+                uri.path?.let { java.io.File(it).writeText(content) }
+            } else {
+                context.contentResolver.openOutputStream(uri, "wt")?.use { it.bufferedWriter().write(content) }
+            }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 }
 
@@ -93,4 +119,11 @@ fun findOrCreateDocumentFile(context: Context, treeUri: Uri, relPath: String): D
         } ?: return null
     }
     return current
+}
+
+/** Heuristic: does this status message indicate a failure? */
+fun isErrorMessage(msg: String): Boolean {
+    val m = msg.lowercase()
+    return m.contains("failed") || m.contains("error") || m.contains("cannot") ||
+           m.contains("not found") || m.contains("exception")
 }

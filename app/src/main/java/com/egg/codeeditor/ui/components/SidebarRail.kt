@@ -26,7 +26,7 @@ internal fun RailStatusBar(versionText: String) {
         HorizontalDivider()
 
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant, // ← warna TIDAK diubah
+            color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth().height(36.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

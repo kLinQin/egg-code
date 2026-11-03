@@ -29,7 +29,8 @@ data class B2FileInfo(
     val contentLength: Long,
     val contentSha1: String,
     val uploadTimestamp: Long,
-    val action: String
+    val action: String,
+    val fileId: String = ""
 )
 
 /** Entries shown in the Cloud Changes tab. */
@@ -147,7 +148,8 @@ private fun parseFiles(arr: JSONArray): List<B2FileInfo> {
                 contentLength = o.getLong("contentLength"),
                 contentSha1 = o.optString("contentSha1", ""),
                 uploadTimestamp = o.optLong("uploadTimestamp", 0L),
-                action = o.optString("action", "upload")
+                action = o.optString("action", "upload"),
+                fileId = o.optString("fileId", "")
             )
         )
     }
@@ -175,7 +177,7 @@ suspend fun b2UploadFile(acc: B2Account, bucketId: String, objectName: String, f
         conn.setRequestProperty("X-Bz-File-Name", encodeObjectName(objectName))
         conn.setRequestProperty("X-Bz-Content-Sha1", sha1)
         conn.setRequestProperty("Content-Type", "application/octet-stream")
-        conn.setRequestProperty("Content-Length", bytes.size.toString())
+        conn.setFixedLengthStreamingMode(bytes.size)
         conn.outputStream.use { it.write(bytes) }
         val code = conn.responseCode
         if (code !in 200..299) {
@@ -185,6 +187,17 @@ suspend fun b2UploadFile(acc: B2Account, bucketId: String, objectName: String, f
     } finally {
         conn.disconnect()
     }
+}
+
+suspend fun b2DeleteFileVersion(acc: B2Account, fileName: String, fileId: String): Unit = withContext(Dispatchers.IO) {
+    val body = JSONObject().put("fileName", fileName).put("fileId", fileId).toString()
+    httpJson(
+        "${acc.apiUrl}/b2api/v2/b2_delete_file_version",
+        "POST",
+        jsonBody = body,
+        authToken = acc.authToken
+    )
+    Unit
 }
 
 /** Download a file from B2 and return its raw bytes (no direct File writes — avoids EPERM). */
@@ -243,8 +256,13 @@ suspend fun listLocalFiles(root: File): List<Pair<String, File>> = withContext(D
     out
 }
 
-/** Compare local files with the latest remote listing (from b2_list_file_names). */
-suspend fun computeCloudChanges(root: File, remote: List<B2FileInfo>): List<CloudChange> = withContext(Dispatchers.IO) {
+/** Compare local files with the latest remote listing (from b2_list_file_names).
+ *  If [index] is provided, unchanged files (same mtime+size) skip re-hashing. */
+suspend fun computeCloudChanges(
+    root: File,
+    remote: List<B2FileInfo>,
+    index: CloudIndex? = null
+): List<CloudChange> = withContext(Dispatchers.IO) {
     val remoteByName = remote.associateBy { it.fileName }
     val localFiles = listLocalFiles(root)
     val changes = mutableListOf<CloudChange>()
@@ -254,8 +272,17 @@ suspend fun computeCloudChanges(root: File, remote: List<B2FileInfo>): List<Clou
         val r = remoteByName[relPath]
         if (r == null) {
             changes.add(CloudChange.New(relPath))
+            if (index != null) {
+                val sha = runCatching { sha1Hex(f.readBytes()) }.getOrNull()
+                if (sha != null) index.put(relPath, CloudIndex.Entry(f.lastModified(), f.length(), sha))
+            }
         } else {
-            val localSha = runCatching { sha1Hex(f.readBytes()) }.getOrNull()
+            val cached = index?.get(relPath)
+            val usable = cached != null && cached.mtime == f.lastModified() && cached.size == f.length() && cached.sha1.isNotEmpty()
+            val localSha = if (usable) cached!!.sha1 else runCatching { sha1Hex(f.readBytes()) }.getOrNull()
+            if (!usable && localSha != null && index != null) {
+                index.put(relPath, CloudIndex.Entry(f.lastModified(), f.length(), localSha))
+            }
             if (localSha == null || localSha != r.contentSha1) {
                 changes.add(CloudChange.Modified(relPath))
             }
@@ -266,5 +293,6 @@ suspend fun computeCloudChanges(root: File, remote: List<B2FileInfo>): List<Clou
             changes.add(CloudChange.RemoteOnly(r.fileName))
         }
     }
+    index?.save()
     changes
 }

@@ -1,6 +1,8 @@
 package com.egg.codeeditor.ui.components
 
 import android.net.Uri
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -45,37 +48,28 @@ import org.eclipse.jgit.api.Git
 @Composable
 fun FileManagerActionBar(
     rootFolderUri: Uri?,
+    rootFolderPath: String?,
     expandedPaths: Set<String>,
-    onOpenFolder: () -> Unit,
     onNewFile: () -> Unit,
     onNewFolder: () -> Unit,
     onRefresh: () -> Unit,
     onToggleCollapse: () -> Unit,
     onCloseProject: () -> Unit
 ) {
-    if (rootFolderUri == null) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(onClick = onOpenFolder, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Default.FolderOpen, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Open Project Folder")
-            }
-        }
+    if (rootFolderUri == null && rootFolderPath == null) {
+        // No project open — entry is via Welcome screen only.
     } else {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onNewFile) { Icon(Icons.Default.NoteAdd, "New File") }
-            IconButton(onClick = onNewFolder) { Icon(Icons.Default.CreateNewFolder, "New Folder") }
-            IconButton(onClick = onRefresh) { Icon(Icons.Default.Refresh, "Refresh") }
-            IconButton(onClick = onToggleCollapse) {
-                Icon(if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore, "Toggle Collapse")
-            }
-            IconButton(onClick = onCloseProject) { Icon(Icons.Default.ExitToApp, "Close Project") }
+            ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File")
+            ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder")
+            ActionPillVertical(onRefresh, Icons.Default.Refresh, "Refresh")
+            ActionPillVertical(onToggleCollapse,
+                if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore, "Collapse")
+            ActionPillVertical(onCloseProject, Icons.Default.ExitToApp, "Close")
         }
     }
 }
@@ -134,7 +128,7 @@ fun GitActionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            GitActionPill(onClick = onRefresh, enabled = !gitBusy, icon = Icons.Default.Refresh, label = "Status")
+            GitActionPill(onClick = onRefresh, enabled = !gitBusy, icon = Icons.Default.Refresh, label = "Refresh")
             if (remoteUrl == null) {
                 GitActionPill(onClick = onAddRemote, enabled = !gitBusy, icon = Icons.Default.Link, label = "Remote")
             } else {
@@ -194,6 +188,21 @@ fun CloudActionBar(
             GitActionPill(onClick = onPull, enabled = !cloudBusy, icon = Icons.Default.ArrowDownward, label = "Pull")
             GitActionPill(onClick = onPush, enabled = !cloudBusy, icon = Icons.Default.ArrowUpward, label = "Push")
         }
+    }
+}
+
+@Composable
+private fun ActionPillVertical(onClick: () -> Unit, icon: ImageVector, label: String) {
+    Column(
+        modifier = Modifier
+            .width(64.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(icon, label, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, fontSize = 11.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

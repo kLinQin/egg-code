@@ -67,24 +67,25 @@ private fun CompactInputField(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surfaceVariant, RectangleShape)
             .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
-            .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.CenterStart
+            .padding(horizontal = 12.dp)
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().align(Alignment.CenterStart),
             textStyle = TextStyle(
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 13.sp
             ),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             decorationBox = { innerTextField: @Composable () -> Unit ->
-                if (value.isEmpty()) {
-                    Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty()) {
+                        Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    }
+                    innerTextField()
                 }
-                innerTextField()
             }
         )
     }
@@ -131,6 +132,38 @@ fun FindBar(
         currentIndex = 0
     }
 
+    fun indexOfLineCol(text: String, line: Int, col: Int): Int {
+        var cur = 0
+        var ln = 0
+        while (ln < line && cur < text.length) {
+            if (text[cur] == '\n') ln++
+            cur++
+        }
+        return (cur + col).coerceIn(0, text.length)
+    }
+
+    fun replaceCurrent() {
+        val e = editor ?: return
+        if (query.isEmpty() || matches.isEmpty()) return
+        val text = e.getText().toString()
+        val list = computeMatches(text, query)
+        if (list.isEmpty()) return
+        val idx = currentIndex.coerceIn(0, list.size - 1)
+        val (line, col) = list[idx]
+        val newText = text.substring(0, indexOfLineCol(text, line, col)) +
+            replaceWith +
+            text.substring(indexOfLineCol(text, line, col) + query.length)
+        e.setText(newText)
+        matches = computeMatches(newText, query)
+        if (matches.isEmpty()) currentIndex = 0
+        else currentIndex = idx.coerceAtMost(matches.size - 1)
+        if (matches.isNotEmpty()) {
+            val (l, c) = matches[currentIndex]
+            e.setSelection(l, c)
+            e.ensurePositionVisible(l, c)
+        }
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
@@ -168,11 +201,15 @@ fun FindBar(
                 ) {
                     Icon(Icons.Default.KeyboardArrowDown, "Next", Modifier.size(16.dp))
                 }
-                TextButton(
+                IconButton(
                     onClick = { replaceMode = !replaceMode },
-                    modifier = Modifier.height(30.dp)
+                    modifier = Modifier.size(30.dp)
                 ) {
-                    Text("Replace", fontSize = 11.sp)
+                    Icon(
+                        if (replaceMode) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (replaceMode) "Hide replace" else "Show replace",
+                        Modifier.size(16.dp)
+                    )
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Default.Close, "Close", Modifier.size(16.dp))
@@ -190,6 +227,13 @@ fun FindBar(
                         placeholder = "Replace with",
                         modifier = Modifier.weight(1f).height(38.dp)
                     )
+                    Button(
+                        onClick = ::replaceCurrent,
+                        enabled = query.isNotEmpty() && matches.isNotEmpty(),
+                        modifier = Modifier.height(34.dp)
+                    ) {
+                        Text("Replace", fontSize = 11.sp)
+                    }
                     Button(
                         onClick = ::replaceAll,
                         enabled = query.isNotEmpty(),

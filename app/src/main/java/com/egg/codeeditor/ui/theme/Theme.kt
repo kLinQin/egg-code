@@ -10,6 +10,8 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -62,6 +64,8 @@ fun EggSystemBarStyle(darkTheme: Boolean, customBg: Int? = null) {
 fun EggTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    appFontFamily: FontFamily? = null,
+    appFontScale: Float = 1f,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -74,9 +78,54 @@ fun EggTheme(
         else -> LightColorScheme
     }
 
+    val scaleTy: (androidx.compose.ui.text.TextStyle) -> androidx.compose.ui.text.TextStyle = { st ->
+        if (appFontScale == 1f) st
+        else st.copy(
+            fontSize = if (st.fontSize.isSpecified) st.fontSize * appFontScale else st.fontSize,
+            lineHeight = if (st.lineHeight.isSpecified) st.lineHeight * appFontScale else st.lineHeight
+        )
+    }
+    val baseTy = Typography
+    val scaledTy = Typography.copy(
+        displayLarge = scaleTy(baseTy.displayLarge),
+        displayMedium = scaleTy(baseTy.displayMedium),
+        displaySmall = scaleTy(baseTy.displaySmall),
+        headlineLarge = scaleTy(baseTy.headlineLarge),
+        headlineMedium = scaleTy(baseTy.headlineMedium),
+        headlineSmall = scaleTy(baseTy.headlineSmall),
+        titleLarge = scaleTy(baseTy.titleLarge),
+        titleMedium = scaleTy(baseTy.titleMedium),
+        titleSmall = scaleTy(baseTy.titleSmall),
+        bodyLarge = scaleTy(baseTy.bodyLarge),
+        bodyMedium = scaleTy(baseTy.bodyMedium),
+        bodySmall = scaleTy(baseTy.bodySmall),
+        labelLarge = scaleTy(baseTy.labelLarge),
+        labelMedium = scaleTy(baseTy.labelMedium),
+        labelSmall = scaleTy(baseTy.labelSmall)
+    )
+    val effectiveTypo = if (appFontFamily != null) {
+        scaledTy.copy(
+            displayLarge = scaledTy.displayLarge.copy(fontFamily = appFontFamily),
+            displayMedium = scaledTy.displayMedium.copy(fontFamily = appFontFamily),
+            displaySmall = scaledTy.displaySmall.copy(fontFamily = appFontFamily),
+            headlineLarge = scaledTy.headlineLarge.copy(fontFamily = appFontFamily),
+            headlineMedium = scaledTy.headlineMedium.copy(fontFamily = appFontFamily),
+            headlineSmall = scaledTy.headlineSmall.copy(fontFamily = appFontFamily),
+            titleLarge = scaledTy.titleLarge.copy(fontFamily = appFontFamily),
+            titleMedium = scaledTy.titleMedium.copy(fontFamily = appFontFamily),
+            titleSmall = scaledTy.titleSmall.copy(fontFamily = appFontFamily),
+            bodyLarge = scaledTy.bodyLarge.copy(fontFamily = appFontFamily),
+            bodyMedium = scaledTy.bodyMedium.copy(fontFamily = appFontFamily),
+            bodySmall = scaledTy.bodySmall.copy(fontFamily = appFontFamily),
+            labelLarge = scaledTy.labelLarge.copy(fontFamily = appFontFamily),
+            labelMedium = scaledTy.labelMedium.copy(fontFamily = appFontFamily),
+            labelSmall = scaledTy.labelSmall.copy(fontFamily = appFontFamily)
+        )
+    } else scaledTy
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = effectiveTypo,
         content = content
     )
 }

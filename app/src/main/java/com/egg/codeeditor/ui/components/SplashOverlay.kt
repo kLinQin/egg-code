@@ -72,7 +72,7 @@ internal fun buildHalfPath(pts: List<Offset>, left: Boolean, w: Float, h: Float)
 /** Splash overlay shown once per process (cold start). Mengikuti tema aktif (MaterialTheme). */
 @Composable
 internal fun SplashOverlay() {
-    val bgColor = MaterialTheme.colorScheme.surface
+    val bgColor = MaterialTheme.colorScheme.background
     val fgColor = MaterialTheme.colorScheme.onSurface
     val accentColor = MaterialTheme.colorScheme.primary
 

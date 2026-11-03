@@ -12,12 +12,22 @@ private const val KEY_TAB_WIDTH = "tab_width"
 private const val KEY_SHOW_BOTTOM_BAR = "show_bottom_bar"
 private const val KEY_FONT_FAMILY = "font_family"
 private const val KEY_CUSTOM_FONT_PATH = "custom_font_path"
+private const val KEY_APP_FONT_FAMILY = "app_font_family"
+private const val KEY_APP_CUSTOM_FONT_PATH = "app_custom_font_path"
+private const val KEY_APP_FONT_SCALE = "app_font_scale"
 private const val KEY_CONFIRM_EXIT = "confirm_exit"
 private const val KEY_AUTO_INDENT = "auto_indent"
 private const val KEY_AUTOCOMPLETE = "autocomplete"
 private const val KEY_INDENT_GUIDE = "indent_guide"
 private const val KEY_HIGHLIGHT_ACTIVE_LINE = "highlight_active_line"
 private const val KEY_CLOSE_BRACKET = "close_bracket"
+private const val KEY_LAST_PROJECT_URI = "last_project_uri"
+private const val KEY_LAST_PRIVATE_ROOT = "last_private_root"
+private const val KEY_RECENT_PROJECTS = "recent_projects"
+private const val KEY_OPEN_TABS = "open_tabs"
+private const val KEY_B2_KEY_ID = "b2_key_id"
+private const val KEY_B2_APP_KEY = "b2_app_key"
+private const val KEY_B2_BUCKET = "b2_bucket"
 
 /** Load editor settings from SharedPreferences (moved from EggApp.kt). */
 fun loadSettings(context: Context): EditorSettings {
@@ -31,7 +41,10 @@ fun loadSettings(context: Context): EditorSettings {
         showBottomBar = prefs.getBoolean(KEY_SHOW_BOTTOM_BAR, true),
         fontFamily = prefs.getString(KEY_FONT_FAMILY, "monospace") ?: "monospace",
         customFontPath = prefs.getString(KEY_CUSTOM_FONT_PATH, null),
-        confirmExit = prefs.getBoolean(KEY_CONFIRM_EXIT, true),
+         appFontFamily = prefs.getString(KEY_APP_FONT_FAMILY, "sans") ?: "sans",
+        appCustomFontPath = prefs.getString(KEY_APP_CUSTOM_FONT_PATH, null),
+        appFontScale = prefs.getFloat(KEY_APP_FONT_SCALE, 1.0f),
+       confirmExit = prefs.getBoolean(KEY_CONFIRM_EXIT, true),
         autoIndent = prefs.getBoolean(KEY_AUTO_INDENT, true),
         autocomplete = prefs.getBoolean(KEY_AUTOCOMPLETE, true),
         indentGuide = prefs.getBoolean(KEY_INDENT_GUIDE, true),
@@ -52,11 +65,101 @@ fun saveSettings(context: Context, settings: EditorSettings) {
         .putBoolean(KEY_SHOW_BOTTOM_BAR, settings.showBottomBar)
         .putString(KEY_FONT_FAMILY, settings.fontFamily)
         .putString(KEY_CUSTOM_FONT_PATH, settings.customFontPath)
-        .putBoolean(KEY_CONFIRM_EXIT, settings.confirmExit)
+         .putString(KEY_APP_FONT_FAMILY, settings.appFontFamily)
+        .putString(KEY_APP_CUSTOM_FONT_PATH, settings.appCustomFontPath)
+        .putFloat(KEY_APP_FONT_SCALE, settings.appFontScale)
+       .putBoolean(KEY_CONFIRM_EXIT, settings.confirmExit)
         .putBoolean(KEY_AUTO_INDENT, settings.autoIndent)
         .putBoolean(KEY_AUTOCOMPLETE, settings.autocomplete)
         .putBoolean(KEY_INDENT_GUIDE, settings.indentGuide)
         .putBoolean(KEY_HIGHLIGHT_ACTIVE_LINE, settings.highlightActiveLine)
         .putBoolean(KEY_CLOSE_BRACKET, settings.closeBracket)
         .apply()
+}
+
+/** Persist the last opened project folder URI (tree URI string). */
+fun saveLastProjectUri(context: Context, uri: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_LAST_PROJECT_URI, uri).apply()
+}
+
+fun loadLastProjectUri(context: Context): String? {
+    return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_LAST_PROJECT_URI, null)
+}
+
+fun clearLastProjectUri(context: Context) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().remove(KEY_LAST_PROJECT_URI).apply()
+}
+
+/** Persist the last private-mode root path (filesDir/repos/... or filesDir/b2/...). */
+fun saveLastPrivateRoot(context: Context, path: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_LAST_PRIVATE_ROOT, path).apply()
+}
+
+fun loadLastPrivateRoot(context: Context): String? =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_LAST_PRIVATE_ROOT, null)
+
+fun clearLastPrivateRoot(context: Context) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().remove(KEY_LAST_PRIVATE_ROOT).apply()
+}
+
+/** Persist recent private projects as a JSON array string. */
+fun saveRecentProjects(context: Context, json: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_RECENT_PROJECTS, json).apply()
+}
+
+fun loadRecentProjects(context: Context): String? =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_RECENT_PROJECTS, null)
+
+fun clearRecentProjects(context: Context) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().remove(KEY_RECENT_PROJECTS).apply()
+}
+
+/** Persist B2 credentials (plaintext) so recent B2 projects can reconnect. */
+fun saveB2Credentials(context: Context, keyId: String, appKey: String, bucket: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(KEY_B2_KEY_ID, keyId)
+        .putString(KEY_B2_APP_KEY, appKey)
+        .putString(KEY_B2_BUCKET, bucket)
+        .apply()
+}
+
+data class B2Credentials(val keyId: String, val appKey: String, val bucket: String)
+
+fun loadB2Credentials(context: Context): B2Credentials? {
+    val p = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val k = p.getString(KEY_B2_KEY_ID, null) ?: return null
+    val a = p.getString(KEY_B2_APP_KEY, null) ?: return null
+    val b = p.getString(KEY_B2_BUCKET, null) ?: return null
+    if (k.isEmpty() || a.isEmpty() || b.isEmpty()) return null
+    return B2Credentials(k, a, b)
+}
+
+fun clearB2Credentials(context: Context) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().remove(KEY_B2_KEY_ID).remove(KEY_B2_APP_KEY).remove(KEY_B2_BUCKET).apply()
+}
+
+/** Persist open tabs that have a real URI (skips untitled). */
+fun saveOpenTabs(context: Context, json: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(KEY_OPEN_TABS, json).apply()
+}
+
+fun loadOpenTabs(context: Context): String? =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(KEY_OPEN_TABS, null)
+
+fun clearOpenTabs(context: Context) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().remove(KEY_OPEN_TABS).apply()
 }

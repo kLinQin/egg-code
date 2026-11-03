@@ -65,8 +65,28 @@ fun SettingsDialog(
         }
     }
 
+    val appFontLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val dir = File(context.filesDir, "fonts")
+                    if (!dir.exists()) dir.mkdirs()
+                    val target = File(dir, "app_font.ttf")
+                    context.contentResolver.openInputStream(it)?.use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    onSettingsChange(settings.copy(appFontFamily = "custom", appCustomFontPath = target.absolutePath))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     // Full-screen, not a popup — mirrors the terminal pattern
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             // Header
             Row(
@@ -103,6 +123,54 @@ fun SettingsDialog(
                         Text("Dark", fontSize = 13.sp)
                     }
                 }
+
+                HorizontalDivider()
+
+                Text("App Font", style = MaterialTheme.typography.labelLarge)
+                listOf(
+                    "sans" to "Sans Serif",
+                    "serif" to "Serif",
+                    "monospace" to "Monospace"
+                ).forEach { (key, label) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = settings.appFontFamily == key,
+                            onClick = { onSettingsChange(settings.copy(appFontFamily = key)) }
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(label, fontSize = 13.sp)
+                    }
+                }
+                if (settings.appFontFamily == "custom") {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Custom app font: ${settings.appCustomFontPath?.substringAfterLast('/') ?: "?"}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Upload App Font", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = {
+                        appFontLauncher.launch(
+                            arrayOf(
+                                "font/ttf", "font/otf",
+                                "application/x-font-ttf", "application/x-font-opentype",
+                                "application/vnd.ms-opentype", "*/*"
+                            )
+                        )
+                    }) { Text("Upload") }
+                }
+
+                Text("App Font Size: " + (settings.appFontScale * 100).toInt() + "%", style = MaterialTheme.typography.labelLarge)
+                Slider(
+                    value = settings.appFontScale,
+                    onValueChange = { onSettingsChange(settings.copy(appFontScale = it)) },
+                    valueRange = 0.80f..1.40f,
+                    steps = 11
+                )
 
                 HorizontalDivider()
 

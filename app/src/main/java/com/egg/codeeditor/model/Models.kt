@@ -32,7 +32,9 @@ data class GitStatusInfo(
     val modified: List<String> = emptyList(),
     val untracked: List<String> = emptyList(),
     val removed: List<String> = emptyList(),
-    val missing: List<String> = emptyList()
+    val missing: List<String> = emptyList(),
+    val staged: List<String> = emptyList(),
+    val unstaged: List<String> = emptyList()
 )
 
 data class EditorTab(
@@ -40,7 +42,9 @@ data class EditorTab(
     val name: String,
     val uri: Uri?,
     var content: String = "",
-    var isDirty: Boolean = false
+    var isDirty: Boolean = false,
+    val diffOld: String? = null,
+    val diffNew: String? = null
 )
 
 /** Editor settings — persisted to SharedPreferences (see loadSettings/saveSettings in EggApp). */
@@ -54,6 +58,10 @@ data class EditorSettings(
     // ── Apps ──
     val fontFamily: String = "monospace", // "monospace" | "sans" | "serif" | "custom"
     val customFontPath: String? = null,   // path to uploaded font
+    // ── App UI font (separate from editor) ──
+    val appFontFamily: String = "sans", // "sans" | "serif" | "monospace" | "custom"
+    val appCustomFontPath: String? = null,
+    val appFontScale: Float = 1.0f,
     // ── Editor ──
     val confirmExit: Boolean = true,
     val autoIndent: Boolean = true,

@@ -1,6 +1,7 @@
 package com.egg.codeeditor.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -13,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.egg.codeeditor.ui.cloud.CloudConnectDialog
 import com.egg.codeeditor.ui.components.InputDialog
 import com.egg.codeeditor.ui.components.SettingsDialog
@@ -195,6 +197,89 @@ internal fun EggDialogs(
                 else vm.gitAddRemote(url, user, token)
             },
             onDismiss = { vm.showGitRemoteDialog = false }
+        )
+    }
+
+    vm.pendingCloudAction?.let { act ->
+        val (title, body, confirmLabel) = when (act.kind) {
+            EggViewModel.CloudActionKind.DISCARD_MODIFIED -> Triple(
+                "Discard changes",
+                "Revert '${act.relPath}' to the remote version? Local changes will be lost.",
+                "Discard")
+            EggViewModel.CloudActionKind.DISCARD_UNTRACKED -> Triple(
+                "Delete local file",
+                "Delete local file '${act.relPath}'? It does not exist on remote.",
+                "Delete")
+            EggViewModel.CloudActionKind.DELETE_REMOTE -> Triple(
+                "Delete remote file",
+                "Delete '${act.relPath}' from Backblaze B2? This cannot be undone.",
+                "Delete")
+            EggViewModel.CloudActionKind.DISCARD_ALL -> Triple(
+                "Discard All",
+                "Revert all modified files and delete all untracked files? This cannot be undone.",
+                "Discard All")
+        }
+        AlertDialog(
+            onDismissRequest = { vm.cloudCancelPending() },
+            title = { Text(title) },
+            text = { Text(body) },
+            confirmButton = {
+                TextButton(onClick = { vm.cloudConfirmPending() }) { Text(confirmLabel) }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.cloudCancelPending() }) { Text("Cancel") }
+            }
+        )
+    }
+
+    vm.pendingGitAction?.let { act ->
+        val (title, body, confirmLabel) = when (act.kind) {
+            EggViewModel.GitActionKind.DISCARD_FILE -> if (act.untracked) Triple(
+                "Delete untracked file",
+                "Delete local file '${act.relPath}'? It is not tracked by Git.",
+                "Delete") else Triple(
+                "Discard changes",
+                "Revert '${act.relPath}' to the index version? Local changes will be lost.",
+                "Discard")
+            EggViewModel.GitActionKind.DISCARD_ALL -> Triple(
+                "Discard All",
+                "Revert all unstaged changes and delete all untracked files? This cannot be undone.",
+                "Discard All")
+        }
+        AlertDialog(
+            onDismissRequest = { vm.gitCancelPending() },
+            title = { Text(title) },
+            text = { Text(body) },
+            confirmButton = {
+                TextButton(onClick = { vm.gitConfirmPending() }) { Text(confirmLabel) }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.gitCancelPending() }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (vm.showAppStorageDialog) {
+        AlertDialog(
+            onDismissRequest = { vm.showAppStorageDialog = false },
+            title = { Text("Open from App Storage") },
+            text = {
+                if (vm.appStorageItems.isEmpty()) {
+                    Text("No cloned repositories or pulled buckets yet.")
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(vm.appStorageItems.size) { idx ->
+                            val (label, path) = vm.appStorageItems[idx]
+                            TextButton(onClick = { vm.openPrivateRoot(label, path) }) {
+                                Text(label, modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.showAppStorageDialog = false }) { Text("Cancel") }
+            }
         )
     }
 

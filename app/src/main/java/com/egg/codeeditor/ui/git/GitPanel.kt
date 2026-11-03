@@ -1,5 +1,7 @@
 package com.egg.codeeditor.ui.git
 
+import com.egg.codeeditor.util.isErrorMessage
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +19,16 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +56,12 @@ fun GitPanel(
     commitMessage: String,
     gitBusy: Boolean,
     gitMessage: String?,
-    onCommitMessageChange: (String) -> Unit
+    onCommitMessageChange: (String) -> Unit,
+    onStage: (String) -> Unit = {},
+    onUnstage: (String) -> Unit = {},
+    onDiscard: (String, Boolean) -> Unit = { _, _ -> },
+    onDiscardAll: () -> Unit = {},
+    onOpenDiff: (String) -> Unit = {}
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         if (gitRepo == null) {
@@ -76,18 +93,46 @@ fun GitPanel(
             )
             Spacer(Modifier.height(8.dp))
             if (gitStatus != null) {
-                Text("Changes:", style = MaterialTheme.typography.labelMedium)
+                val staged = gitStatus.staged
+                val unstaged = gitStatus.unstaged
+                val untracked = gitStatus.untracked
+                val total = staged.size + unstaged.size + untracked.size
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Changes:", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                    if (unstaged.isNotEmpty() || untracked.isNotEmpty()) {
+                        TextButton(onClick = onDiscardAll, enabled = !gitBusy) { Text("Discard All", fontSize = 11.sp) }
+                    }
+                }
                 Spacer(Modifier.height(4.dp))
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    val allChanges = buildList {
-                        gitStatus.added.forEach { add("A  $it") }
-                        gitStatus.modified.forEach { add("M  $it") }
-                        gitStatus.untracked.forEach { add("?? $it") }
-                        gitStatus.removed.forEach { add("D  $it") }
-                        gitStatus.missing.forEach { add("!  $it") }
+                    if (total == 0) item { Text("(Clean)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+                    if (staged.isNotEmpty()) {
+                        item { Text("Staged", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        items(staged) { rel ->
+                            GitFileRow(label = "A  $rel", busy = gitBusy,
+                                primaryIcon = Icons.Default.Remove, primaryDesc = "Unstage",
+                                onPrimary = { onUnstage(rel) },
+                                secondaryIcon = null, secondaryDesc = null, onSecondary = null, onLabelClick = { onOpenDiff(rel) })
+                        }
                     }
-                    if (allChanges.isEmpty()) item { Text("(Clean)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
-                    items(allChanges) { line -> Text(line, fontSize = 12.sp, fontFamily = FontFamily.Monospace) }
+                    if (unstaged.isNotEmpty()) {
+                        item { Text("Changes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        items(unstaged) { rel ->
+                            GitFileRow(label = "M  $rel", busy = gitBusy,
+                                primaryIcon = Icons.Default.Add, primaryDesc = "Stage",
+                                onPrimary = { onStage(rel) },
+                                secondaryIcon = Icons.AutoMirrored.Filled.Undo, secondaryDesc = "Discard", onSecondary = { onDiscard(rel, false) }, onLabelClick = { onOpenDiff(rel) })
+                        }
+                    }
+                    if (untracked.isNotEmpty()) {
+                        item { Text("Untracked", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        items(untracked) { rel ->
+                            GitFileRow(label = "?? $rel", busy = gitBusy,
+                                primaryIcon = Icons.Default.Add, primaryDesc = "Stage",
+                                onPrimary = { onStage(rel) },
+                                secondaryIcon = Icons.AutoMirrored.Filled.Undo, secondaryDesc = "Discard", onSecondary = { onDiscard(rel, true) }, onLabelClick = { onOpenDiff(rel) })
+                        }
+                    }
                 }
             } else {
                 Text("Press Refresh to load.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -120,7 +165,33 @@ fun GitPanel(
 
         if (gitMessage != null) {
             Spacer(Modifier.height(8.dp))
-            Text(gitMessage, color = if (gitMessage.contains("failed")) Color.Red else MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+            Text(gitMessage, color = if (isErrorMessage(gitMessage)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun GitFileRow(
+    label: String,
+    busy: Boolean,
+    primaryIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    primaryDesc: String,
+    onPrimary: () -> Unit,
+    secondaryIcon: androidx.compose.ui.graphics.vector.ImageVector?,
+    secondaryDesc: String?,
+    onSecondary: (() -> Unit)?,
+    onLabelClick: (() -> Unit)? = null
+) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+            modifier = Modifier.weight(1f).let { m -> if (onLabelClick != null) m.clickable { onLabelClick() } else m })
+        IconButton(onClick = onPrimary, enabled = !busy, modifier = Modifier.size(28.dp)) {
+            Icon(primaryIcon, primaryDesc, Modifier.size(16.dp))
+        }
+        if (secondaryIcon != null && onSecondary != null) {
+            IconButton(onClick = onSecondary, enabled = !busy, modifier = Modifier.size(28.dp)) {
+                Icon(secondaryIcon, secondaryDesc, Modifier.size(16.dp))
+            }
         }
     }
 }

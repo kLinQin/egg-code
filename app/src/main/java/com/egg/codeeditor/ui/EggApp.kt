@@ -13,6 +13,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -22,14 +24,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.Font
+import java.io.File
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.egg.codeeditor.model.EditorTab
 import com.egg.codeeditor.model.rememberCodeEditorState
+import com.egg.codeeditor.util.isErrorMessage
+import com.egg.codeeditor.ui.WelcomeScreen
 import com.egg.codeeditor.ui.cloud.CloudPanel
 import com.egg.codeeditor.ui.components.CloudActionBar
 import com.egg.codeeditor.ui.components.EditorStatusBar
@@ -72,7 +80,7 @@ private fun dismissEditorActionMode(editor: CodeEditor?) {
         e.setSelection(c.leftLine, c.leftColumn)
     } catch (_: Exception) {
         // abaikan — hanya upaya menutup popup teks
-    }
+        }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,6 +158,12 @@ fun EggApp() {
         uri?.let { vm.openFolder(it) }
     }
 
+    val openFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { vm.openSingleFile(it) }
+    }
+
     val saveFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri: Uri? ->
@@ -160,6 +174,7 @@ fun EggApp() {
                     val tab = vm.tabs[i]
                     val text = editorState.editor?.text?.toString() ?: ""
                     writeFileContent(context, it, text)
+                    vm.scheduleGitRefresh()
                     vm.tabs[i] = tab.copy(uri = it, name = getFileName(context, it), content = text, isDirty = false)
                 }
                 vm.pendingCloseAfterSaveId?.let { closeId ->
@@ -202,7 +217,7 @@ fun EggApp() {
 
     fun captureActiveTabContent() {
         val i = vm.activeTabIndex()
-        if (i >= 0) {
+        if (i >= 0 && vm.tabs[i].diffNew == null) {
             val text = editorState.editor?.text?.toString() ?: ""
             if (vm.tabs[i].content != text) vm.tabs[i] = vm.tabs[i].copy(content = text)
         }
@@ -232,7 +247,8 @@ fun EggApp() {
     val anyModalOpen = vm.showSettings || vm.showAboutDialog || vm.showExitConfirm ||
             vm.showGitRemoteDialog || vm.showCloudConnectDialog ||
             vm.showNewFileDialog || vm.showNewFolderDialog || vm.showRenameDialog || vm.showDeleteDialog ||
-            vm.pendingCloseTab != null || vm.pendingDeleteTab != null || vm.terminalVisible
+            vm.pendingCloseTab != null || vm.pendingDeleteTab != null || vm.terminalVisible ||
+            vm.pendingCloudAction != null || vm.showAppStorageDialog || vm.pendingGitAction != null
 
     LaunchedEffect(anyModalOpen) {
         if (anyModalOpen) {
@@ -245,13 +261,54 @@ fun EggApp() {
         "v" + (info?.versionName ?: "?")
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(vm) {
+        vm.uiMessages.collect { msg -> snackbarHostState.showSnackbar(msg) }
+    }
+
     // ── Theme global ──
-    EggTheme(darkTheme = vm.settings.themeName == "darcula", dynamicColor = false) {
+    val appFontFamilyResolved: androidx.compose.ui.text.font.FontFamily? = remember(vm.settings.appFontFamily, vm.settings.appCustomFontPath) {
+        when (vm.settings.appFontFamily) {
+            "sans" -> androidx.compose.ui.text.font.FontFamily.SansSerif
+            "serif" -> androidx.compose.ui.text.font.FontFamily.Serif
+            "monospace" -> androidx.compose.ui.text.font.FontFamily.Monospace
+            "custom" -> {
+                val path = vm.settings.appCustomFontPath
+                if (path != null) runCatching {
+                    androidx.compose.ui.text.font.FontFamily(
+                        androidx.compose.ui.text.font.Font(java.io.File(path))
+                    )
+                }.getOrDefault(androidx.compose.ui.text.font.FontFamily.SansSerif)
+                else androidx.compose.ui.text.font.FontFamily.SansSerif
+            }
+            else -> androidx.compose.ui.text.font.FontFamily.SansSerif
+        }
+    }
+
+    EggTheme(darkTheme = vm.settings.themeName == "darcula", dynamicColor = false, appFontFamily = appFontFamilyResolved, appFontScale = vm.settings.appFontScale) {
+        val sidebarDividerColor = MaterialTheme.colorScheme.outlineVariant
         EggSystemBarStyle(
             darkTheme = vm.settings.themeName == "darcula" || vm.terminalVisible,
             customBg = if (vm.terminalVisible) 0xFF000000.toInt() else null
         )
 
+        Box(modifier = Modifier.fillMaxSize()) {
+        val hasProject = vm.rootFolderPath != null || vm.rootFolderUri != null ||
+            vm.tabs.any { it.uri != null || it.content.isNotEmpty() }
+        val showWelcome = !hasProject
+        if (showWelcome) {
+            WelcomeScreen(
+                onOpenFolder = { openFolderLauncher.launch(null) },
+                onOpenFile = { openFileLauncher.launch(arrayOf("*/*")) },
+                onOpenGit = { vm.gitRemoteDialogTitle = "Clone Repository"; vm.showGitRemoteDialog = true },
+                onOpenB2 = { vm.openB2FromWelcome() },
+                onOpenAppStorage = { vm.openAppStoragePicker() },
+                recentProjects = vm.recentProjects,
+                onOpenRecent = { label, path -> vm.openPrivateRoot(label, path) },
+                onRemoveRecent = { path -> vm.removeRecent(path) },
+                versionText = appVersionText
+            )
+        } else {
         Box(modifier = Modifier.fillMaxSize()) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
@@ -260,12 +317,12 @@ fun EggApp() {
                     ModalDrawerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         drawerShape = RectangleShape,
-                        drawerContainerColor = MaterialTheme.colorScheme.surface
+                        drawerContainerColor = MaterialTheme.colorScheme.background
                     ) {
                         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
                             // ── SIDEBAR RAIL (lebar 56dp) ──
                             Column(
-                                modifier = Modifier.width(56.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceVariant),
+                                modifier = Modifier.width(56.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surface),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Box(
@@ -282,34 +339,54 @@ fun EggApp() {
                                 }
                                 HorizontalDivider()
                                 Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background)
+                                        .drawBehind {
+                                            val stroke = 1.dp.toPx()
+                                            drawLine(
+                                                color = sidebarDividerColor,
+                                                start = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                                                end = androidx.compose.ui.geometry.Offset(size.width, size.height),
+                                                strokeWidth = stroke
+                                            )
+                                        },
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    SidebarButton(Icons.Default.Folder, "File", selected = vm.currentSection == "File Manager") { vm.currentSection = "File Manager" }
-                                    SidebarButton(Icons.Default.Cloud, "Cloud", selected = vm.currentSection == "Cloud Storage") { vm.currentSection = "Cloud Storage" }
-                                    SidebarButton(Icons.Default.AccountTree, "Git", selected = vm.currentSection == "Git") { vm.currentSection = "Git" }
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        vm.availableSections.forEach { sec ->
+                                            when (sec) {
+                                                "File Manager" -> SidebarButton(Icons.Default.Folder, "File", selected = vm.currentSection == "File Manager") { vm.currentSection = "File Manager" }
+                                                "Cloud Storage" -> SidebarButton(Icons.Default.Cloud, "Cloud", selected = vm.currentSection == "Cloud Storage") { vm.currentSection = "Cloud Storage" }
+                                                "Git" -> SidebarButton(Icons.Default.AccountTree, "Git", selected = vm.currentSection == "Git") { vm.currentSection = "Git" }
+                                            }
+                                        }
+                                    }
+                                    Spacer(Modifier.weight(1f))
+                                    SidebarButton(Icons.Default.Info, "Info", onClick = { vm.showAboutDialog = true })
                                 }
-                                Spacer(Modifier.weight(1f))
-                                SidebarButton(Icons.Default.Info, "Info", onClick = { vm.showAboutDialog = true })
                                 RailStatusBar(versionText = appVersionText)
                             }
 
                             // ── KONTEN PANEL ──
                             Column(Modifier.fillMaxSize().weight(1f)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 16.dp, end = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        vm.currentSection,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(onClick = { scope.launch { drawerState.close() } }) {
-                                        Icon(Icons.Default.Close, "Close Drawer")
+                                Surface(color = MaterialTheme.colorScheme.surface) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 16.dp, end = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            vm.currentSection,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        IconButton(onClick = { scope.launch { drawerState.close() } }) {
+                                            Icon(Icons.Default.Close, "Close Drawer")
+                                        }
                                     }
                                 }
                                 HorizontalDivider()
@@ -321,8 +398,8 @@ fun EggApp() {
                                     when (vm.currentSection) {
                                         "File Manager" -> FileManagerActionBar(
                                             rootFolderUri = vm.rootFolderUri,
+                                            rootFolderPath = vm.rootFolderPath,
                                             expandedPaths = vm.expandedPaths,
-                                            onOpenFolder = { openFolderLauncher.launch(null) },
                                             onNewFile = { vm.targetParentNode = null; vm.showNewFileDialog = true },
                                             onNewFolder = { vm.targetParentNode = null; vm.showNewFolderDialog = true },
                                             onRefresh = { vm.refreshFolder() },
@@ -358,7 +435,7 @@ fun EggApp() {
                                 Box(Modifier.weight(1f).fillMaxWidth()) {
                                     when (vm.currentSection) {
                                         "File Manager" -> {
-                                            if (vm.rootFolderUri == null) {
+                                            if (vm.rootFolderUri == null && !vm.rootIsPrivate) {
                                                 Text(
                                                     "No folder opened. Choose 'Open Project Folder' above.",
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -380,6 +457,7 @@ fun EggApp() {
                                                                 val tab = EditorTab(vm.nextTabId++, node.name, node.uri, content)
                                                                 vm.tabs.add(tab)
                                                                 vm.activeTabId = tab.id
+                                                                vm.persistTabsPublic()
                                                             }
                                                             drawerState.close()
                                                         }
@@ -398,7 +476,12 @@ fun EggApp() {
                                                     commitMessage = vm.commitMessage,
                                                     gitBusy = vm.gitBusy,
                                                     gitMessage = vm.gitMessage,
-                                                    onCommitMessageChange = { vm.commitMessage = it }
+                                                    onCommitMessageChange = { vm.commitMessage = it },
+                                                    onStage = { vm.gitStage(it) },
+                                                    onUnstage = { vm.gitUnstage(it) },
+                                                    onDiscard = { rel, untracked -> vm.gitRequestDiscard(rel, untracked) },
+                                                    onDiscardAll = { vm.gitRequestDiscardAll() },
+                                                    onOpenDiff = { rel -> vm.openGitDiff(rel); scope.launch { drawerState.close() } }
                                                 )
                                             }
                                         }
@@ -411,7 +494,11 @@ fun EggApp() {
                                                     cloudChanges = vm.cloudChanges,
                                                     cloudHistory = vm.cloudHistory,
                                                     cloudBusy = vm.cloudBusy,
-                                                    cloudMessage = vm.cloudMessage
+                                                    cloudMessage = vm.cloudMessage,
+                                                    onPushFile = { relPath -> vm.cloudPushFile(relPath) },
+                                                    onDiscardFile = { relPath, untracked -> vm.cloudRequestDiscard(relPath, untracked) },
+                                                    onDeleteRemote = { relPath -> vm.cloudRequestDeleteRemote(relPath) },
+                                                    onDiscardAll = { vm.cloudRequestDiscardAll() }
                                                 )
                                             }
                                         }
@@ -465,6 +552,7 @@ fun EggApp() {
                                                 if (tab.uri != null) {
                                                     val text = editorState.editor?.text?.toString() ?: ""
                                                     writeFileContent(context, tab.uri, text)
+                                                    vm.scheduleGitRefresh()
                                                     vm.tabs[i] = vm.tabs[i].copy(content = text, isDirty = false)
                                                 } else {
                                                     saveFileLauncher.launch("${tab.name}.txt")
@@ -497,12 +585,13 @@ fun EggApp() {
                             onSelect = { id -> captureActiveTabContent(); vm.activeTabId = id },
                             onClose = { tab -> vm.requestCloseTab(tab) },
                             onSave = { tab ->
-                                scope.launch {
+                                if (tab.diffNew == null) scope.launch {
                                     val i = vm.tabs.indexOfFirst { it.id == tab.id }
                                     if (i >= 0) {
                                         val t = vm.tabs[i]
                                         if (t.uri != null) {
                                             writeFileContent(context, t.uri, t.content)
+                                            vm.scheduleGitRefresh()
                                             vm.tabs[i] = vm.tabs[i].copy(isDirty = false)
                                         } else {
                                             vm.activeTabId = t.id
@@ -520,7 +609,15 @@ fun EggApp() {
                             FindBar(editor = editorState.editor, onDismiss = { vm.showFindBar = false })
                         }
 
-                        SoraCodeEditor(
+                        if (vm.activeTab?.diffNew != null) {
+                            com.egg.codeeditor.ui.diff.DiffView(
+                                relPath = vm.activeTab!!.name,
+                                oldText = vm.activeTab!!.diffOld ?: "",
+                                newText = vm.activeTab!!.diffNew ?: "",
+                                settings = vm.settings,
+                                modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp)
+                            )
+                        } else SoraCodeEditor(
                             modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp),
                             state = editorState,
                             fileName = vm.activeTab?.name ?: "Untitled",
@@ -537,18 +634,36 @@ fun EggApp() {
                 }
             }
 
-            // ── Dialog & konfirmasi ──
-            EggDialogs(vm = vm, onExit = { (context as? Activity)?.finish() })
-
             // ── Terminal ──
             if (vm.terminalVisible) {
                 TerminalPanel(vm = vm, onRequestEditorFocus = { editorState.editor?.requestFocus() })
             }
 
-            // ── Splash overlay ──
-            if (showSplash) {
-                SplashOverlay()
-            }
+        }
+        }
+
+        // ── Dialog & konfirmasi (di luar cabang welcome/UI normal) ──
+        EggDialogs(vm = vm, onExit = { (context as? Activity)?.finish() })
+
+        // ── Snackbar ──
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) { data ->
+            val err = isErrorMessage(data.visuals.message)
+            Snackbar(
+                snackbarData = data,
+                containerColor = if (err) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (err) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurfaceVariant,
+                actionColor = if (err) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.primary,
+                shape = RectangleShape
+            )
+        }
+
+        // ── Splash overlay (di atas welcome & UI normal) ──
+        if (showSplash) {
+            SplashOverlay()
+        }
         }
     }
 }
