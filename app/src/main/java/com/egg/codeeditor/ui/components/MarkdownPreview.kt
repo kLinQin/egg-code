@@ -99,6 +99,14 @@ fun MarkdownPreview(
         "th{background:" + hex(preBg) + ";color:" + hex(primary.toArgb()) + ";font-weight:600}" +
         "blockquote{border-left:4px solid " + hex(primary.toArgb()) + ";padding:8px 12px;margin:8px 0;color:" + hex(fgColor) + ";opacity:0.9;background:transparent}" +
         "hr{border:none;border-top:1px solid " + hex(surface.toArgb()) + ";margin:12px 0}" +
+        ".spoiler-inline{background:" + hex(fgColor) + ";color:transparent;border-radius:3px;padding:0 3px;cursor:pointer;transition:all .15s}" +
+        ".spoiler-inline.revealed{background:" + hex(surface.toArgb()) + ";color:" + hex(fgColor) + "}" +
+        "u{text-decoration:underline;text-decoration-color:" + hex(primary.toArgb()) + ";text-underline-offset:2px}" +
+        "del{color:" + hex(comment) + ";opacity:0.7}" +
+        "small{font-size:0.82em;opacity:0.75}" +
+        ".youtube-embed{position:relative;padding-bottom:56.25%;height:0;margin:8px 0;border-radius:6px;overflow:hidden}" +
+        ".youtube-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}" +
+        ".discord-ts{color:" + hex(primary.toArgb()) + ";background:" + hex(surface.toArgb()) + ";padding:1px 4px;border-radius:3px;font-size:0.92em;cursor:default}" +
         "::-webkit-scrollbar{display:none}" +
         // highlight.js mapping sesuai Sora scheme
         ".hljs-keyword{color:" + hex(keyword) + "}" +
@@ -115,7 +123,18 @@ fun MarkdownPreview(
         "<script src=\"file:///android_asset/highlight.min.js\"></script>" +
         "<script>" +
         "var md=" + jsMarkdown + ";" +
+        "md=md.replace(/<t:(\\d+)(?::([a-zA-Z]))?>/g,function(_,ts,fmt){return '<span class=\\\"discord-ts\\\" data-ts=\\\"'+ts+'\\\" data-format=\\\"'+(fmt||'f')+'\\\"></span>';});" +
+        "md=md.replace(/^(?:-# )(.+)$/gm,'<small>$1</small>');" +
+        "md=md.replace(/==(.+?)==/g,'<u>$1</u>');" +
+        "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
+        "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
+        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'\\\" allowfullscreen></iframe></div>';});" +
         "document.getElementById('content').innerHTML=marked.parse(md);" +
+        "document.querySelectorAll('.spoiler-inline').forEach(function(el){" +
+        "el.addEventListener('click',function(){el.classList.toggle('revealed');});" +
+        "});" +
+        "function fmtTs(ts,format){var d=new Date(ts*1000);var loc='id-ID';var rtf=new Intl.RelativeTimeFormat(loc,{numeric:'auto'});switch(format){case 'f':return d.toLocaleString(loc,{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});case 'F':return d.toLocaleString(loc,{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});case 'd':return d.toLocaleDateString(loc);case 'D':return d.toLocaleDateString(loc,{day:'numeric',month:'long',year:'numeric'});case 't':return d.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit'});case 'T':return d.toLocaleTimeString(loc,{hour:'2-digit',minute:'2-digit',second:'2-digit'});case 'R':{var diff=Math.floor((d.getTime()-Date.now())/1000);if(Math.abs(diff)<60)return rtf.format(diff,'second');if(Math.abs(diff)<3600)return rtf.format(Math.floor(diff/60),'minute');if(Math.abs(diff)<86400)return rtf.format(Math.floor(diff/3600),'hour');return rtf.format(Math.floor(diff/86400),'day');}default:return d.toLocaleString(loc);}}" +
+        "document.querySelectorAll('.discord-ts').forEach(function(el){var ts=parseInt(el.getAttribute('data-ts')||'0');var fmt=el.getAttribute('data-format')||'f';el.textContent=fmtTs(ts,fmt);el.title=new Date(ts*1000).toLocaleString('id-ID');});" +
         "document.querySelectorAll('pre').forEach(function(pre){" +
         "var code=pre.querySelector('code');if(!code)return;" +
         "var langMatch=(code.className||'').match(/language-(\\w+)/);var lang=langMatch?langMatch[1]:'';" +
