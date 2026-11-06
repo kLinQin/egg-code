@@ -75,6 +75,7 @@ app/src/main/java/com/egg/codeeditor/
 app/src/main/assets/             # TextMate grammars, themes, language.json
 app/src/main/jniLibs/arm64-v8a/  # Native libs (pdn, proot-loader, ptyjni)
 app/libs/pdn-engine-0.6.18.aar   # Terminal engine
+termlib-local/                   # Terminal widget (termux termlib fork, prebuilt .so)
 ```
 
 ## Third-party Notices
@@ -86,5 +87,4 @@ app/libs/pdn-engine-0.6.18.aar   # Terminal engine
 
 ## License
 
-Add your preferred license here (e.g. MIT, Apache-2.0). The third-party
-components above retain their own licenses.
+Apache License 2.0 — see [LICENSE](LICENSE). Third-party components listed above retain their own licenses.
