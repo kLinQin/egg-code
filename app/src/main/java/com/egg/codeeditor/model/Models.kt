@@ -52,7 +52,7 @@ data class EditorSettings(
     val themeName: String = "github-light", // "github-light" | "darcula"
     val fontSizeSp: Int = 14,
     val showLineNumbers: Boolean = true,
-    val wordWrap: Boolean = false,
+    val wordWrap: Boolean = true,
     val tabWidth: Int = 4,
     val showBottomBar: Boolean = true,
     // ── Apps ──
