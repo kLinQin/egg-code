@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.rosemoe.sora.widget.CodeEditor
@@ -41,15 +42,29 @@ private fun indexToLineCol(text: String, index: Int): Pair<Int, Int> {
 }
 
 /** Compute all (line, column) positions where the query appears in the text. */
-private fun computeMatches(text: String, query: String): List<Pair<Int, Int>> {
+private fun computeMatches(
+    text: String,
+    query: String,
+    caseSensitive: Boolean = false,
+    wholeWord: Boolean = false
+): List<Pair<Int, Int>> {
     val matches = mutableListOf<Pair<Int, Int>>()
     if (query.isEmpty()) return matches
+    val needle = if (caseSensitive) query else query.lowercase()
+    val hay = if (caseSensitive) text else text.lowercase()
     var idx = 0
     while (true) {
-        val found = text.indexOf(query, idx, ignoreCase = true)
+        val found = hay.indexOf(needle, idx)
         if (found < 0) break
-        matches.add(indexToLineCol(text, found))
-        idx = found + query.length
+        val ok = if (wholeWord) {
+            val before = if (found == 0) ' ' else hay[found - 1]
+            val afterIdx = found + needle.length
+            val after = if (afterIdx >= hay.length) ' ' else hay[afterIdx]
+            !before.isLetterOrDigit() && before != '_' &&
+                !after.isLetterOrDigit() && after != '_'
+        } else true
+        if (ok) matches.add(indexToLineCol(text, found))
+        idx = found + needle.length
     }
     return matches
 }
@@ -101,12 +116,14 @@ fun FindBar(
     var query by remember { mutableStateOf("") }
     var replaceWith by remember { mutableStateOf("") }
     var replaceMode by remember { mutableStateOf(false) }
+    var caseSensitive by remember { mutableStateOf(false) }
+    var wholeWord by remember { mutableStateOf(false) }
     var matches by remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
 
     fun refreshMatches() {
         if (editor == null) return
-        matches = computeMatches(editor.getText().toString(), query)
+        matches = computeMatches(editor.getText().toString(), query, caseSensitive, wholeWord)
         currentIndex = 0
     }
 
@@ -124,11 +141,27 @@ fun FindBar(
         val e = editor ?: return
         val text = e.getText().toString()
         if (query.isEmpty()) return
-        val newText = if (replaceWith.isEmpty()) text.replace(query, "", ignoreCase = true)
-        else text.replace(query, replaceWith, ignoreCase = true)
-        if (newText != text) {
-            e.setText(newText)
+        val positions = computeMatches(text, query, caseSensitive, wholeWord)
+        if (positions.isEmpty()) return
+        // konversi (line,col) -> index
+        fun idx(lc: Pair<Int, Int>): Int {
+            var cur = 0; var ln = 0
+            while (ln < lc.first && cur < text.length) {
+                if (text[cur] == '\n') ln++
+                cur++
+            }
+            return (cur + lc.second).coerceIn(0, text.length)
         }
+        val sb = StringBuilder()
+        var last = 0
+        for (p in positions) {
+            val i = idx(p)
+            sb.append(text, last, i)
+            sb.append(replaceWith)
+            last = i + query.length
+        }
+        sb.append(text, last, text.length)
+        e.setText(sb.toString())
         matches = emptyList()
         currentIndex = 0
     }
@@ -147,7 +180,7 @@ fun FindBar(
         val e = editor ?: return
         if (query.isEmpty() || matches.isEmpty()) return
         val text = e.getText().toString()
-        val list = computeMatches(text, query)
+        val list = computeMatches(text, query, caseSensitive, wholeWord)
         if (list.isEmpty()) return
         val idx = currentIndex.coerceIn(0, list.size - 1)
         val (line, col) = list[idx]
@@ -155,7 +188,7 @@ fun FindBar(
             replaceWith +
             text.substring(indexOfLineCol(text, line, col) + query.length)
         e.setText(newText)
-        matches = computeMatches(newText, query)
+        matches = computeMatches(newText, query, caseSensitive, wholeWord)
         if (matches.isEmpty()) currentIndex = 0
         else currentIndex = idx.coerceAtMost(matches.size - 1)
         if (matches.isNotEmpty()) {
@@ -211,6 +244,18 @@ fun FindBar(
                         if (replaceMode) "Hide replace" else "Show replace",
                         Modifier.size(16.dp)
                     )
+                }
+                IconButton(
+                    onClick = { caseSensitive = !caseSensitive; refreshMatches() },
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Text("Aa", fontSize = 11.sp, fontWeight = if (caseSensitive) FontWeight.Bold else FontWeight.Normal, color = if (caseSensitive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(
+                    onClick = { wholeWord = !wholeWord; refreshMatches() },
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Text("ab|", fontSize = 11.sp, fontWeight = if (wholeWord) FontWeight.Bold else FontWeight.Normal, color = if (wholeWord) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Default.Close, "Close", Modifier.size(16.dp))

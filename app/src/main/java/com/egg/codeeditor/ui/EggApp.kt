@@ -429,7 +429,8 @@ fun EggApp() {
                                             onFetch = { vm.gitFetch() },
                                             onPull = { vm.gitPull() },
                                             onPush = { vm.gitPush() },
-                                            onCommit = { vm.gitCommit() }
+                                            onCommit = { vm.gitCommit() },
+                                            changeCount = ((vm.gitStatus?.staged?.size ?: 0) + (vm.gitStatus?.unstaged?.size ?: 0))
                                         )
                                         "Cloud Storage" -> CloudActionBar(
                                             connected = vm.b2Account != null,

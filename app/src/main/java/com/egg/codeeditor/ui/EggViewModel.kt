@@ -546,9 +546,48 @@ class EggViewModel(private val context: Context) {
                     }
                 }
             }
+            // Tutup tab yang URI-nya berada di subtree yang baru dihapus
+            if (node != null) {
+                val base = node.uri.toString()
+                val affected = tabs.filter { t ->
+                    t.uri?.toString()?.let { it == base || it.startsWith(base + "/") } == true
+                }
+                if (affected.isNotEmpty()) {
+                    val activeRemoved = affected.any { it.id == activeTabId }
+                    val firstIdx = tabs.indexOfFirst { t -> affected.any { it.id == t.id } }
+                    tabs.removeAll { t -> affected.any { it.id == t.id } }
+                    if (activeRemoved) switchAfterRemoval(firstIdx.coerceAtLeast(0))
+                    persistTabs()
+                }
+            }
             folderCache.clear()
             rebuildVisibleNodes()
         }
+    }
+
+    /** Kembalikan marker Git (M/U/A/D) untuk node, atau null jika bersih/bukan repo. */
+    fun gitMarkerFor(node: FileNode): Char? {
+        val st = gitStatus ?: return null
+        if (node.isDirectory) return null
+        val rel = relativeGitPath(node) ?: return null
+        return when {
+            st.modified.contains(rel) || st.unstaged.contains(rel) || st.staged.contains(rel) -> 'M'
+            st.untracked.contains(rel) -> 'U'
+            st.added.contains(rel) -> 'A'
+            st.removed.contains(rel) || st.missing.contains(rel) -> 'D'
+            else -> null
+        }
+    }
+
+    /** Path relatif node terhadap root Git (slash-separated). */
+    private fun relativeGitPath(node: FileNode): String? {
+        val root = rootFolderPath ?: return null
+        val uriPath = node.uri.path ?: return null
+        return runCatching {
+            val rootFile = File(root).canonicalFile
+            val nodeFile = File(uriPath).canonicalFile
+            nodeFile.relativeTo(rootFile).path.replace('\\', '/')
+        }.getOrNull()
     }
 
     private fun privateRoot(): File? = if (rootIsPrivate) rootFolderPath?.let { File(it) } else null

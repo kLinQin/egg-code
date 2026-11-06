@@ -2,6 +2,9 @@ package com.egg.codeeditor.ui.components
 
 import android.net.Uri
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -89,7 +92,8 @@ fun GitActionBar(
     onFetch: () -> Unit,
     onPull: () -> Unit,
     onPush: () -> Unit,
-    onCommit: () -> Unit
+    onCommit: () -> Unit,
+    changeCount: Int = 0
 ) {
     if (gitRepo == null) {
         Row(
@@ -138,7 +142,20 @@ fun GitActionBar(
                 ActionPillVertical(onPull, painterResource(R.drawable.ic_git_pull), "Pull", enabled = !gitBusy)
                 ActionPillVertical(onPush, painterResource(R.drawable.ic_git_push), "Push", enabled = !gitBusy)
             }
-            ActionPillVertical(onCommit, painterResource(R.drawable.ic_git_commit), "Commit", enabled = !gitBusy && commitMessage.isNotBlank())
+            Box {
+                ActionPillVertical(onCommit, painterResource(R.drawable.ic_git_commit), "Commit", enabled = !gitBusy && commitMessage.isNotBlank())
+                if (changeCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 2.dp, y = (-2).dp)
+                            .background(MaterialTheme.colorScheme.error, RectangleShape)
+                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                    ) {
+                        Text(changeCount.toString(), color = MaterialTheme.colorScheme.onError, fontSize = 9.sp)
+                    }
+                }
+            }
         }
     }
 }

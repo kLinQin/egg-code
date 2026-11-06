@@ -125,6 +125,22 @@ internal fun FileManagerPanel(
                     }
 
                     Spacer(Modifier.width(8.dp))
+                    val marker = vm.gitMarkerFor(node)
+                    if (marker != null) {
+                        val markerColor = when (marker) {
+                            'M' -> MaterialTheme.colorScheme.tertiary
+                            'U' -> MaterialTheme.colorScheme.primary
+                            'A' -> MaterialTheme.colorScheme.primary
+                            'D' -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Text(
+                            marker.toString(),
+                            fontSize = 10.sp,
+                            color = markerColor,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                    }
                     Text(node.name, maxLines = 1)
                 }
 

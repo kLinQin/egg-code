@@ -136,14 +136,20 @@ private fun EditorTabItem(
             if (tab.isDirty) {
                 Box(
                     Modifier
-                        .size(6.dp)
-                        .background(MaterialTheme.colorScheme.primary, RectangleShape)
+                        .size(7.dp)
+                        .background(
+                            if (isActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            RectangleShape
+                        )
                 )
                 Spacer(Modifier.width(4.dp))
             }
-            IconButton(
-                onClick = { onClose(tab) },
-                modifier = Modifier.size(18.dp)
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable(onClick = { onClose(tab) }),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Close, "Close Tab", Modifier.size(12.dp))
             }
