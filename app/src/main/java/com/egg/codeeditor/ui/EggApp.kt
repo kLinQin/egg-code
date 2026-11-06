@@ -640,7 +640,7 @@ fun EggApp() {
                         }
 
                         if (vm.activeTab?.diffNew != null) {
-                            com.egg.codeeditor.ui.diff.DiffView(
+                            com.egg.codeeditor.ui.diff.SoraDiffView(
                                 relPath = vm.activeTab!!.name,
                                 oldText = vm.activeTab!!.diffOld ?: "",
                                 newText = vm.activeTab!!.diffNew ?: "",
