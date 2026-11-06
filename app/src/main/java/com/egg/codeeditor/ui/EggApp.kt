@@ -655,6 +655,8 @@ fun EggApp() {
                         } else if (vm.showMarkdownPreview && vm.activeTab?.name?.endsWith(".md") == true) {
                             com.egg.codeeditor.ui.components.MarkdownPreview(
                                 markdown = vm.activeTab?.content ?: "",
+                                editorSettings = vm.settings,
+                                editorRef = editorState.editor,
                                 modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp)
                             )
                         } else SoraCodeEditor(
