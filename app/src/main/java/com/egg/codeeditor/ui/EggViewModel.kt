@@ -208,6 +208,7 @@ class EggViewModel(private val context: Context) {
     var pendingSaveAsTabId by mutableStateOf<Long?>(null)
 
     var showFindBar by mutableStateOf(false)
+    var showMarkdownPreview by mutableStateOf(false)
     // ── Discord Rich Presence ──
     var discordToken by mutableStateOf("")
     var discordEnabled by mutableStateOf(false)

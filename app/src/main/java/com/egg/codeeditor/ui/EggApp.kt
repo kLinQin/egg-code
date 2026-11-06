@@ -559,6 +559,11 @@ fun EggApp() {
                                 }
                             },
                             actions = {
+                                if (vm.activeTab?.name?.endsWith(".md") == true) {
+                                    IconButton(onClick = { vm.showMarkdownPreview = !vm.showMarkdownPreview }) {
+                                        Icon(if (vm.showMarkdownPreview) Icons.Default.Edit else Icons.Default.Visibility, "Toggle Preview")
+                                    }
+                                }
                                 IconButton(onClick = { if (vm.activeTabId != null) vm.showFindBar = true }) {
                                     Icon(Icons.Default.Search, "Search")
                                 }
@@ -611,7 +616,7 @@ fun EggApp() {
                         EditorTabBar(
                             tabs = vm.tabs,
                             activeTabId = vm.activeTabId,
-                            onSelect = { id -> captureActiveTabContent(); vm.activeTabId = id },
+                            onSelect = { id -> captureActiveTabContent(); vm.activeTabId = id; vm.showMarkdownPreview = false },
                             onClose = { tab -> vm.requestCloseTab(tab) },
                             onSave = { tab ->
                                 if (tab.diffNew == null) scope.launch {
@@ -645,6 +650,11 @@ fun EggApp() {
                                 oldText = vm.activeTab!!.diffOld ?: "",
                                 newText = vm.activeTab!!.diffNew ?: "",
                                 settings = vm.settings,
+                                modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp)
+                            )
+                        } else if (vm.showMarkdownPreview && vm.activeTab?.name?.endsWith(".md") == true) {
+                            com.egg.codeeditor.ui.components.MarkdownPreview(
+                                markdown = vm.activeTab?.content ?: "",
                                 modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp)
                             )
                         } else SoraCodeEditor(

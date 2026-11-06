@@ -69,6 +69,10 @@ dependencies {
     implementation(files("libs/pdn-engine-0.6.18.aar"))
 
     implementation(project(":termlib-local"))
+    implementation(libs.markwon)
+    implementation(libs.markwon.ext.tables)
+    implementation(libs.markwon.ext.strikethrough)
+    implementation(libs.markwon.linkify)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
 
