@@ -59,6 +59,7 @@ import com.egg.codeeditor.util.saveSettings
 import com.egg.codeeditor.util.writeFileContent
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -79,6 +80,13 @@ class EggViewModel(private val context: Context) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var gitRefreshJob: Job? = null
+
+    /** Batalkan semua coroutine milik VM ini. Panggil saat composable pemilik VM dilepas. */
+    fun dispose() {
+        runCatching { scope.cancel() }
+        settingsSaveJob?.cancel()
+        gitRefreshJob?.cancel()
+    }
 
     private fun restoreLastProject() {
         val privateRoot = loadLastPrivateRoot(appContext)

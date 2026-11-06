@@ -88,6 +88,9 @@ private fun dismissEditorActionMode(editor: CodeEditor?) {
 fun EggApp() {
     val context = LocalContext.current
     val vm = remember { EggViewModel(context.applicationContext) }
+    DisposableEffect(vm) {
+        onDispose { vm.dispose() }
+    }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
