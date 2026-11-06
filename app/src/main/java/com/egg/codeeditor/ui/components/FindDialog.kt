@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +26,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.widget.CodeEditor
+import io.github.rosemoe.sora.widget.EditorSearcher
 
 /** Convert a raw index into (line, column) zero-based coordinates. */
 private fun indexToLineCol(text: String, index: Int): Pair<Int, Int> {
@@ -49,22 +56,23 @@ private fun computeMatches(
     wholeWord: Boolean = false
 ): List<Pair<Int, Int>> {
     val matches = mutableListOf<Pair<Int, Int>>()
-    if (query.isEmpty()) return matches
-    val needle = if (caseSensitive) query else query.lowercase()
-    val hay = if (caseSensitive) text else text.lowercase()
+    if (query.isEmpty() || query.length > text.length) return matches
     var idx = 0
-    while (true) {
-        val found = hay.indexOf(needle, idx)
-        if (found < 0) break
-        val ok = if (wholeWord) {
-            val before = if (found == 0) ' ' else hay[found - 1]
-            val afterIdx = found + needle.length
-            val after = if (afterIdx >= hay.length) ' ' else hay[afterIdx]
-            !before.isLetterOrDigit() && before != '_' &&
-                !after.isLetterOrDigit() && after != '_'
-        } else true
-        if (ok) matches.add(indexToLineCol(text, found))
-        idx = found + needle.length
+    val limit = text.length - query.length
+    while (idx <= limit) {
+        if (text.regionMatches(idx, query, 0, query.length, ignoreCase = !caseSensitive)) {
+            val ok = if (wholeWord) {
+                val before = if (idx == 0) ' ' else text[idx - 1]
+                val afterIdx = idx + query.length
+                val after = if (afterIdx >= text.length) ' ' else text[afterIdx]
+                !before.isLetterOrDigit() && before != '_' &&
+                    !after.isLetterOrDigit() && after != '_'
+            } else true
+            if (ok) matches.add(indexToLineCol(text, idx))
+            idx += query.length
+        } else {
+            idx++
+        }
     }
     return matches
 }
@@ -113,7 +121,16 @@ fun FindBar(
     editor: CodeEditor?,
     onDismiss: () -> Unit
 ) {
-    var query by remember { mutableStateOf("") }
+    var query by remember {
+        mutableStateOf(
+            editor?.let { e ->
+                val cur = e.cursor
+                if (cur.isSelected) {
+                    e.text.substring(cur.left, cur.right)
+                } else ""
+            } ?: ""
+        )
+    }
     var replaceWith by remember { mutableStateOf("") }
     var replaceMode by remember { mutableStateOf(false) }
     var caseSensitive by remember { mutableStateOf(false) }
@@ -121,80 +138,110 @@ fun FindBar(
     var matches by remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
 
-    fun refreshMatches() {
-        if (editor == null) return
-        matches = computeMatches(editor.getText().toString(), query, caseSensitive, wholeWord)
-        currentIndex = 0
+    suspend fun refreshMatches() {
+        val e = editor ?: return
+        val q = query
+        if (q.isEmpty()) {
+            withContext(Dispatchers.Main) {
+                e.searcher.stopSearch()
+                matches = emptyList()
+                currentIndex = 0
+            }
+            return
+        }
+        val type = if (wholeWord) EditorSearcher.SearchOptions.TYPE_WHOLE_WORD
+                   else EditorSearcher.SearchOptions.TYPE_NORMAL
+        withContext(Dispatchers.Main) {
+            e.searcher.setCyclicJumping(true)
+            e.searcher.search(q, EditorSearcher.SearchOptions(type, !caseSensitive))
+        }
     }
 
     fun jumpTo(index: Int) {
-        val list = matches
-        if (editor == null || list.isEmpty()) return
-        val safe = ((index % list.size) + list.size) % list.size
+        val e = editor ?: return
+        if (!e.searcher.hasQuery() || e.searcher.matchedPositionCount == 0) return
+        val n = e.searcher.matchedPositionCount
+        val safe = ((index % n) + n) % n
         currentIndex = safe
-        val (line, col) = list[safe]
-        editor.setSelection(line, col)
-        editor.ensurePositionVisible(line, col)
+        val cur = e.searcher.currentMatchedPositionIndex
+        val delta = safe - (if (cur < 0) 0 else cur)
+        if (delta >= 0) {
+            repeat(delta) { e.searcher.gotoNext() }
+        } else {
+            repeat(-delta) { e.searcher.gotoPrevious() }
+        }
     }
 
     fun replaceAll() {
         val e = editor ?: return
-        val text = e.getText().toString()
+        val content = e.text
+        val text = content.toString()
         if (query.isEmpty()) return
         val positions = computeMatches(text, query, caseSensitive, wholeWord)
         if (positions.isEmpty()) return
-        // konversi (line,col) -> index
-        fun idx(lc: Pair<Int, Int>): Int {
-            var cur = 0; var ln = 0
-            while (ln < lc.first && cur < text.length) {
-                if (text[cur] == '\n') ln++
-                cur++
-            }
-            return (cur + lc.second).coerceIn(0, text.length)
+        // ganti dari belakang supaya index sebelumnya tidak bergeser
+        for (i in positions.indices.reversed()) {
+            val (l, col) = positions[i]
+            val s = content.getCharIndex(l, col)
+            val en = s + query.length
+            if (en <= content.length) content.replace(s, en, replaceWith)
         }
-        val sb = StringBuilder()
-        var last = 0
-        for (p in positions) {
-            val i = idx(p)
-            sb.append(text, last, i)
-            sb.append(replaceWith)
-            last = i + query.length
-        }
-        sb.append(text, last, text.length)
-        e.setText(sb.toString())
         matches = emptyList()
         currentIndex = 0
-    }
-
-    fun indexOfLineCol(text: String, line: Int, col: Int): Int {
-        var cur = 0
-        var ln = 0
-        while (ln < line && cur < text.length) {
-            if (text[cur] == '\n') ln++
-            cur++
-        }
-        return (cur + col).coerceIn(0, text.length)
     }
 
     fun replaceCurrent() {
         val e = editor ?: return
         if (query.isEmpty() || matches.isEmpty()) return
-        val text = e.getText().toString()
+        val content = e.text
+        val text = content.toString()
         val list = computeMatches(text, query, caseSensitive, wholeWord)
         if (list.isEmpty()) return
         val idx = currentIndex.coerceIn(0, list.size - 1)
         val (line, col) = list[idx]
-        val newText = text.substring(0, indexOfLineCol(text, line, col)) +
-            replaceWith +
-            text.substring(indexOfLineCol(text, line, col) + query.length)
-        e.setText(newText)
-        matches = computeMatches(newText, query, caseSensitive, wholeWord)
-        if (matches.isEmpty()) currentIndex = 0
-        else currentIndex = idx.coerceAtMost(matches.size - 1)
-        if (matches.isNotEmpty()) {
-            val (l, c) = matches[currentIndex]
-            e.setSelection(l, c)
-            e.ensurePositionVisible(l, c)
+        val s = content.getCharIndex(line, col)
+        val en = s + query.length
+        if (en > content.length) return
+        content.replace(s, en, replaceWith)
+        val after = content.toString()
+        matches = computeMatches(after, query, caseSensitive, wholeWord)
+        if (matches.isEmpty()) {
+            currentIndex = 0
+        } else {
+            // cari match pertama yang start-nya >= s + replaceWith.length (maju)
+            val nextStart = s + replaceWith.length
+            var pick = matches.indexOfFirst { (l, cl) ->
+                content.getCharIndex(l, cl) >= nextStart
+            }
+            if (pick < 0) pick = 0
+            currentIndex = pick
+            val (l, cl) = matches[currentIndex]
+            e.setSelection(l, cl)
+            e.ensurePositionVisible(l, cl, true)
+        }
+    }
+
+    LaunchedEffect(query, caseSensitive, wholeWord) {
+        delay(120)
+        refreshMatches()
+    }
+
+    DisposableEffect(editor) {
+        val e = editor
+        val receipt = e?.subscribeEvent(PublishSearchResultEvent::class.java) { _, _ ->
+            val searcher = e.searcher
+            matches = if (searcher.hasQuery()) {
+                val n = searcher.matchedPositionCount
+                val q = query
+                // representasi dummy: kita hanya butuh count, tapi jumpTo butuh (line,col).
+                // Ambil posisi via cursor saat ini sebagai fallback 1 elemen.
+                List(n) { 0 to 0 }
+            } else emptyList()
+            currentIndex = 0
+        }
+        onDispose {
+            receipt?.unsubscribe()
+            e?.searcher?.stopSearch()
         }
     }
 
@@ -212,7 +259,7 @@ fun FindBar(
             ) {
                 CompactInputField(
                     value = query,
-                    onValueChange = { query = it; refreshMatches() },
+                    onValueChange = { query = it },
                     placeholder = "Search",
                     modifier = Modifier.weight(1f).height(38.dp)
                 )
@@ -246,13 +293,13 @@ fun FindBar(
                     )
                 }
                 IconButton(
-                    onClick = { caseSensitive = !caseSensitive; refreshMatches() },
+                    onClick = { caseSensitive = !caseSensitive },
                     modifier = Modifier.size(30.dp)
                 ) {
                     Text("Aa", fontSize = 11.sp, fontWeight = if (caseSensitive) FontWeight.Bold else FontWeight.Normal, color = if (caseSensitive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(
-                    onClick = { wholeWord = !wholeWord; refreshMatches() },
+                    onClick = { wholeWord = !wholeWord },
                     modifier = Modifier.size(30.dp)
                 ) {
                     Text("ab|", fontSize = 11.sp, fontWeight = if (wholeWord) FontWeight.Bold else FontWeight.Normal, color = if (wholeWord) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)

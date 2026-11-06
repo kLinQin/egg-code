@@ -1,6 +1,11 @@
 package com.egg.codeeditor.ui.editor
 
 import android.graphics.Typeface
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -8,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.egg.codeeditor.model.CodeEditorState
@@ -122,24 +128,35 @@ fun SoraCodeEditor(
 ) {
     val context = LocalContext.current
     var dirtyNotified by remember { mutableStateOf(false) }
+    var highlightingReady by remember { mutableStateOf(false) }
 
-    AndroidView(
-        factory = {
-            CodeEditor(context).also { editor ->
-                state.editor = editor
-                // Apply all settings BEFORE the editor is shown → no white flash
-                applyEditorSettings(editor, settings)
-            }
-        },
-        modifier = modifier,
-        onRelease = { (it as? CodeEditor)?.release() }
-    )
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = {
+                CodeEditor(context).also { editor ->
+                    state.editor = editor
+                    // Apply all settings BEFORE the editor is shown → no white flash
+                    applyEditorSettings(editor, settings)
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+            onRelease = { (it as? CodeEditor)?.release() }
+        )
+        if (!highlightingReady) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            )
+        }
+    }
 
     // Language + content are combined: language is set FIRST, then text → highlight appears instantly.
     // After setEditorLanguage, Sora resets the color scheme to its default (white),
     // so applyColorScheme is called AGAIN to keep scrollbars and colors correct.
     LaunchedEffect(fileName, content) {
         val editor = state.editor ?: return@LaunchedEffect
+        highlightingReady = false
         val scopeName = scopeForName(fileName)
         if (scopeName != null) {
             val language = getOrCreateLanguage(scopeName)
@@ -151,11 +168,23 @@ fun SoraCodeEditor(
                 }
             }
         }
-        // Re-apply the scheme after a language change
-        applyEditorSettings(editor, settings)
         if (editor.getText().toString() != content) {
             editor.setText(content)
         }
+        // Re-apply the scheme after a language change
+        applyEditorSettings(editor, settings)
+        // Force analysis + redraw immediately (avoids "plain text until scroll")
+        try { editor.rerunAnalysis() } catch (_: Exception) {}
+        editor.invalidate()
+        // Tunggu sampai analyzer TextMate selesai (styles siap) — tanpa timing.
+        var tries = 0
+        while (tries < 40) {
+            val styles = try { editor.styles } catch (_: Exception) { null }
+            if (styles != null && styles.getSpans() != null) break
+            delay(16)
+            tries++
+        }
+        highlightingReady = true
         dirtyNotified = false
         while (true) {
             delay(300)
