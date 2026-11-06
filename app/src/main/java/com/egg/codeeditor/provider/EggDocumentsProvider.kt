@@ -63,7 +63,12 @@ class EggDocumentsProvider : DocumentsProvider() {
         val rootId = parts[0]
         if (rootId != ROOT_REPOS && rootId != ROOT_B2) throw FileNotFoundException("Bad root: $docId")
         val rel = if (parts.size > 1) parts[1] else ""
-        val f = if (rel.isEmpty()) rootDir(rootId) else File(rootDir(rootId), rel)
+        val root = rootDir(rootId).canonicalFile
+        val f = if (rel.isEmpty()) root else File(root, rel).canonicalFile
+        // Tolak path traversal: hasil canonical harus di dalam root.
+        if (f != root && !f.path.startsWith(root.path + File.separator)) {
+            throw FileNotFoundException("Outside root: $docId")
+        }
         return f
     }
 
@@ -74,6 +79,15 @@ class EggDocumentsProvider : DocumentsProvider() {
     }
 
     private fun rootIdOf(docId: String): String = docId.substringBefore('/')
+
+    /** Nama file/folder harus non-kosong, tanpa separator, bukan . atau .. */
+    private fun safeName(name: String): String {
+        val n = name.trim()
+        if (n.isEmpty() || n == "." || n == ".." ||
+            n.contains('/') || n.contains('\\') || n.contains('\u0000')
+        ) throw FileNotFoundException("Bad name: $name")
+        return n
+    }
 
     override fun queryRoots(projection: Array<out String>?): Cursor {
         val cols = projection ?: DEFAULT_ROOT_PROJECTION
@@ -181,15 +195,21 @@ class EggDocumentsProvider : DocumentsProvider() {
     }
 
     override fun isChildDocument(parentDocumentId: String, documentId: String): Boolean {
-        if (parentDocumentId.isEmpty()) return false
-        if (parentDocumentId == documentId) return false
-        return documentId.startsWith("$parentDocumentId/")
+        if (parentDocumentId.isEmpty() || parentDocumentId == documentId) return false
+        return try {
+            val parent = fileForDocId(parentDocumentId)
+            val child = fileForDocId(documentId)
+            child.canonicalPath.startsWith(parent.canonicalPath + File.separator)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     override fun createDocument(parentDocumentId: String, mimeType: String, displayName: String): String {
         val parent = fileForDocId(parentDocumentId)
         if (!parent.isDirectory) throw FileNotFoundException("Not a dir: $parentDocumentId")
-        val target = File(parent, displayName)
+        val name = safeName(displayName)
+        val target = File(parent, name)
         val ok = if (mimeType == Document.MIME_TYPE_DIR) target.mkdirs() else target.createNewFile()
         if (!ok && !target.exists()) throw FileNotFoundException("Cannot create $displayName")
         return docIdForFile(rootIdOf(parentDocumentId), target)
@@ -202,7 +222,8 @@ class EggDocumentsProvider : DocumentsProvider() {
 
     override fun renameDocument(documentId: String, displayName: String): String {
         val f = fileForDocId(documentId)
-        val target = File(f.parentFile, displayName)
+        val name = safeName(displayName)
+        val target = File(f.parentFile, name)
         if (!f.renameTo(target)) throw FileNotFoundException("Cannot rename $documentId")
         return docIdForFile(rootIdOf(documentId), target)
     }
@@ -213,6 +234,7 @@ class EggDocumentsProvider : DocumentsProvider() {
         projection: Array<out String>?
     ): Cursor {
         val c = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
+        if (rootId != ROOT_REPOS && rootId != ROOT_B2) return c
         val root = rootDir(rootId)
         root.walkTopDown().filter { it.name.contains(query, ignoreCase = true) }.forEach {
             if (it != root) includeFile(c, it, docIdForFile(rootId, it))
