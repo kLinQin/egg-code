@@ -393,7 +393,7 @@ fun EggApp() {
                                         }
                                     }
                                     Spacer(Modifier.weight(1f))
-                                    SidebarButton(Icons.Default.Info, "Info", onClick = { vm.showAboutDialog = true })
+                                    SidebarButton(Icons.Default.Info, "Info", selected = vm.currentSection == "Info") { vm.currentSection = "Info" }
                                 }
                                 RailStatusBar(versionText = appVersionText)
                             }
@@ -513,6 +513,41 @@ fun EggApp() {
                                                     onOpenDiff = { rel -> vm.openGitDiff(rel); scope.launch { drawerState.close() } }
                                                 )
                                             }
+                                        }
+                                        "Info" -> {
+                                            val infoMd = remember {
+                                                """
+# Egg Code Editor
+
+Android code editor built on **Sora Editor** + **TextMate grammar**.
+
+## Features
+
+- Syntax highlight (Kotlin, Java, JS, JSON, HTML, CSS, Python, Markdown)
+- Integrated terminal (pdn-engine)
+- Git integration (JGit)
+- Backblaze B2 cloud sync
+- Markdown preview with custom syntax
+- Discord Rich Presence
+
+## Shortcuts
+
+- `Ctrl+S` — Save
+- `Ctrl+F` — Find
+- `Ctrl+Z` — Undo
+- `Ctrl+Y` — Redo
+
+## License
+
+Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
+                                                """.trimIndent()
+                                            }
+                                            com.egg.codeeditor.ui.components.MarkdownPreview(
+                                                markdown = infoMd,
+                                                editorSettings = vm.settings,
+                                                editorRef = editorState.editor,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
                                         }
                                         "Cloud Storage" -> {
                                             if (vm.rootFolderPath == null) {

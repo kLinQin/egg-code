@@ -127,7 +127,7 @@ fun SettingsDialog(
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editor") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
-                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Lainnya") })
+                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Others") })
                 Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Discord") })
             }
 
@@ -331,13 +331,13 @@ private fun DiscordSettingsTab(
         Text("Discord Rich Presence", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Menampilkan status file yang kamu edit di profil Discord. Gunakan User Token dari aplikasi Discord/Aliucord.",
+            "Show the file you are editing on your Discord profile. Paste a User Token from Discord or Aliucord.",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Aktifkan", modifier = Modifier.weight(1f))
+            Text("Enable", modifier = Modifier.weight(1f))
             Switch(checked = enabled, onCheckedChange = onEnabledChange)
         }
         Spacer(Modifier.height(8.dp))
@@ -353,9 +353,9 @@ private fun DiscordSettingsTab(
         Button(onClick = {
             onTokenChange(localToken.trim())
             onEnabledChange(true)
-            savedMsg = "Token disimpan, presence diaktifkan"
+            savedMsg = "Token saved, presence enabled"
         }) {
-            Text("Simpan Token")
+            Text("Save Token")
         }
         if (savedMsg.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
