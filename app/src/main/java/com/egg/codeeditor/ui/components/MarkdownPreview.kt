@@ -97,7 +97,8 @@ fun MarkdownPreview(
         "table{border-collapse:collapse;margin:8px 0}" +
         "th,td{border:1px solid " + hex(surface.toArgb()) + ";padding:6px 10px;text-align:left}" +
         "th{background:" + hex(preBg) + ";color:" + hex(primary.toArgb()) + ";font-weight:600}" +
-        "blockquote{border-left:4px solid " + hex(primary.toArgb()) + ";padding:8px 12px;margin:8px 0;color:" + hex(fgColor) + ";opacity:0.9;background:transparent}" +
+        "blockquote{border-left:4px solid " + hex(primary.toArgb()) + ";padding:6px 12px;margin:6px 0;color:" + hex(fgColor) + ";opacity:0.9;background:transparent}" +
+        "blockquote p{margin:2px 0}" +
         "hr{border:none;border-top:1px solid " + hex(surface.toArgb()) + ";margin:12px 0}" +
         ".spoiler-inline{background:" + hex(fgColor) + ";color:transparent;border-radius:3px;padding:0 3px;cursor:pointer;transition:all .15s}" +
         ".spoiler-inline.revealed{background:" + hex(surface.toArgb()) + ";color:" + hex(fgColor) + "}" +
@@ -107,6 +108,27 @@ fun MarkdownPreview(
         ".youtube-embed{position:relative;padding-bottom:56.25%;height:0;margin:8px 0;border-radius:6px;overflow:hidden}" +
         ".youtube-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}" +
         ".discord-ts{color:" + hex(primary.toArgb()) + ";background:" + hex(surface.toArgb()) + ";padding:1px 4px;border-radius:3px;font-size:0.92em;cursor:default}" +
+        ".callout{border-left:4px solid;padding:10px 12px;margin:10px 0;border-radius:6px}" +
+        ".callout-title{font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px}" +
+        ".callout-note{border-color:#4a9eff;background:rgba(74,158,255,0.1)}" +
+        ".callout-note .callout-title{color:#4a9eff}" +
+        ".callout-info{border-color:#4a9eff;background:rgba(74,158,255,0.1)}" +
+        ".callout-info .callout-title{color:#4a9eff}" +
+        ".callout-warning{border-color:#f0ad4e;background:rgba(240,173,78,0.1)}" +
+        ".callout-warning .callout-title{color:#f0ad4e}" +
+        ".callout-success{border-color:#4caf50;background:rgba(76,175,80,0.1)}" +
+        ".callout-success .callout-title{color:#4caf50}" +
+        ".callout-danger{border-color:#e74c3c;background:rgba(231,76,60,0.1)}" +
+        ".callout-danger .callout-title{color:#e74c3c}" +
+        ".callout-tip{border-color:#4caf50;background:rgba(76,175,80,0.1)}" +
+        ".callout-tip .callout-title{color:#4caf50}" +
+        ".callout-body p{margin:0}" +
+        ".callout-body p+p{margin-top:6px}" +
+        "p{margin:6px 0}" +
+        ".task-check{display:inline-block;width:15px;height:15px;border:2px solid " + hex(primary.toArgb()) + ";border-radius:3px;vertical-align:middle;margin-right:6px;position:relative;box-sizing:border-box}" +
+        ".task-check.checked{background:" + hex(primary.toArgb()) + "}" +
+        ".task-check.checked::after{content:'\\2713';position:absolute;top:-1px;left:2px;color:" + hex(bg.toArgb()) + ";font-size:15px;font-weight:bold;line-height:1}" +
+        ".task-done{opacity:0.6;text-decoration:line-through}" +
         "::-webkit-scrollbar{display:none}" +
         // highlight.js mapping sesuai Sora scheme
         ".hljs-keyword{color:" + hex(keyword) + "}" +
@@ -124,6 +146,18 @@ fun MarkdownPreview(
         "<script>" +
         "var md=" + jsMarkdown + ";" +
         "md=md.replace(/<t:(\\d+)(?::([a-zA-Z]))?>/g,function(_,ts,fmt){return '<span class=\\\"discord-ts\\\" data-ts=\\\"'+ts+'\\\" data-format=\\\"'+(fmt||'f')+'\\\"></span>';});" +
+        // Callout: > [!TYPE] Title / > body  →  <div class=callout callout-type>
+        "var lines=md.split('\\n');var out=[];var i=0;" +
+        "while(i<lines.length){" +
+        "var l=lines[i];var m=l.match(/^> \\[!(\\w+)\\]\\s*(.*)$/i);" +
+        "if(m){" +
+        "var type=m[1].toLowerCase();var title=m[2]||'';var body=[];i++;" +
+        "while(i<lines.length && lines[i].startsWith('> ')){body.push(lines[i].slice(2));i++;}" +
+        "out.push('<div class=\\\"callout callout-'+type+'\\\"><div class=\\\"callout-title\\\">'+(title||type)+'</div><div class=\\\"callout-body\\\">'+marked.parse(body.join('\\n'))+'</div></div>');" +
+        "}else{out.push(l);i++;}}" +
+        "md=out.join('\\n');" +
+        "md=md.replace(/^- \\[ \\] (.+)$/gm,function(_,t){return '<div class=\\\"task-item\\\"><span class=\\\"task-check\\\"></span>'+t+'</div>';});" +
+        "md=md.replace(/^- \\[x\\] (.+)$/gmi,function(_,t){return '<div class=\\\"task-item task-done\\\"><span class=\\\"task-check checked\\\"></span>'+t+'</div>';});" +
         "md=md.replace(/^(?:-# )(.+)$/gm,'<small>$1</small>');" +
         "md=md.replace(/==(.+?)==/g,'<u>$1</u>');" +
         "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
