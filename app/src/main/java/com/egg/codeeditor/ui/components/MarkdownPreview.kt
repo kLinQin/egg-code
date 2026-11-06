@@ -66,14 +66,18 @@ fun MarkdownPreview(
     val fontSize = editorSettings.fontSizeSp
     val lineHeight = (fontSize * 1.5f)
 
-    val html = remember(markdown, isDark, editorSettings.themeName) {
+    val html = remember(markdown, isDark, editorSettings.themeName, editorSettings.fontSizeSp, editorSettings.fontFamily) {
         val jsMarkdown = org.json.JSONObject.quote(markdown)
         "<!DOCTYPE html><html><head>" +
         "<meta charset=\"utf-8\">" +
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" +
-        "<style>" +
-        "body{background:" + hex(bgColor) + ";color:" + hex(fgColor) + ";font-family:" + fontFamily + ";padding:16px;margin:0;line-height:" + lineHeight + "px;word-wrap:break-word;font-size:" + fontSize + "px}" +
-        "pre{position:relative;background:" + hex(preBg) + ";padding:12px;padding-top:36px;border-radius:6px;overflow-x:auto;font-size:" + (fontSize - 1) + "px;line-height:" + ((fontSize - 1) * 1.4f) + "px}" +
+        "<style>html,body{margin:0;padding:0;overflow-x:hidden}*{box-sizing:border-box;word-wrap:break-word}img{max-width:100%;height:auto}table{max-width:100%;display:block;overflow-x:auto}" +
+        "body{background:" + hex(bgColor) + ";color:" + hex(fgColor) + ";font-family:" + fontFamily + ";padding:16px;margin:0;line-height:" + lineHeight + "px;word-wrap:break-word;font-size:" + fontSize + "px;overflow-y:auto}" +
+        ".code-block{position:relative;background:" + hex(preBg) + ";border-radius:6px;margin:8px 0;padding:0}" +
+        ".lang-label{position:absolute;top:6px;left:10px;font-size:11px;color:" + hex(fgColor) + ";opacity:0.7;font-family:sans-serif;text-transform:uppercase}" +
+        ".line-numbers{display:flex;flex-direction:column;position:absolute;left:0;top:28px;bottom:0;width:36px;padding:8px 4px;text-align:right;font-family:monospace;font-size:" + (fontSize - 2) + "px;line-height:" + ((fontSize - 1) * 1.4f) + "px;color:" + hex(fgColor) + ";opacity:0.4;background:" + hex(preBg) + ";border-right:1px solid rgba(127,127,127,0.2);user-select:none;overflow:hidden}" +
+        ".line-numbers span{display:block;height:" + ((fontSize - 1) * 1.4f) + "px}" +
+        "pre{position:relative;background:transparent;margin:0;padding:8px 8px 8px 44px;padding-top:36px;font-size:" + (fontSize - 1) + "px;line-height:" + ((fontSize - 1) * 1.4f) + "px;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere}" +
         "pre code{background:transparent;padding:0;font-family:" + fontFamily + "}" +
         "code{background:" + hex(preBg) + ";padding:2px 4px;border-radius:3px;font-family:" + fontFamily + ";font-size:" + (fontSize - 1) + "px}" +
         ".copy-btn{position:absolute;top:6px;right:6px;background:" + hex(primary.toArgb()) + ";color:" + hex(bg.toArgb()) + ";border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;opacity:0.9}" +
@@ -102,13 +106,19 @@ fun MarkdownPreview(
         "<script>" +
         "var md=" + jsMarkdown + ";" +
         "document.getElementById('content').innerHTML=marked.parse(md);" +
-        "document.querySelectorAll('pre code').forEach(function(el){hljs.highlightElement(el);});" +
         "document.querySelectorAll('pre').forEach(function(pre){" +
+        "var code=pre.querySelector('code');if(!code)return;" +
+        "var langMatch=(code.className||'').match(/language-(\\w+)/);var lang=langMatch?langMatch[1]:'';" +
+        "try{hljs.highlightElement(code);}catch(e){}" +
+        "var wrapper=document.createElement('div');wrapper.className='code-block';pre.parentNode.insertBefore(wrapper,pre);" +
+        "var lb=document.createElement('div');lb.className='lang-label';lb.textContent=(lang||'plaintext');wrapper.appendChild(lb);" +
+        "var rawText=code.innerText.replace(/\\n+$/,'');var lineCount=rawText.split('\\n').length;" +
+        "var ln=document.createElement('div');ln.className='line-numbers';for(var i=1;i<=lineCount;i++){var sp=document.createElement('span');sp.textContent=i;ln.appendChild(sp);}wrapper.appendChild(ln);" +
+        "wrapper.appendChild(pre);" +
         "var btn=document.createElement('button');btn.className='copy-btn';btn.textContent='Copy';" +
-        "btn.onclick=function(){var code=pre.querySelector('code').innerText;" +
-        "if(window.AndroidBridge){window.AndroidBridge.copy(code);}" +
+        "btn.onclick=function(){var ce=pre.querySelector('code');if(ce&&window.AndroidBridge){window.AndroidBridge.copy(ce.innerText);}" +
         "btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},1500);};" +
-        "pre.appendChild(btn);});" +
+        "wrapper.appendChild(btn);});" +
         "</script></body></html>"
     }
 
@@ -119,6 +129,8 @@ fun MarkdownPreview(
             WebView(ctx).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
+                settings.loadWithOverviewMode = false
+                settings.useWideViewPort = false
                 setBackgroundColor(bgColor)
                 webViewClient = WebViewClient()
                 addJavascriptInterface(object {
