@@ -102,6 +102,7 @@ class EggViewModel(private val context: Context) {
                 else
                     listOf("Git", "File Manager")
                 scope.launch { rebuildVisibleNodes() }
+                if (gitRepo != null) scheduleGitRefresh()
                 return
             } else {
                 clearLastPrivateRoot(appContext)
@@ -122,7 +123,11 @@ class EggViewModel(private val context: Context) {
             listOf("File Manager", "Cloud Storage", "Git")
         else
             listOf("File Manager")
+        if (rootFolderPath != null && gitRepo == null) {
+            gitRepo = runCatching { Git.open(File(rootFolderPath!!)) }.getOrNull()
+        }
         scope.launch { rebuildVisibleNodes() }
+        if (gitRepo != null) scheduleGitRefresh()
     }
 
     // ── Terminal ──
@@ -458,6 +463,15 @@ class EggViewModel(private val context: Context) {
             b2Account = null; b2Bucket = null
             cloudChanges = emptyList(); cloudHistory = emptyList(); cloudMessage = null
             rebuildVisibleNodes()
+            // Auto-load Git status jika folder adalah repo
+            val rp = rootFolderPath
+            if (rp != null) {
+                val repo = runCatching { withContext(Dispatchers.IO) { Git.open(File(rp)) } }.getOrNull()
+                if (repo != null) {
+                    gitRepo = repo
+                    scheduleGitRefresh()
+                }
+            }
         }
     }
 
@@ -573,11 +587,44 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    /** Kembalikan marker Git (M/U/A/D) untuk node, atau null jika bersih/bukan repo. */
+    /** Kembalikan marker Git (M/U/A/D) untuk node, atau null jika bersih/bukan repo.
+     *  Untuk folder: cek descendant, prioritas D > M > U > A (seperti VS Code). */
     fun gitMarkerFor(node: FileNode): Char? {
         val st = gitStatus ?: return null
-        if (node.isDirectory) return null
-        val rel = relativeGitPath(node) ?: return null
+        if (!node.isDirectory) {
+            val rel = relativeGitPath(node) ?: return null
+            return when {
+                st.modified.contains(rel) || st.unstaged.contains(rel) || st.staged.contains(rel) -> 'M'
+                st.untracked.contains(rel) -> 'U'
+                st.added.contains(rel) -> 'A'
+                st.removed.contains(rel) || st.missing.contains(rel) -> 'D'
+                else -> null
+            }
+        }
+        // Folder: cek semua file yang path-nya di bawah folder ini.
+        val dirRel = relativeGitPath(node) ?: return null
+        val prefix = if (dirRel.isEmpty()) "" else "$dirRel/"
+        fun anyIn(list: List<String>): Boolean =
+            list.any { it == dirRel || it.startsWith(prefix) }
+        return when {
+            anyIn(st.removed) || anyIn(st.missing) -> 'D'
+            anyIn(st.modified) || anyIn(st.unstaged) || anyIn(st.staged) -> 'M'
+            anyIn(st.untracked) -> 'U'
+            anyIn(st.added) -> 'A'
+            else -> null
+        }
+    }
+
+    /** Marker Git untuk tab (berdasarkan URI). */
+    fun gitMarkerForTab(uri: android.net.Uri?): Char? {
+        val st = gitStatus ?: return null
+        if (uri == null) return null
+        val root = rootFolderPath ?: return null
+        val rel = runCatching {
+            val rootFile = File(root).canonicalFile
+            val nodeFile = File(uri.path ?: return null).canonicalFile
+            nodeFile.relativeTo(rootFile).path.replace('\\', '/')
+        }.getOrNull() ?: return null
         return when {
             st.modified.contains(rel) || st.unstaged.contains(rel) || st.staged.contains(rel) -> 'M'
             st.untracked.contains(rel) -> 'U'

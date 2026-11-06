@@ -134,7 +134,7 @@ fun GitActionBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            ActionPillVertical(onRefresh, Icons.Default.Refresh, "Refresh", enabled = !gitBusy)
+            ActionPillVertical(onRefresh, painterResource(R.drawable.ic_git_branch), "Refresh", enabled = !gitBusy)
             if (remoteUrl == null) {
                 ActionPillVertical(onAddRemote, Icons.Default.Link, "Remote", enabled = !gitBusy)
             } else {

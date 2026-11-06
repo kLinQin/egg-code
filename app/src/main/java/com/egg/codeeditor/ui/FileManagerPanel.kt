@@ -49,6 +49,23 @@ import com.egg.codeeditor.ui.components.TreeGuides
 import com.egg.codeeditor.ui.components.fileIconSpec
 import com.egg.codeeditor.ui.components.folderIconSpec
 
+/** Warna marker Git — tetap kontras di light & dark (ala VS Code).
+ *  Deteksi dark dari luminans onSurface agar ikut themeName app. */
+@androidx.compose.runtime.Composable
+private fun gitMarkerColor(marker: Char): androidx.compose.ui.graphics.Color {
+    val onSurface = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+    val lum = 0.299f * onSurface.red + 0.587f * onSurface.green + 0.114f * onSurface.blue
+    val dark = lum > 0.5f  // teks terang = bg gelap
+    return when (marker) {
+        'M' -> if (dark) androidx.compose.ui.graphics.Color(0xFFE2C08D) else androidx.compose.ui.graphics.Color(0xFFB58900)
+        'U' -> if (dark) androidx.compose.ui.graphics.Color(0xFF73C991) else androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        'A' -> if (dark) androidx.compose.ui.graphics.Color(0xFF73C991) else androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        'D' -> if (dark) androidx.compose.ui.graphics.Color(0xFFF48771) else androidx.compose.ui.graphics.Color(0xFFC62828)
+        else -> androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+
 /** Item menu teks ringkas (mirip pola menu tab: tanpa fillMaxWidth). */
 @Composable
 private fun MenuTextAction(text: String, onClick: () -> Unit) {
@@ -141,7 +158,12 @@ internal fun FileManagerPanel(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-                    Text(node.name, maxLines = 1)
+                    Text(
+                        node.name,
+                        maxLines = 1,
+                        color = if (marker != null) gitMarkerColor(marker)
+                                else MaterialTheme.colorScheme.onSurface
+                    )
                 }
 
                 // Menu konteks ala TabBar: 1 baris horizontal + scroll,

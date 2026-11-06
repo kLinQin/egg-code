@@ -54,7 +54,8 @@ fun EditorTabBar(
     onSave: (EditorTab) -> Unit,
     onCloseOthers: (Long) -> Unit,
     onDelete: (EditorTab) -> Unit,
-    onNewTab: () -> Unit
+    onNewTab: () -> Unit,
+    gitMarkerFor: (EditorTab) -> Char? = { null }
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -79,7 +80,8 @@ fun EditorTabBar(
                         onClose = onClose,
                         onSave = onSave,
                         onCloseOthers = onCloseOthers,
-                        onDelete = onDelete
+                        onDelete = onDelete,
+                        gitMarkerFor = gitMarkerFor
                     )
                 }
             }
@@ -99,7 +101,8 @@ private fun EditorTabItem(
     onClose: (EditorTab) -> Unit,
     onSave: (EditorTab) -> Unit,
     onCloseOthers: (Long) -> Unit,
-    onDelete: (EditorTab) -> Unit
+    onDelete: (EditorTab) -> Unit,
+    gitMarkerFor: (EditorTab) -> Char? = { null }
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -126,12 +129,29 @@ private fun EditorTabItem(
                 tint = fileSpec.color
             )
             Spacer(Modifier.width(6.dp))
+            val marker = gitMarkerFor(tab)
+            val markerColor = when (marker) {
+                'M' -> androidx.compose.ui.graphics.Color(0xFFB58900)
+                'U' -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+                'A' -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+                'D' -> androidx.compose.ui.graphics.Color(0xFFC62828)
+                else -> null
+            }
             Text(
                 tab.name,
                 fontSize = 12.sp,
                 maxLines = 1,
+                color = markerColor ?: MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
             )
+            if (marker != null) {
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    marker.toString(),
+                    fontSize = 9.sp,
+                    color = markerColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(Modifier.width(6.dp))
             if (tab.isDirty) {
                 Box(

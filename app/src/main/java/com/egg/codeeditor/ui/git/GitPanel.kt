@@ -109,7 +109,7 @@ fun GitPanel(
                     if (staged.isNotEmpty()) {
                         item { Text("Staged", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(staged) { rel ->
-                            GitFileRow(label = "A  $rel", busy = gitBusy,
+                            GitFileRow(label = rel, busy = gitBusy, marker = 'A',
                                 primaryIcon = Icons.Default.Remove, primaryDesc = "Unstage",
                                 onPrimary = { onUnstage(rel) },
                                 secondaryIcon = null, secondaryDesc = null, onSecondary = null, onLabelClick = { onOpenDiff(rel) })
@@ -118,7 +118,7 @@ fun GitPanel(
                     if (unstaged.isNotEmpty()) {
                         item { Text("Changes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(unstaged) { rel ->
-                            GitFileRow(label = "M  $rel", busy = gitBusy,
+                            GitFileRow(label = rel, busy = gitBusy, marker = 'M',
                                 primaryIcon = Icons.Default.Add, primaryDesc = "Stage",
                                 onPrimary = { onStage(rel) },
                                 secondaryIcon = Icons.AutoMirrored.Filled.Undo, secondaryDesc = "Discard", onSecondary = { onDiscard(rel, false) }, onLabelClick = { onOpenDiff(rel) })
@@ -127,7 +127,7 @@ fun GitPanel(
                     if (untracked.isNotEmpty()) {
                         item { Text("Untracked", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(untracked) { rel ->
-                            GitFileRow(label = "?? $rel", busy = gitBusy,
+                            GitFileRow(label = rel, busy = gitBusy, marker = 'U',
                                 primaryIcon = Icons.Default.Add, primaryDesc = "Stage",
                                 onPrimary = { onStage(rel) },
                                 secondaryIcon = Icons.AutoMirrored.Filled.Undo, secondaryDesc = "Discard", onSecondary = { onDiscard(rel, true) }, onLabelClick = { onOpenDiff(rel) })
@@ -171,9 +171,24 @@ fun GitPanel(
 }
 
 @Composable
+private fun gitMarkerColorGit(marker: Char): androidx.compose.ui.graphics.Color {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val lum = 0.299f * onSurface.red + 0.587f * onSurface.green + 0.114f * onSurface.blue
+    val dark = lum > 0.5f
+    return when (marker) {
+        'M' -> if (dark) androidx.compose.ui.graphics.Color(0xFFE2C08D) else androidx.compose.ui.graphics.Color(0xFFB58900)
+        'U', '?' -> if (dark) androidx.compose.ui.graphics.Color(0xFF73C991) else androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        'A' -> if (dark) androidx.compose.ui.graphics.Color(0xFF73C991) else androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        'D' -> if (dark) androidx.compose.ui.graphics.Color(0xFFF48771) else androidx.compose.ui.graphics.Color(0xFFC62828)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+@Composable
 private fun GitFileRow(
     label: String,
     busy: Boolean,
+    marker: Char? = null,
     primaryIcon: androidx.compose.ui.graphics.vector.ImageVector,
     primaryDesc: String,
     onPrimary: () -> Unit,
@@ -183,8 +198,22 @@ private fun GitFileRow(
     onLabelClick: (() -> Unit)? = null
 ) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+        if (marker != null) {
+            Text(
+                marker.toString(),
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                color = gitMarkerColorGit(marker),
+                modifier = Modifier.padding(end = 6.dp)
+            )
+        }
+        Text(
+            label,
+            fontSize = 12.sp,
+            fontFamily = FontFamily.Monospace,
+            color = if (marker != null) gitMarkerColorGit(marker) else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).let { m -> if (onLabelClick != null) m.clickable { onLabelClick() } else m })
+        
         IconButton(onClick = onPrimary, enabled = !busy, modifier = Modifier.size(28.dp)) {
             Icon(primaryIcon, primaryDesc, Modifier.size(16.dp))
         }

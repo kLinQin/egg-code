@@ -617,7 +617,8 @@ fun EggApp() {
                             },
                             onCloseOthers = { id -> captureActiveTabContent(); vm.closeOthers(id) },
                             onDelete = { tab -> vm.pendingDeleteTab = tab },
-                            onNewTab = { captureActiveTabContent(); vm.newUntitledTab() }
+                            onNewTab = { captureActiveTabContent(); vm.newUntitledTab() },
+                            gitMarkerFor = { tab -> vm.gitMarkerForTab(tab.uri) }
                         )
 
                         if (vm.showFindBar) {
