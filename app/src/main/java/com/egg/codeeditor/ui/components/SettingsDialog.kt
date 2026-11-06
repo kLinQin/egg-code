@@ -37,7 +37,11 @@ fun SettingsDialog(
     onSettingsChange: (EditorSettings) -> Unit,
     onDismiss: () -> Unit,
     onBackup: (Uri) -> Unit,
-    onRestore: (Uri) -> Unit
+    onRestore: (Uri) -> Unit,
+    discordToken: String = "",
+    discordEnabled: Boolean = false,
+    onDiscordTokenChange: (String) -> Unit = {},
+    onDiscordEnabledChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -124,6 +128,7 @@ fun SettingsDialog(
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editor") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
                 Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Lainnya") })
+                Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Discord") })
             }
 
             // Content
@@ -132,6 +137,7 @@ fun SettingsDialog(
                     0 -> EditorSettingsTab(settings, onSettingsChange, fontLauncher)
                     1 -> AppSettingsTab(settings, onSettingsChange, appFontLauncher)
                     2 -> OtherSettingsTab(settings, onSettingsChange, backupLauncher, restoreLauncher)
+                    3 -> DiscordSettingsTab(discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
                 }
             }
         }
@@ -309,5 +315,51 @@ private fun SettingSwitchRow(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), fontSize = 13.sp)
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun DiscordSettingsTab(
+    token: String,
+    enabled: Boolean,
+    onTokenChange: (String) -> Unit,
+    onEnabledChange: (Boolean) -> Unit
+) {
+    var localToken by remember { mutableStateOf(token) }
+    var savedMsg by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Text("Discord Rich Presence", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Menampilkan status file yang kamu edit di profil Discord. Gunakan User Token dari aplikasi Discord/Aliucord.",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Aktifkan", modifier = Modifier.weight(1f))
+            Switch(checked = enabled, onCheckedChange = onEnabledChange)
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = localToken,
+            onValueChange = { localToken = it },
+            label = { Text("User Token") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {
+            onTokenChange(localToken.trim())
+            onEnabledChange(true)
+            savedMsg = "Token disimpan, presence diaktifkan"
+        }) {
+            Text("Simpan Token")
+        }
+        if (savedMsg.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(savedMsg, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+        }
     }
 }

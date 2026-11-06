@@ -170,7 +170,11 @@ internal fun EggDialogs(
             onSettingsChange = { vm.updateSettings(it) },
             onDismiss = { vm.showSettings = false },
             onBackup = { vm.performBackup(it) },
-            onRestore = { vm.performRestore(it) }
+            onRestore = { vm.performRestore(it) },
+            discordToken = vm.discordToken,
+            discordEnabled = vm.discordEnabled,
+            onDiscordTokenChange = { vm.updateDiscordToken(it) },
+            onDiscordEnabledChange = { vm.updateDiscordEnabled(it) }
         )
     }
 

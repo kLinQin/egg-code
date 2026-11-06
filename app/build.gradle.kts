@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -68,6 +69,8 @@ dependencies {
     implementation(files("libs/pdn-engine-0.6.18.aar"))
 
     implementation(project(":termlib-local"))
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 
     // TAMBAHKAN BARIS INI UNTUK DESUGARING
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")

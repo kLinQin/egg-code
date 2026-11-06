@@ -43,6 +43,7 @@ import com.egg.codeeditor.ui.components.CloudActionBar
 import com.egg.codeeditor.ui.components.EditorStatusBar
 import com.egg.codeeditor.ui.components.EditorTabBar
 import com.egg.codeeditor.ui.components.FileManagerActionBar
+import com.egg.codeeditor.discord.DiscordRpcManager
 import com.egg.codeeditor.ui.components.FindBar
 import com.egg.codeeditor.ui.components.GitActionBar
 import com.egg.codeeditor.ui.components.RailStatusBar
@@ -87,11 +88,24 @@ private fun dismissEditorActionMode(editor: CodeEditor?) {
 @Composable
 fun EggApp() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val vm = remember { EggViewModel(context.applicationContext) }
     DisposableEffect(vm) {
         onDispose { vm.dispose() }
     }
-    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(scope) {
+        vm.setDiscordScope(scope)
+    }
+
+    LaunchedEffect(vm.activeTabId, vm.activeTab?.name) {
+        val name = vm.activeTab?.name
+        if (name != null) {
+            DiscordRpcManager.updatePresence("Editing ${name}", "Egg Code Editor")
+        } else {
+            DiscordRpcManager.updatePresence("Idle", "Egg Code Editor")
+        }
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
     // ── Editor state (WAJIB sebelum launcher supaya tidak unresolved reference) ──

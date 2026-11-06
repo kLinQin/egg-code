@@ -18,6 +18,7 @@ import com.egg.codeeditor.model.EditorSettings
 import com.egg.codeeditor.model.EditorTab
 import com.egg.codeeditor.model.FileNode
 import com.egg.codeeditor.model.GitStatusInfo
+import com.egg.codeeditor.discord.DiscordRpcManager
 import com.egg.codeeditor.util.B2Account
 import com.egg.codeeditor.util.B2Bucket
 import com.egg.codeeditor.util.B2FileInfo
@@ -207,6 +208,39 @@ class EggViewModel(private val context: Context) {
     var pendingSaveAsTabId by mutableStateOf<Long?>(null)
 
     var showFindBar by mutableStateOf(false)
+    // ── Discord Rich Presence ──
+    var discordToken by mutableStateOf("")
+    var discordEnabled by mutableStateOf(false)
+    private var discordScope: kotlinx.coroutines.CoroutineScope? = null
+    private var appScope: kotlinx.coroutines.CoroutineScope? = null
+
+    fun setDiscordScope(scope: kotlinx.coroutines.CoroutineScope) {
+        appScope = scope
+        if (discordEnabled && discordToken.isNotBlank()) {
+            DiscordRpcManager.start(discordToken, scope)
+        }
+    }
+
+    fun updateDiscordToken(token: String) {
+        discordToken = token
+        appContext.getSharedPreferences("egg_discord", android.content.Context.MODE_PRIVATE)
+            .edit().putString("token", token).apply()
+        DiscordRpcManager.stop()
+        if (discordEnabled && token.isNotBlank()) {
+            appScope?.let { DiscordRpcManager.start(token, it) }
+        }
+    }
+
+    fun updateDiscordEnabled(enabled: Boolean) {
+        discordEnabled = enabled
+        appContext.getSharedPreferences("egg_discord", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("enabled", enabled).apply()
+        if (enabled && discordToken.isNotBlank()) {
+            appScope?.let { DiscordRpcManager.start(discordToken, it) }
+        } else {
+            DiscordRpcManager.stop()
+        }
+    }
 
     // ── Global UI messages (snackbar) ──
     private val _uiMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
@@ -214,6 +248,11 @@ class EggViewModel(private val context: Context) {
     fun notify(msg: String) { _uiMessages.tryEmit(msg) }
 
     init {
+        // Load discord token
+        val prefs = appContext.getSharedPreferences("egg_discord", android.content.Context.MODE_PRIVATE)
+        discordToken = prefs.getString("token", "") ?: ""
+        discordEnabled = prefs.getBoolean("enabled", false)
+
         loadGitCredentials(appContext)?.let { (u, t) -> gitUser = u; gitToken = t }
         restoreLastProject()
         loadRecentFromPrefs()
