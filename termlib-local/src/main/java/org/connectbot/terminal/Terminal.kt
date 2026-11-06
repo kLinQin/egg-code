@@ -141,6 +141,7 @@ private const val CURSOR_BLINK_RATE_MS = 500L
  * Amount of time to wait for second touch to detect multitouch gesture in milliseconds.
  */
 private const val WAIT_FOR_SECOND_TOUCH_MS = 40L
+private const val AUTO_SCROLL_FRAME_INTERVAL = 4
 
 /**
  * Text selection magnifier loupe size in dp.
@@ -968,6 +969,7 @@ internal fun TerminalWithAccessibility(
 
                                     // Local variable to keep track of which handle we are moving in case they cross
                                     var isMovingStart = touchingStart
+                                    var autoScrollCooldown = 0
 
                                     try {
                                         drag(down.id) { change ->
@@ -977,6 +979,37 @@ internal fun TerminalWithAccessibility(
                                             val newRow =
                                                 (change.position.y / baseCharHeight).toInt()
                                                     .coerceIn(0, screenState.snapshot.rows - 1)
+
+                                            // Auto-scroll saat jari keluar tepi atas/bawah viewport
+                                            // sambil menyeret handle seleksi. Karena scroll menggeser makna
+                                            // baris layar, baris seleksi lama ikut digeser agar tetap
+                                            // menempel pada konten yang sama.
+                                            val fingerY = change.position.y
+                                            val targetScrollback = when {
+                                                fingerY < 0f -> screenState.scrollbackPosition + 1
+                                                fingerY > availableHeight.toFloat() -> screenState.scrollbackPosition - 1
+                                                else -> screenState.scrollbackPosition
+                                            }.coerceIn(0, screenState.snapshot.scrollback.size)
+                                            val scrollDelta = targetScrollback - screenState.scrollbackPosition
+
+                                            if (scrollDelta != 0 && autoScrollCooldown <= 0) {
+                                                val currentRange = selectionManager.selectionRange
+                                                if (currentRange != null) {
+                                                    selectionManager.updateSelectionStart(
+                                                        currentRange.startRow + scrollDelta,
+                                                        currentRange.startCol,
+                                                    )
+                                                    selectionManager.updateSelectionEnd(
+                                                        currentRange.endRow + scrollDelta,
+                                                        currentRange.endCol,
+                                                    )
+                                                }
+                                                scrollController.scrollBy(scrollDelta)
+                                                autoScrollCooldown = AUTO_SCROLL_FRAME_INTERVAL
+                                            } else if (scrollDelta == 0) {
+                                                autoScrollCooldown = 0
+                                            }
+                                            autoScrollCooldown--
 
                                             val current = selectionManager.selectionRange
                                             if (current != null) {
@@ -1468,8 +1501,8 @@ internal fun TerminalWithAccessibility(
                                 selectionManager.clearSelection()
                             },
                             modifier = Modifier.size(COPY_BUTTON_SIZE),
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                         ) {
                             Text(stringResource(R.string.terminal_selection_copy), style = MaterialTheme.typography.labelSmall)
                         }
@@ -1492,8 +1525,8 @@ internal fun TerminalWithAccessibility(
                                         contentDescription = moreOptionsLabel
                                         role = Role.Button
                                     },
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
                             ) {
                                 Text(stringResource(R.string.terminal_selection_more_options), style = MaterialTheme.typography.labelSmall)
                             }

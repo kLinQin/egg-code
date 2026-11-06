@@ -21,8 +21,9 @@ app/libs/pdn_extract/
 /.idea/
 app/release/
 pdn-classes.jar
-termlib-local/
 
 # Cloud sync index (lokal)
 .egg/
 patch.js
+termlib-local/build/
+app/libs/termlib-src/
