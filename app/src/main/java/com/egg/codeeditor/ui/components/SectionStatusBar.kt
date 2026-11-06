@@ -33,7 +33,8 @@ internal fun SectionStatusBar(
     visibleNodes: List<FileNode>,
     gitRepo: Git?,
     gitStatus: GitStatusInfo?,
-    cloudBucketName: String?
+    cloudBucketName: String?,
+    activeFileName: String? = null
 ) {
     val branchName = remember(gitRepo) {
         runCatching { gitRepo?.repository?.branch }.getOrNull()
@@ -53,7 +54,7 @@ internal fun SectionStatusBar(
             ) {
                 when (section) {
                     "File Manager" -> {
-                        val folderText = rootFolderPath ?: "No project opened"
+                        val folderText = rootFolderPath ?: activeFileName ?: "No project opened"
                         val files = visibleNodes.count { !it.isDirectory }
                         val dirs = visibleNodes.count { it.isDirectory }
                         Text(
@@ -66,12 +67,14 @@ internal fun SectionStatusBar(
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(12.dp))
-                        Text(
-                            "$files files · $dirs folders",
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (rootFolderPath != null) {
+                            Text(
+                                "$files files · $dirs folders",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     "Git" -> {
                         Text(

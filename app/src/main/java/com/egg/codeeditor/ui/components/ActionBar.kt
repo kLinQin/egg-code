@@ -61,21 +61,19 @@ fun FileManagerActionBar(
     onToggleCollapse: () -> Unit,
     onCloseProject: () -> Unit
 ) {
-    if (rootFolderUri == null && rootFolderPath == null) {
-        // No project open — entry is via Welcome screen only.
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File")
-            ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder")
-            ActionPillVertical(onRefresh, painterResource(R.drawable.ic_git_branch), "Refresh")
-            ActionPillVertical(onToggleCollapse,
-                if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore, "Collapse")
-            ActionPillVertical(onCloseProject, Icons.Default.ExitToApp, "Close")
-        }
+    val hasFolder = rootFolderUri != null || rootFolderPath != null
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File", enabled = hasFolder)
+        ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder", enabled = hasFolder)
+        ActionPillVertical(onRefresh, painterResource(R.drawable.ic_git_branch), "Refresh", enabled = hasFolder)
+        ActionPillVertical(onToggleCollapse,
+            if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore,
+            "Collapse", enabled = hasFolder)
+        ActionPillVertical(onCloseProject, Icons.Default.ExitToApp, "Close", enabled = true)
     }
 }
 

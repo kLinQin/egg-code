@@ -120,15 +120,41 @@ class EggViewModel(private val context: Context) {
         }
         rootFolderUri = uri
         rootFolderPath = getPathFromTreeUri(uri)
-        availableSections = if (rootFolderPath != null)
-            listOf("File Manager", "Cloud Storage", "Git")
-        else
-            listOf("File Manager")
+        availableSections = buildAvailableSections(rootFolderPath)
         if (rootFolderPath != null && gitRepo == null) {
             gitRepo = runCatching { Git.open(File(rootFolderPath!!)) }.getOrNull()
         }
         scope.launch { rebuildVisibleNodes() }
         if (gitRepo != null) scheduleGitRefresh()
+    }
+
+    private fun buildAvailableSections(rootPath: String?): List<String> {
+        if (rootPath == null) return listOf("File Manager")
+        val hasGit = runCatching { org.eclipse.jgit.api.Git.open(File(rootPath)).use { true } }.getOrDefault(false)
+        val hasCloud = loadB2Credentials(appContext) != null // sesuaikan fungsi kredensial yang ada
+        val list = mutableListOf("File Manager")
+        if (hasCloud) list.add("Cloud Storage")
+        if (hasGit) list.add("Git")
+        return list
+    }
+
+    /** Reload semua tab dari disk jika isinya berubah & tidak dirty. */
+    fun reloadAllTabsFromDisk() {
+        scope.launch {
+            val toReload = mutableListOf<Int>()
+            for (i in tabs.indices) {
+                val t = tabs[i]
+                val uri = t.uri ?: continue
+                if (t.isDirty) continue
+                val disk = runCatching { readFileContent(appContext, uri) }.getOrNull() ?: continue
+                if (disk != t.content) toReload.add(i)
+            }
+            for (i in toReload) {
+                val t = tabs[i]
+                val disk = runCatching { readFileContent(appContext, t.uri!!) }.getOrNull() ?: continue
+                tabs[i] = t.copy(content = disk)
+            }
+        }
     }
 
     // ── Terminal ──
@@ -141,7 +167,7 @@ class EggViewModel(private val context: Context) {
     var rootFolderUri by mutableStateOf<Uri?>(null)
     var rootFolderPath by mutableStateOf<String?>(null)
     var rootIsPrivate by mutableStateOf(false)
-    var availableSections by mutableStateOf(listOf("File Manager", "Cloud Storage", "Git"))
+    var availableSections by mutableStateOf(listOf("File Manager"))
     var visibleNodes by mutableStateOf<List<FileNode>>(emptyList())
     var expandedPaths by mutableStateOf<Set<String>>(emptySet())
     val folderCache = mutableStateMapOf<String, List<FileNode>>()
@@ -374,6 +400,8 @@ class EggViewModel(private val context: Context) {
                 }
                 val name = getFileName(appContext, uri)
                 val content = readFileContent(appContext, uri)
+                availableSections = listOf("File Manager")
+                currentSection = "File Manager"
                 val exists = tabs.indexOfFirst { it.uri == uri }
                 if (exists >= 0) {
                     activeTabId = tabs[exists].id
@@ -486,10 +514,7 @@ class EggViewModel(private val context: Context) {
             saveLastProjectUri(appContext, uri.toString())
             clearLastPrivateRoot(appContext)
             rootFolderPath = getPathFromTreeUri(uri)
-            availableSections = if (rootFolderPath != null)
-                listOf("File Manager", "Cloud Storage", "Git")
-            else
-                listOf("File Manager")
+            availableSections = buildAvailableSections(rootFolderPath)
             expandedPaths = emptySet()
             folderCache.clear()
 

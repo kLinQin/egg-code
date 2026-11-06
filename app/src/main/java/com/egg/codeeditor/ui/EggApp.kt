@@ -10,12 +10,16 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -45,6 +49,7 @@ import com.egg.codeeditor.ui.components.EditorTabBar
 import com.egg.codeeditor.ui.components.FileManagerActionBar
 import com.egg.codeeditor.discord.DiscordRpcManager
 import com.egg.codeeditor.ui.components.FindBar
+import com.egg.codeeditor.ui.components.fileIconSpec
 import com.egg.codeeditor.ui.components.GitActionBar
 import com.egg.codeeditor.ui.components.RailStatusBar
 import com.egg.codeeditor.ui.components.SectionStatusBar
@@ -92,6 +97,18 @@ fun EggApp() {
     val vm = remember { EggViewModel(context.applicationContext) }
     DisposableEffect(vm) {
         onDispose { vm.dispose() }
+    }
+
+    // Reload file saat app kembali ke foreground (kalau berubah di disk)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.reloadAllTabsFromDisk()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(scope) {
@@ -465,11 +482,38 @@ fun EggApp() {
                                     when (vm.currentSection) {
                                         "File Manager" -> {
                                             if (vm.rootFolderUri == null && !vm.rootIsPrivate) {
-                                                Text(
-                                                    "No folder opened. Choose 'Open Project Folder' above.",
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.padding(16.dp)
-                                                )
+                                                // Tidak ada folder, tapi mungkin ada file tunggal yang dibuka
+                                                if (vm.tabs.any { it.uri != null }) {
+                                                    androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
+                                                        items(vm.tabs.filter { it.uri != null }, key = { it.id }) { tab ->
+                                                            androidx.compose.foundation.layout.Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .clickable { vm.activeTabId = tab.id; scope.launch { drawerState.close() } }
+                                                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                run {
+                                                                    val fSpec = fileIconSpec(tab.name)
+                                                                    Icon(fSpec.icon, null, Modifier.size(18.dp), tint = fSpec.color)
+                                                                }
+                                                                androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
+                                                                Text(
+                                                                    tab.name,
+                                                                    modifier = Modifier.weight(1f),
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                } else {
+                                                    Text(
+                                                        "No project or file opened. Tap the menu to open a folder or file.",
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.padding(16.dp)
+                                                    )
+                                                }
                                             } else {
                                                 FileManagerPanel(
                                                     vm = vm,
@@ -576,7 +620,8 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                     visibleNodes = vm.visibleNodes,
                                     gitRepo = vm.gitRepo,
                                     gitStatus = vm.gitStatus,
-                                    cloudBucketName = vm.b2Bucket?.bucketName
+                                    cloudBucketName = vm.b2Bucket?.bucketName,
+                                    activeFileName = vm.activeTab?.name
                                 )
                             }
                         }

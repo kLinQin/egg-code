@@ -70,15 +70,26 @@ suspend fun readFileContent(context: Context, uri: Uri): String {
     }
 }
 
-suspend fun writeFileContent(context: Context, uri: Uri, content: String) {
-    withContext(Dispatchers.IO) {
+suspend fun writeFileContent(context: Context, uri: Uri, content: String): Boolean {
+    return withContext(Dispatchers.IO) {
         try {
             if (uri.scheme == "file") {
-                uri.path?.let { java.io.File(it).writeText(content) }
+                val f = uri.path?.let { java.io.File(it) } ?: return@withContext false
+                f.writeText(content)
+                true
             } else {
-                context.contentResolver.openOutputStream(uri, "wt")?.use { it.bufferedWriter().write(content) }
+                // Coba mode "rwt" (truncate + write) dulu; fallback ke "wt"
+                val bytes = content.toByteArray(Charsets.UTF_8)
+                val stream = context.contentResolver.openOutputStream(uri, "rwt")
+                    ?: context.contentResolver.openOutputStream(uri, "wt")
+                    ?: return@withContext false
+                stream.use { it.write(bytes); it.flush() }
+                true
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }
 
