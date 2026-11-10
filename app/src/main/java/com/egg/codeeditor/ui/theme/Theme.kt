@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -21,7 +22,9 @@ private val DarkColorScheme = darkColorScheme(
     primary = ClaudeDarkPrimary,
     onPrimary = ClaudeDarkOnPrimary,
     secondary = ClaudeDarkTextSecondary,
-    tertiary = ClaudeDarkTextSecondary,
+    onSecondary = ClaudeDarkBackground,
+    tertiary = ClaudeDarkAccentBlue,
+    onTertiary = ClaudeDarkBackground,
     background = ClaudeDarkBackground,
     onBackground = ClaudeDarkTextPrimary,
     surface = ClaudeDarkSurface,
@@ -29,12 +32,21 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = ClaudeDarkSurfaceVariant,
     onSurfaceVariant = ClaudeDarkTextSecondary,
     outline = ClaudeDarkOutline,
-    // Aktifkan tab & panel aksen ala Claude
-    secondaryContainer = ClaudeDarkPrimary.copy(alpha = 0.28f),
+    outlineVariant = ClaudeDarkSurfaceVariant,
+    error = Color(0xFFE07161),
+    onError = ClaudeDarkBackground,
+    // Container mapping (tab aktif, panel, sheet)
+    primaryContainer = ClaudeDarkActive,
+    onPrimaryContainer = ClaudeDarkTextPrimary,
+    secondaryContainer = ClaudeDarkActive,
     onSecondaryContainer = ClaudeDarkTextPrimary,
-    surfaceContainer = ClaudeDarkSurfaceVariant,
-    surfaceContainerHigh = ClaudeDarkBackground,
-    surfaceContainerHighest = ClaudeDarkSurface
+    tertiaryContainer = ClaudeDarkHover,
+    onTertiaryContainer = ClaudeDarkTextPrimary,
+    surfaceContainerLowest = ClaudeDarkBackground,
+    surfaceContainerLow = Color(0xFF171615),
+    surfaceContainer = ClaudeDarkSurface,
+    surfaceContainerHigh = ClaudeDarkSurfaceVariant,
+    surfaceContainerHighest = ClaudeDarkActive
 )
 
 private val LightColorScheme = lightColorScheme(

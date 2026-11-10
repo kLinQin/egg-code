@@ -605,18 +605,89 @@ class EggViewModel(private val context: Context) {
 
     fun rename(newName: String) {
         scope.launch {
-            val node = selectedNode
-            withContext(Dispatchers.IO) {
-                node?.let { n ->
-                    if (n.uri.scheme == "file") {
-                        val f = n.uri.path?.let { File(it) }
-                        if (f != null) runCatching { f.renameTo(File(f.parentFile, newName)) }
+            val node = selectedNode ?: return@launch
+            val oldUriStr = node.uri.toString()
+            val newNameClean = newName.trim()
+            if (newNameClean.isEmpty() || newNameClean == node.name) return@launch
+
+            val newUri: Uri? = withContext(Dispatchers.IO) {
+                try {
+                    if (node.uri.scheme == "file") {
+                        val f = node.uri.path?.let { File(it) } ?: return@withContext null
+                        val target = File(f.parentFile, newNameClean)
+                        if (target.exists()) return@withContext null
+                        val ok = f.renameTo(target)
+                        if (ok) Uri.fromFile(target) else null
                     } else {
-                        DocumentFile.fromSingleUri(appContext, n.uri)?.renameTo(newName)
+                        try {
+                            val newDocUri = android.provider.DocumentsContract.renameDocument(
+                                appContext.contentResolver, node.uri, newNameClean
+                            )
+                            newDocUri ?: node.uri
+                        } catch (e: Exception) {
+                            null
+                        }
                     }
+                } catch (e: Exception) {
+                    null
                 }
             }
+
+            if (newUri == null) {
+                // rename gagal — jangan rebuild (biar tidak crash)
+                return@launch
+            }
+
+            // update tab yang menunjuk ke URI lama (atau di subtree-nya, kalau folder)
+            val newUriStr = newUri.toString()
+            val isDir = node.isDirectory
+            for (i in tabs.indices) {
+                val t = tabs[i]
+                val tu = t.uri?.toString() ?: continue
+                when {
+                    tu == oldUriStr -> tabs[i] = t.copy(uri = newUri)
+                    isDir && tu.startsWith(oldUriStr + "/") ->
+                        tabs[i] = t.copy(uri = Uri.parse(newUriStr + tu.substring(oldUriStr.length)))
+                }
+            }
+            persistTabs()
+
+            // update expandedPaths subtree
+            if (isDir && expandedPaths.any { it == oldUriStr || it.startsWith(oldUriStr + "/") }) {
+                expandedPaths = expandedPaths.map { ep ->
+                    when {
+                        ep == oldUriStr -> newUriStr
+                        ep.startsWith(oldUriStr + "/") -> newUriStr + ep.substring(oldUriStr.length)
+                        else -> ep
+                    }
+                }.toSet()
+            }
+
+            // kalau yang di-rename adalah root, update root state
+            if (node.uri.scheme == "file" && rootIsPrivate) {
+                val oldRootPath = rootFolderPath
+                if (oldRootPath != null) {
+                    val oldF = File(oldRootPath)
+                    val newRootF = File(oldF.parentFile, newNameClean)
+                    if (oldF.absolutePath == node.uri.path) {
+                        rootFolderPath = newRootF.absolutePath
+                        availableSections = buildAvailableSections(rootFolderPath)
+                    }
+                }
+            } else if (node.uri.scheme != "file" && rootFolderUri == node.uri) {
+                // SAF: URI dokumen stabil, tapi kalau rename berubah (jarang), sinkronkan
+                rootFolderPath = getPathFromTreeUri(newUri)
+                availableSections = buildAvailableSections(rootFolderPath)
+            }
+
+            // invalidasi cache parent eksplisit (SAF child URI bisa berubah setelah rename)
+            runCatching {
+                val parentUri = DocumentFile.fromSingleUri(appContext, node.uri)?.parentFile?.uri
+                if (parentUri != null) folderCache.remove(parentUri.toString())
+            }
             folderCache.clear()
+            // sinkronkan selectedNode ke node baru (biar dialog berikutnya benar)
+            selectedNode = visibleNodes.firstOrNull { it.uri == newUri } ?: node.copy(name = newNameClean, uri = newUri)
             rebuildVisibleNodes()
         }
     }
