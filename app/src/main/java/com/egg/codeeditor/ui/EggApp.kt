@@ -630,7 +630,7 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
             ) {
                 Scaffold(
                     topBar = {
-                        TopAppBar(
+                        if (vm.headerVisible) TopAppBar(
                             title = {},
                             modifier = Modifier.height(40.dp),
                             navigationIcon = {
@@ -687,7 +687,9 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                             EditorStatusBar(
                                 editor = editorState.editor,
                                 fileName = vm.activeTab?.name ?: "",
-                                settings = vm.settings
+                                settings = vm.settings,
+                                headerVisible = vm.headerVisible,
+                                onToggleHeader = { vm.headerVisible = !vm.headerVisible }
                             )
                         }
                     }

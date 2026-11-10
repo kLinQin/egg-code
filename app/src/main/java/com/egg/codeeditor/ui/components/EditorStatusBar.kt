@@ -1,6 +1,7 @@
 package com.egg.codeeditor.ui.components
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +52,9 @@ private fun languageLabel(fileName: String): String {
 fun EditorStatusBar(
     editor: CodeEditor?,
     fileName: String,
-    settings: EditorSettings
+    settings: EditorSettings,
+    headerVisible: Boolean = true,
+    onToggleHeader: (() -> Unit)? = null
 ) {
     var line by remember { mutableIntStateOf(1) }
     var column by remember { mutableIntStateOf(1) }
@@ -108,6 +115,20 @@ fun EditorStatusBar(
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (onToggleHeader != null) {
+                Spacer(Modifier.width(4.dp))
+                IconButton(
+                    onClick = onToggleHeader,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = if (headerVisible) androidx.compose.material.icons.Icons.Default.KeyboardArrowUp
+                                      else androidx.compose.material.icons.Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (headerVisible) "Hide header" else "Show header",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

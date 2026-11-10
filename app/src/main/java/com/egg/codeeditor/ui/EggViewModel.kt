@@ -172,6 +172,9 @@ class EggViewModel(private val context: Context) {
 
     // ── Terminal ──
     var terminalVisible by mutableStateOf(false)
+
+    // ── UI chrome ──
+    var headerVisible by mutableStateOf(true)
     var terminalEmulator by mutableStateOf<TerminalEmulator?>(null)
         private set
     private var terminalSession: PdnTerminalSession? = null
@@ -194,10 +197,36 @@ class EggViewModel(private val context: Context) {
         if (bg == terminalBg && fg == terminalFg) return
         terminalBg = bg
         terminalFg = fg
-        terminalEmulator?.setDefaultColors(
-            fg.toArgb(), bg.toArgb()
+        val emu = terminalEmulator ?: return
+        val surface = blend(bg, fg, 0.08f)
+        val brightBlack = blend(bg, fg, 0.18f)
+        val palette = intArrayOf(
+            surface.toArgb(),
+            0xFFD97066.toInt(),
+            0xFF8BA173.toInt(),
+            0xFFD9A05B.toInt(),
+            0xFF6A9BCC.toInt(),
+            0xFFB08AB0.toInt(),
+            0xFF79B8B3.toInt(),
+            fg.toArgb(),
+            brightBlack.toArgb(),
+            0xFFE08A7D.toInt(),
+            0xFFAAB892.toInt(),
+            0xFFE8BD82.toInt(),
+            0xFF8CB4DF.toInt(),
+            0xFFC9A6C9.toInt(),
+            0xFF97CCC7.toInt(),
+            fg.toArgb()
         )
+        emu.applyColorScheme(palette, fg.toArgb(), bg.toArgb())
     }
+
+    private fun blend(a: androidx.compose.ui.graphics.Color, b: androidx.compose.ui.graphics.Color, t: Float) = androidx.compose.ui.graphics.Color(
+        red = a.red + (b.red - a.red) * t,
+        green = a.green + (b.green - a.green) * t,
+        blue = a.blue + (b.blue - a.blue) * t,
+        alpha = 1f
+    )
 
     fun resizeTerminal(rows: Int, cols: Int) {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
