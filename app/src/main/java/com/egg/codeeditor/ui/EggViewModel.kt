@@ -732,6 +732,26 @@ class EggViewModel(private val context: Context) {
         }
     }
 
+    private fun mimeFor(name: String): String {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return when (ext) {
+            "md", "markdown" -> "text/markdown"
+            "txt" -> "text/plain"
+            "json" -> "application/json"
+            "xml" -> "text/xml"
+            "html", "htm" -> "text/html"
+            "css" -> "text/css"
+            "js" -> "application/javascript"
+            "kt", "kts", "java", "py", "sh", "c", "cpp", "h", "rs", "go", "ts" -> "text/plain"
+            "yaml", "yml" -> "text/yaml"
+            "svg" -> "image/svg+xml"
+            "png" -> "image/png"
+            "jpg", "jpeg" -> "image/jpeg"
+            "pdf" -> "application/pdf"
+            else -> "application/octet-stream"
+        }
+    }
+
     fun createFile(name: String) {
         scope.launch {
             withContext(Dispatchers.IO) {
@@ -739,7 +759,7 @@ class EggViewModel(private val context: Context) {
                 if (pr != null) {
                     val dir = targetParentNode?.uri?.path?.let { File(it) } ?: pr
                     runCatching { File(dir, name).createNewFile() }
-                } else parentDoc()?.createFile("text/plain", name)
+                } else parentDoc()?.createFile(mimeFor(name), name)
             }
             targetParentNode = null
             folderCache.clear()
