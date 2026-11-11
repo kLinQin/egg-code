@@ -3,6 +3,8 @@ package com.egg.codeeditor.ui.components
 import android.annotation.SuppressLint
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -104,6 +106,9 @@ fun MarkdownPreview(
         "small{font-size:0.82em;opacity:0.75}" +
         ".youtube-embed{position:relative;padding-bottom:56.25%;height:0;margin:8px 0;border-radius:6px;overflow:hidden}" +
         ".youtube-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}" +
+        ".twitter-card{display:block;padding:10px 12px;margin:8px 0;background:" + hex(preBg) + ";border-left:4px solid #1da1f2;border-radius:6px;text-decoration:none;color:" + hex(fgColor) + "}" +
+        ".twitter-card .tw-user{display:block;color:#1da1f2;font-weight:600;font-size:13px}" +
+        ".twitter-card .tw-body{display:block;font-size:12px;opacity:0.7;margin-top:2px}" +
         ".discord-ts{color:" + hex(primary.toArgb()) + ";background:" + hex(surface.toArgb()) + ";padding:1px 4px;border-radius:3px;font-size:0.92em;cursor:default}" +
         ".callout{border-left:4px solid;padding:10px 12px;margin:10px 0;border-radius:6px}" +
         ".callout-title{font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px}" +
@@ -212,7 +217,8 @@ fun MarkdownPreview(
         "md=md.replace(/==(.+?)==/g,'<u>$1</u>');" +
         "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
         "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
-        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'\\\" allowfullscreen></iframe></div>';});" +
+        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'?rel=0\\\" allow=\\\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\\\" allowfullscreen referrerpolicy=\\\"strict-origin-when-cross-origin\\\"></iframe></div>';});" +
+        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:twitter\\.com|x\\.com)\\/([a-zA-Z0-9_]+)\\/status\\/(\\d+)[^\\s]*/g,function(_,user,tid){return '<a class=\\\"twitter-card\\\" href=\\\"https://twitter.com/'+user+'/status/'+tid+'\\\" target=\\\"_blank\\\" rel=\\\"noopener\\\"><span class=\\\"tw-user\\\">@'+user+'</span><span class=\\\"tw-body\\\">Lihat Tweet '+(tid||'')+' di Twitter</span></a>';});" +
         "var _al=md.split('\\n');var _aout=[];var _ai=0;while(_ai<_al.length){var _ac=_al[_ai];var _am=_ac.match(/^> \\[!accordion\\]\\s*(.*)$/i);if(_am){var _at=_am[1]||'Details';var _ab=[];_ai++;while(_ai<_al.length&&_al[_ai].startsWith('> ')){_ab.push(_al[_ai].slice(2));_ai++;}_aout.push('<details class=\\\"accordion\\\"><summary>'+_at+'</summary><div class=\\\"accordion-body\\\">'+marked.parse(_ab.join('\\n'))+'</div></details>');}else{_aout.push(_ac);_ai++;}}md=_aout.join('\\n');" +
         "md=md.replace(/!\\[badge(?::(left|right))?\\]\\(([^)]+)\\)/g,function(_,pos,content){var parts=content.split(':');var st=(parts[0]||'info').toLowerCase().trim();var tx=(parts[1]||st).trim();var cls='badge-inline '+(pos?'badge-'+pos:'');return '<span class=\\\"'+cls+' badge-'+st+'\\\">'+tx.toUpperCase()+'</span>';});" +
         "md=md.replace(/!\\[audio\\]\\(([^)]*)\\)/g,function(_,url){return '<div class=\\\"audio-block\\\"><audio controls preload=\\\"none\\\" src=\\\"'+url+'\\\"></audio><div class=\\\"audio-label\\\">'+(url?'Audio':'Audio (no source)')+'</div></div>';});" +
@@ -253,8 +259,13 @@ fun MarkdownPreview(
                 settings.domStorageEnabled = true
                 settings.loadWithOverviewMode = false
                 settings.useWideViewPort = false
+                settings.mediaPlaybackRequiresUserGesture = false
+                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                settings.allowFileAccess = true
+                settings.allowContentAccess = true
                 setBackgroundColor(bgColor)
                 webViewClient = WebViewClient()
+                webChromeClient = WebChromeClient()
                 addJavascriptInterface(object {
                     @android.webkit.JavascriptInterface
                     fun copy(text: String) {
