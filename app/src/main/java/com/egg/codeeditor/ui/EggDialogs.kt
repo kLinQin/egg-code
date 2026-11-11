@@ -20,11 +20,8 @@ import com.egg.codeeditor.ui.components.InputDialog
 import com.egg.codeeditor.ui.components.SettingsDialog
 import com.egg.codeeditor.ui.git.GitRemoteDialog
 
-/** App's GitHub repository URL. Fill with the real URL; if empty,
- *  the GitHub row in the "About" dialog is not shown. */
 private const val GITHUB_URL = ""
 
-/** Semua dialog & konfirmasi aplikasi (dipindah dari EggApp). */
 @Composable
 internal fun EggDialogs(
     vm: EggViewModel,

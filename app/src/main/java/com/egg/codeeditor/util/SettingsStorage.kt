@@ -33,7 +33,6 @@ private const val KEY_GITHUB_TOKEN = "github_token"
 private const val KEY_EDITOR_FONT_LIST = "editor_font_list"
 private const val KEY_APP_FONT_LIST = "app_font_list"
 
-/** Load editor settings from SharedPreferences (moved from EggApp.kt). */
 fun loadSettings(context: Context): EditorSettings {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     return EditorSettings(
@@ -57,7 +56,6 @@ fun loadSettings(context: Context): EditorSettings {
     )
 }
 
-/** Save editor settings to SharedPreferences (moved from EggApp.kt). */
 fun saveSettings(context: Context, settings: EditorSettings) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -81,7 +79,6 @@ fun saveSettings(context: Context, settings: EditorSettings) {
         .apply()
 }
 
-/** Persist the last opened project folder URI (tree URI string). */
 fun saveLastProjectUri(context: Context, uri: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().putString(KEY_LAST_PROJECT_URI, uri).apply()
@@ -97,7 +94,6 @@ fun clearLastProjectUri(context: Context) {
         .edit().remove(KEY_LAST_PROJECT_URI).apply()
 }
 
-/** Persist the last private-mode root path (filesDir/repos/... or filesDir/b2/...). */
 fun saveLastPrivateRoot(context: Context, path: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().putString(KEY_LAST_PRIVATE_ROOT, path).apply()
@@ -112,7 +108,6 @@ fun clearLastPrivateRoot(context: Context) {
         .edit().remove(KEY_LAST_PRIVATE_ROOT).apply()
 }
 
-/** Persist recent private projects as a JSON array string. */
 fun saveRecentProjects(context: Context, json: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().putString(KEY_RECENT_PROJECTS, json).apply()
@@ -127,7 +122,6 @@ fun clearRecentProjects(context: Context) {
         .edit().remove(KEY_RECENT_PROJECTS).apply()
 }
 
-/** Persist B2 credentials (plaintext) so recent B2 projects can reconnect. */
 fun saveB2Credentials(context: Context, keyId: String, appKey: String, bucket: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -153,7 +147,6 @@ fun clearB2Credentials(context: Context) {
         .edit().remove(KEY_B2_KEY_ID).remove(KEY_B2_APP_KEY).remove(KEY_B2_BUCKET).apply()
 }
 
-/** Persist open tabs that have a real URI (skips untitled). */
 fun saveOpenTabs(context: Context, json: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         .edit().putString(KEY_OPEN_TABS, json).apply()

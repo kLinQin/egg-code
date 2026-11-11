@@ -44,7 +44,6 @@ private fun languageLabel(fileName: String): String {
     }
 }
 
-/** Status bar bawah ala VS Code: posisi kursor, jumlah characters, tab, bahasa, encoding. */
 @Composable
 fun EditorStatusBar(
     editor: CodeEditor?,

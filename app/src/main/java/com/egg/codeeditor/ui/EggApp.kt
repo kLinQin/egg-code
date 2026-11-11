@@ -72,12 +72,8 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** True once the splash has been shown for this process (cold start only). */
 private var splashShownForProcess = false
 
-/** Tutup popup teks Sora (Cut/Copy/Paste) dengan aman.
- *  Runtuhkan seleksi ke satu titik kursor (lewat setSelection 2 argumen)
- *  sehingga popup aksi teks ikut hilang. */
 private fun dismissEditorActionMode(editor: CodeEditor?) {
     val e = editor ?: return
     try {

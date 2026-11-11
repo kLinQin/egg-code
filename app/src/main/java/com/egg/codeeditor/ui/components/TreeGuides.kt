@@ -12,17 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Indent guide vertikal ala VS Code.
- *
- * Untuk tiap level l < depth:
- * - Jika masih ada saudara DI BAWAH baris ini di level l → garis vertikal PENUH
- *   (menanjang dari atas ke bawah melewati baris, sehingga tersambung kontinu
- *   ke folder berikutnya di kolom yang sama).
- * - Untuk level terdalam, garis dari atas ke tengah baris (penghubung dari
- *   garis induk), lalu siku pendek ke kanan (menuju arrow/ikon) dan turun
- *   lagi jika masih ada saudara di bawah (bentuk T).
- */
 @Composable
 fun TreeGuides(
     depth: Int,

@@ -26,14 +26,8 @@ import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import kotlinx.coroutines.delay
 
-/**
- * Per-scope grammar instance cache. Parsing TextMate (large JSON) is paid only
- * ONCE per language for the whole session; later files get instant highlighting.
- * Prewarming is invoked from MainActivity at startup.
- */
 private val languageCache = HashMap<String, TextMateLanguage?>()
 
-/** Get (or create) a grammar instance for a scope. Safe to call from any thread. */
 internal fun getOrCreateLanguage(scope: String): TextMateLanguage? =
     languageCache.getOrPut(scope) {
         try {
@@ -43,7 +37,6 @@ internal fun getOrCreateLanguage(scope: String): TextMateLanguage? =
         }
     }
 
-/** Map a file name to a TextMate scope. */
 private fun scopeForName(fileName: String): String? = when {
     fileName.endsWith(".kt") -> "source.kotlin"
     fileName.endsWith(".java") -> "source.java"
@@ -56,7 +49,6 @@ private fun scopeForName(fileName: String): String? = when {
     else -> null
 }
 
-/** Apply a color scheme by theme name. Used in the factory and LaunchedEffect. */
 internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
     try {
         ThemeRegistry.getInstance().setTheme(themeName)
@@ -78,7 +70,6 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
     }
 }
 
-/** Resolve the Typeface from font settings (preset or uploaded custom font). */
 private fun resolveTypeface(settings: EditorSettings): Typeface = when (settings.fontFamily) {
     "sans" -> Typeface.SANS_SERIF
     "serif" -> Typeface.SERIF
@@ -88,7 +79,6 @@ private fun resolveTypeface(settings: EditorSettings): Typeface = when (settings
     else -> Typeface.MONOSPACE
 }
 
-/** Apply all editor settings (called on factory creation and when settings change). */
 private fun applyEditorSettings(editor: CodeEditor, settings: EditorSettings) {
     try {
         applyColorScheme(editor, settings.themeName)

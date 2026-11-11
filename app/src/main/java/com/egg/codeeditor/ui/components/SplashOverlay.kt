@@ -39,7 +39,6 @@ import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
 
-/** Zigzag crack line from the top of the egg down to the bottom. */
 internal fun crackPoints(w: Float, h: Float): List<Offset> = listOf(
     Offset(w * 0.50f, h * 0.04f),
     Offset(w * 0.44f, h * 0.16f),
@@ -51,7 +50,6 @@ internal fun crackPoints(w: Float, h: Float): List<Offset> = listOf(
     Offset(w * 0.50f, h * 0.92f)
 )
 
-/** Left or right half of the egg, bounded by the crack line. */
 internal fun buildHalfPath(pts: List<Offset>, left: Boolean, w: Float, h: Float): Path {
     val path = Path()
     if (left) {
@@ -69,7 +67,6 @@ internal fun buildHalfPath(pts: List<Offset>, left: Boolean, w: Float, h: Float)
     return path
 }
 
-/** Splash overlay shown once per process (cold start). Mengikuti tema aktif (MaterialTheme). */
 @Composable
 internal fun SplashOverlay() {
     val bgColor = MaterialTheme.colorScheme.background

@@ -114,7 +114,6 @@ fun getPathFromTreeUri(treeUri: Uri): String? {
     } catch (e: Exception) { null }
 }
 
-/** Create (or find) a file under a SAF tree URI, creating parent folders as needed. */
 fun findOrCreateDocumentFile(context: Context, treeUri: Uri, relPath: String): DocumentFile? {
     var current = DocumentFile.fromTreeUri(context, treeUri) ?: return null
     val parts = relPath.split("/").filter { it.isNotBlank() }
@@ -130,7 +129,6 @@ fun findOrCreateDocumentFile(context: Context, treeUri: Uri, relPath: String): D
     return current
 }
 
-/** Heuristic: does this status message indicate a failure? */
 fun isErrorMessage(msg: String): Boolean {
     val m = msg.lowercase()
     return m.contains("failed") || m.contains("error") || m.contains("cannot") ||

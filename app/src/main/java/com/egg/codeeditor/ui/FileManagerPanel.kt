@@ -49,8 +49,6 @@ import com.egg.codeeditor.ui.components.TreeGuides
 import com.egg.codeeditor.ui.components.fileIconSpec
 import com.egg.codeeditor.ui.components.folderIconSpec
 
-/** Warna marker Git — tetap kontras di light & dark (ala VS Code).
- *  Deteksi dark dari luminans onSurface agar ikut themeName app. */
 @androidx.compose.runtime.Composable
 private fun gitMarkerColor(marker: Char): androidx.compose.ui.graphics.Color {
     val onSurface = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
@@ -66,7 +64,6 @@ private fun gitMarkerColor(marker: Char): androidx.compose.ui.graphics.Color {
 }
 
 
-/** Item menu teks ringkas (mirip pola menu tab: tanpa fillMaxWidth). */
 @Composable
 private fun MenuTextAction(text: String, onClick: () -> Unit) {
     Text(
@@ -80,7 +77,6 @@ private fun MenuTextAction(text: String, onClick: () -> Unit) {
     )
 }
 
-/** Isi panel File Manager: daftar file/folder dengan indent guide ala VS Code. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FileManagerPanel(

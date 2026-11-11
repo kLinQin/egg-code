@@ -13,13 +13,6 @@ import android.provider.DocumentsProvider
 import java.io.File
 import java.io.FileNotFoundException
 
-/**
- * Exposes filesDir/repos and filesDir/b2 to the Android Storage Access Framework,
- * so they appear as a provider ("Egg") in the system file picker.
- *
- * Two independent roots: "Repositories" (Git clones) and "Backblaze B2" (pulled buckets).
- * Read-write: create, delete, rename supported.
- */
 class EggDocumentsProvider : DocumentsProvider() {
 
     companion object {
@@ -57,7 +50,6 @@ class EggDocumentsProvider : DocumentsProvider() {
 
     private fun rootDir(rootId: String): File = File(baseDir, rootId).apply { mkdirs() }
 
-    /** documentId format: "<rootId>" or "<rootId>/<relative/path>". */
     private fun fileForDocId(docId: String): File {
         val parts = docId.split("/", limit = 2)
         val rootId = parts[0]
@@ -79,7 +71,6 @@ class EggDocumentsProvider : DocumentsProvider() {
 
     private fun rootIdOf(docId: String): String = docId.substringBefore('/')
 
-    /** Nama file/folder harus non-kosong, tanpa separator, bukan . atau .. */
     private fun safeName(name: String): String {
         val n = name.trim()
         if (n.isEmpty() || n == "." || n == ".." ||

@@ -13,15 +13,11 @@ import io.github.rosemoe.sora.langs.textmate.registry.model.ThemeModel
 import io.github.rosemoe.sora.langs.textmate.registry.provider.AssetsFileResolver
 import org.eclipse.tm4e.core.registry.IThemeSource
 
-/** All language scopes supported by the editor. */
 private val ALL_SCOPES = listOf(
     "source.kotlin", "source.java", "source.js", "source.json",
     "text.html.basic", "source.css", "source.python", "text.html.markdown"
 )
 
-/** Load TextMate theme & grammars SYNCHRONOUSLY before content is drawn.
- *  Goal: when SoraCodeEditor is created, the dark theme already exists in the registry,
- *  so the color scheme is dark from the first frame — no white flash. */
 private fun initTextMate(context: Context, darkTheme: Boolean) {
     try {
         FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.assets))

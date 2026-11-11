@@ -47,7 +47,6 @@ data class EditorTab(
     val diffNew: String? = null
 )
 
-/** Editor settings — persisted to SharedPreferences (see loadSettings/saveSettings in EggApp). */
 data class EditorSettings(
     val themeName: String = "github-light", // "github-light" | "darcula"
     val fontSizeSp: Int = 14,
@@ -70,7 +69,6 @@ data class EditorSettings(
     val closeBracket: Boolean = true
 )
 
-/** Project-wide search result. */
 data class ProjectSearchResult(
     val name: String,
     val uri: Uri,

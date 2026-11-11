@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Sidebar button: icon + text label below it, with active state. */
 @Composable
 fun SidebarButton(
     icon: ImageVector,

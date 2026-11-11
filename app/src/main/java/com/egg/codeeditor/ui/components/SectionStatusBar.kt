@@ -24,8 +24,6 @@ import com.egg.codeeditor.model.FileNode
 import com.egg.codeeditor.model.GitStatusInfo
 import org.eclipse.jgit.api.Git
 
-/** Bottom bar of a panel (File Manager/Git/Cloud): height 36dp, same as EditorStatusBar.
- *  Warna mengikuti header (surface) dengan garis pemisah di ATAS. */
 @Composable
 internal fun SectionStatusBar(
     section: String,

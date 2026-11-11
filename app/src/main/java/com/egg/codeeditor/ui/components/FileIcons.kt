@@ -11,10 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.vectorResource
 import com.egg.codeeditor.R
 
-/** Spesifikasi ikon: ImageVector + warna. */
 internal data class IconSpec(val icon: ImageVector, val color: Color)
 
-/** Palet warna folder: disiklus berdasarkan kedalaman. */
 internal val FOLDER_PALETTE = listOf(
     Color(0xFFFFB74D), Color(0xFF4FC3F7), Color(0xFF81C784),
     Color(0xFFBA68C8), Color(0xFFE57373), Color(0xFF4DB6AC),
@@ -24,7 +22,6 @@ internal val FOLDER_PALETTE = listOf(
 internal fun folderIconSpec(depth: Int): IconSpec =
     IconSpec(Icons.Default.Folder, FOLDER_PALETTE[depth % FOLDER_PALETTE.size])
 
-/** Ikon file sesuai jenis/bahasa, bukan satu ikon monoton. */
 @Composable
 internal fun fileIconSpec(fileName: String): IconSpec {
     val n = fileName.lowercase()
@@ -81,7 +78,6 @@ internal fun fileIconSpec(fileName: String): IconSpec {
     }
 }
 
-/** Convert any drawable (incl. vector/adaptive-icon foregrounds) into a bitmap for Canvas slicing. */
 internal fun drawableToBitmap(drawable: Drawable, sidePx: Int): Bitmap {
     val bitmap = Bitmap.createBitmap(sidePx, sidePx, Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bitmap)

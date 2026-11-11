@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Welcome screen shown when no project is open. VS Code-style entry points. */
 @Composable
 fun WelcomeScreen(
     onOpenFolder: () -> Unit,

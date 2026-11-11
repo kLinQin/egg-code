@@ -30,7 +30,6 @@ import androidx.compose.ui.window.PopupProperties
 import com.egg.codeeditor.model.EditorTab
 import com.egg.codeeditor.ui.components.fileIconSpec
 
-/** Item menu teks ringkas (tanpa padding besar ala DropdownMenuItem). */
 @Composable
 private fun MenuTextAction(text: String, onClick: () -> Unit) {
     Text(

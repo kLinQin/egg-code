@@ -17,8 +17,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Bottom bar of the sidebar rail: shows only the version; height 36dp like the other bars.
- *  Garis pemisah di ATAS, warna tetap surfaceVariant (tidak diubah). */
 @Composable
 internal fun RailStatusBar(versionText: String) {
     Column(modifier = Modifier.fillMaxWidth()) {

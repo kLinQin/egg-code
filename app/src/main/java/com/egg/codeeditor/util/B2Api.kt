@@ -33,7 +33,6 @@ data class B2FileInfo(
     val fileId: String = ""
 )
 
-/** Entries shown in the Cloud Changes tab. */
 sealed class CloudChange {
     data class New(val relPath: String) : CloudChange()
     data class Modified(val relPath: String) : CloudChange()
@@ -200,7 +199,6 @@ suspend fun b2DeleteFileVersion(acc: B2Account, fileName: String, fileId: String
     Unit
 }
 
-/** Download a file from B2 and return its raw bytes (no direct File writes — avoids EPERM). */
 suspend fun b2DownloadBytes(acc: B2Account, bucketName: String, objectName: String): ByteArray = withContext(Dispatchers.IO) {
     val url = "${acc.downloadUrl}/file/${encodeObjectName(bucketName)}/${encodeObjectName(objectName)}"
     val conn = URL(url).openConnection() as HttpURLConnection
@@ -225,7 +223,6 @@ fun sha1Hex(data: ByteArray): String {
     return digest.joinToString("") { "%02x".format(it) }
 }
 
-/** B2 file names keep '/' as path separators; URL-encode everything else. */
 private fun encodeObjectName(name: String): String {
     return buildString {
         for (ch in name) {
@@ -240,7 +237,6 @@ private fun encodeObjectName(name: String): String {
     }
 }
 
-/** Walk a directory tree, returning (relativePath, file). Skips .git. */
 suspend fun listLocalFiles(root: File): List<Pair<String, File>> = withContext(Dispatchers.IO) {
     val out = mutableListOf<Pair<String, File>>()
     fun walk(dir: File, prefix: String) {
@@ -256,8 +252,6 @@ suspend fun listLocalFiles(root: File): List<Pair<String, File>> = withContext(D
     out
 }
 
-/** Compare local files with the latest remote listing (from b2_list_file_names).
- *  If [index] is provided, unchanged files (same mtime+size) skip re-hashing. */
 suspend fun computeCloudChanges(
     root: File,
     remote: List<B2FileInfo>,

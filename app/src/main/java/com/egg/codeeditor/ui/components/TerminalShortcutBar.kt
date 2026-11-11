@@ -20,10 +20,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Bottom bar terminal: shortcut perintah umum, bisa di-scroll horizontal.
- * Gaya mengikuti EditorStatusBar (surfaceVariant, monospace 11sp).
- */
 @Composable
 fun TerminalShortcutBar(
     onCommand: (String) -> Unit

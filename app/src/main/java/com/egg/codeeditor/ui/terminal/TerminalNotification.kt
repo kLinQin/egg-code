@@ -13,7 +13,6 @@ private const val TERMINAL_CHANNEL_ID = "terminal_session"
 private const val TERMINAL_NOTIFICATION_ID = 9001
 internal const val ACTION_CLOSE_TERMINAL = "com.egg.codeeditor.CLOSE_TERMINAL"
 
-/** Create the notification channel for the terminal session (Android 8+). */
 internal fun ensureTerminalChannel(context: Context) {
     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channel = NotificationChannel(TERMINAL_CHANNEL_ID, "Terminal Session", NotificationManager.IMPORTANCE_LOW).apply {
@@ -22,7 +21,6 @@ internal fun ensureTerminalChannel(context: Context) {
     nm.createNotificationChannel(channel)
 }
 
-/** Show the "active session" notification in the notification drawer, with a Close Session action. */
 internal fun postTerminalNotification(context: Context, folderPath: String?) {
     ensureTerminalChannel(context)
 
@@ -55,16 +53,13 @@ internal fun postTerminalNotification(context: Context, folderPath: String?) {
     nm.notify(TERMINAL_NOTIFICATION_ID, notification)
 }
 
-/** Remove the terminal session notification. */
 internal fun cancelTerminalNotification(context: Context) {
     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     nm.cancel(TERMINAL_NOTIFICATION_ID)
 }
 
-/** Escape a path for safe use inside a single-quoted POSIX shell string. */
 internal fun shellQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
-/** Build a `cd` command that prefers the /mnt/sdcard bind, then falls back to other aliases. */
 internal fun buildCdCommand(androidPath: String): String {
     val candidates = mutableListOf<String>()
     if (androidPath.startsWith("/storage/emulated/0")) {

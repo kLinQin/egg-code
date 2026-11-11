@@ -1,14 +1,9 @@
 package com.egg.codeeditor.util
 
-/** A single line in a unified diff view. */
 data class DiffLine(val kind: Kind, val text: String, val newLineNo: Int?) {
     enum class Kind { SAME, ADD, REMOVE }
 }
 
-/**
- * Myers O(ND) line diff. Memory O((N+M)D) time, O(N+M) trace storage.
- * Adequate for files with tens of thousands of lines.
- */
 fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
     val a = oldText.split('\n')
     val b = newText.split('\n')

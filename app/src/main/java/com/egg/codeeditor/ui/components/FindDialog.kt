@@ -33,7 +33,6 @@ import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.EditorSearcher
 
-/** Convert a raw index into (line, column) zero-based coordinates. */
 private fun indexToLineCol(text: String, index: Int): Pair<Int, Int> {
     var line = 0
     var col = 0
@@ -48,7 +47,6 @@ private fun indexToLineCol(text: String, index: Int): Pair<Int, Int> {
     return line to col
 }
 
-/** Compute all (line, column) positions where the query appears in the text. */
 private fun computeMatches(
     text: String,
     query: String,
@@ -77,9 +75,6 @@ private fun computeMatches(
     return matches
 }
 
-/** Compact input box (height 38dp) with explicit colors.
- *  BasicTextField avoids Material3 clipping (min-height ±56dp) which
- *  would make text invisible when forced to 38dp height. */
 @Composable
 private fun CompactInputField(
     value: String,
@@ -115,7 +110,6 @@ private fun CompactInputField(
     }
 }
 
-/** Inline Find bar à la VS Code, shown above the editor. */
 @Composable
 fun FindBar(
     editor: CodeEditor?,

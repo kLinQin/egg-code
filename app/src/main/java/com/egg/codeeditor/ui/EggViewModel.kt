@@ -95,7 +95,6 @@ class EggViewModel(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var gitRefreshJob: Job? = null
 
-    /** Batalkan semua coroutine milik VM ini. Panggil saat composable pemilik VM dilepas. */
     fun dispose() {
         runCatching { scope.cancel() }
         settingsSaveJob?.cancel()
@@ -151,7 +150,6 @@ class EggViewModel(private val context: Context) {
         return list
     }
 
-    /** Reload semua tab dari disk jika isinya berubah & tidak dirty. */
     fun reloadAllTabsFromDisk() {
         scope.launch {
             val toReload = mutableListOf<Int>()
@@ -878,8 +876,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    /** Kembalikan marker Git (M/U/A/D) untuk node, atau null jika bersih/bukan repo.
-     *  Untuk folder: cek descendant, prioritas D > M > U > A (seperti VS Code). */
     fun gitMarkerFor(node: FileNode): Char? {
         val st = gitStatus ?: return null
         if (!node.isDirectory) {
@@ -905,7 +901,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    /** Marker Git untuk tab (berdasarkan URI). */
     fun gitMarkerForTab(uri: android.net.Uri?): Char? {
         val st = gitStatus ?: return null
         if (uri == null) return null
@@ -924,7 +919,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    /** Path relatif node terhadap root Git (slash-separated). */
     private fun relativeGitPath(node: FileNode): String? {
         val root = rootFolderPath ?: return null
         val uriPath = node.uri.path ?: return null

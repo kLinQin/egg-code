@@ -3,13 +3,6 @@ package com.egg.codeeditor.util
 import org.json.JSONObject
 import java.io.File
 
-/**
- * Local per-project index for cloud sync, modeled after git's index.
- * Stores (mtime, size, sha1) per relative path so subsequent pushes
- * can skip re-hashing unchanged files.
- *
- * Location: <root>/.egg/index.json
- */
 class CloudIndex(val root: File, indexDir: File? = null) {
     data class Entry(val mtime: Long, val size: Long, val sha1: String)
 
@@ -33,7 +26,6 @@ class CloudIndex(val root: File, indexDir: File? = null) {
         }
     }
 
-    /** Load from disk; silently starts empty on any error. */
     fun load() {
         entries.clear()
         dirty = false
@@ -53,7 +45,6 @@ class CloudIndex(val root: File, indexDir: File? = null) {
         }.onFailure { entries.clear() }
     }
 
-    /** Persist if changed. Best-effort: ignores errors. */
     fun save() {
         if (!dirty) return
         runCatching {

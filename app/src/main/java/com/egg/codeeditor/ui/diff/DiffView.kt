@@ -25,10 +25,6 @@ import com.egg.codeeditor.model.EditorSettings
 import com.egg.codeeditor.util.DiffLine
 import com.egg.codeeditor.util.computeLineDiff
 
-/**
- * Read-only unified diff view. Honors font size, font family, line numbers and word wrap
- * from [settings]. Uses LazyColumn so thousands of lines render efficiently.
- */
 @Composable
 fun DiffView(
     relPath: String,
