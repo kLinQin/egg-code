@@ -78,7 +78,6 @@ suspend fun writeFileContent(context: Context, uri: Uri, content: String): Boole
                 f.writeText(content)
                 true
             } else {
-                // Coba mode "rwt" (truncate + write) dulu; fallback ke "wt"
                 val bytes = content.toByteArray(Charsets.UTF_8)
                 val stream = context.contentResolver.openOutputStream(uri, "rwt")
                     ?: context.contentResolver.openOutputStream(uri, "wt")

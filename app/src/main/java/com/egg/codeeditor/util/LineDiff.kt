@@ -15,7 +15,6 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
     val n = a.size
     val m = b.size
 
-    // Fast paths
     if (n == 0 && m == 0) return emptyList()
     if (n == 0) {
         val out = ArrayList<DiffLine>(m)
@@ -28,7 +27,6 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
         return out
     }
 
-    // Myers: find the middle snake path via full trace.
     val max = n + m
     val vSize = 2 * max + 1
     val v = IntArray(vSize) { 0 }
@@ -48,7 +46,6 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
         }
     }
 
-    // Backtrack from (n, m) to (0, 0).
     val ops = ArrayList<Triple<Int, Int, DiffLine.Kind>>() // (x, y, kind)
     var x = n
     var y = m
@@ -74,7 +71,6 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
             }
         }
     }
-    // Remaining diagonal from (x,y) down to (0,0)
     while (x > 0 && y > 0) {
         x--; y--
         ops.add(Triple(x, y, DiffLine.Kind.SAME))
@@ -84,7 +80,6 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
 
     ops.reverse()
 
-    // Emit DiffLines with new-line numbers (1-based, only for SAME/ADD).
     val out = ArrayList<DiffLine>(ops.size)
     var newNo = 0
     for ((px, py, kind) in ops) {

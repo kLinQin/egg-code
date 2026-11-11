@@ -36,7 +36,6 @@ fun SidebarButton(
             icon,
             label,
             tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            // Ukuran ikon TIDAK diubah (tetap default 24dp).
         )
         Text(
             label,

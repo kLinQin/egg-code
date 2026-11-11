@@ -51,14 +51,12 @@ internal fun TerminalPanel(
     val terminalFocusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // set warna SEBELUM emulator dibuat supaya frame pertama sudah benar
     val bg0 = MaterialTheme.colorScheme.background
     val fg0 = MaterialTheme.colorScheme.onBackground
     androidx.compose.runtime.SideEffect {
         vm.setTerminalColors(bg0, fg0)
     }
 
-    // Pemicu start sesi — ownership ada di VM, jadi tetap hidup lintas recompose.
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
             runCatching {
@@ -89,7 +87,6 @@ internal fun TerminalPanel(
         }
     }
 
-    // auto-cd saat folder root berganti
     LaunchedEffect(vm.rootFolderPath) {
         val folder = vm.rootFolderPath ?: return@LaunchedEffect
         delay(300.milliseconds)

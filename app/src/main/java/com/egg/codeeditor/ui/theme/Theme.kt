@@ -35,7 +35,6 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = ClaudeDarkSurfaceVariant,
     error = Color(0xFFE07161),
     onError = ClaudeDarkBackground,
-    // Container mapping (tab aktif, panel, sheet)
     primaryContainer = ClaudeDarkActive,
     onPrimaryContainer = ClaudeDarkTextPrimary,
     secondaryContainer = Color(0xFF333333),
@@ -83,7 +82,6 @@ private val LightColorScheme = lightColorScheme(
 fun EggSystemBarStyle(darkTheme: Boolean, customBg: Int? = null) {
     val view = LocalView.current
     if (!view.isInEditMode) {
-        // Pakai customBg (misal warna terminal) kalau ada; kalau tidak, ikut background tema aktif
         val bg = customBg ?: MaterialTheme.colorScheme.background.toArgb()
         SideEffect {
             val window = (view.context as Activity).window

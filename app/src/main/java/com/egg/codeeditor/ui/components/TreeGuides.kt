@@ -42,19 +42,14 @@ fun TreeGuides(
                 val hasBelow = hasGuide.getOrNull(l) == true
 
                 if (l == depth - 1) {
-                    // Level terdalam: garis dari induk turun ke tengah baris.
                     drawLine(color, Offset(x, 0f), Offset(x, midY), strokeWidth.toPx())
 
-                    // Siku pendek ke kanan MENUJU arrow — SELALU digambar,
-                    // jadi > / V tidak pernah terlihat "mengambang" dari garis.
                     drawLine(color, Offset(x, midY), Offset(size.width, midY), strokeWidth.toPx())
 
-                    // Kalau masih ada anak/saudara di bawah → teruskan ke bawah (bentuk T).
                     if (hasBelow) {
                         drawLine(color, Offset(x, midY), Offset(x, size.height), strokeWidth.toPx())
                     }
                 } else if (hasBelow) {
-                    // Level antara: garis vertikal penuh (kontinu).
                     drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth.toPx())
                 }
             }

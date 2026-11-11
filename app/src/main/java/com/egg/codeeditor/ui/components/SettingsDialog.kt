@@ -47,12 +47,10 @@ fun SettingsDialog(
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(0) }
 
-    // Launcher: export backup to JSON file
     val backupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri -> uri?.let(onBackup) }
 
-    // Launcher: import restore from JSON file
     val restoreLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(onRestore) }
@@ -110,10 +108,8 @@ fun SettingsDialog(
         }
     }
 
-    // Full-screen, not a popup — mirrors the terminal pattern
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -123,7 +119,6 @@ fun SettingsDialog(
             }
             HorizontalDivider()
 
-            // Tabs
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editor") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
@@ -131,7 +126,6 @@ fun SettingsDialog(
                 Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Discord") })
             }
 
-            // Content
             Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 when (selectedTab) {
                     0 -> EditorSettingsTab(settings, onSettingsChange, fontLauncher)
@@ -169,7 +163,6 @@ private fun EditorSettingsTab(
             }
         }
 
-        // Daftar Font Custom Editor
         settings.editorFontList.forEach { path ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
@@ -243,7 +236,6 @@ private fun AppSettingsTab(
             }
         }
 
-        // Daftar Font Custom App
         settings.appFontList.forEach { path ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(

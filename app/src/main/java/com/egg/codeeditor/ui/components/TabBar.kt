@@ -175,7 +175,6 @@ private fun EditorTabItem(
             }
         }
 
-        // Menu konteks tab: 1 baris kompak, muncul 4dp di bawah tab, rata kiri.
         if (menuOpen) {
             Popup(
                 alignment = Alignment.TopStart,

@@ -47,8 +47,6 @@ private fun initTextMate(context: Context, darkTheme: Boolean) {
         themeRegistry.setTheme(if (darkTheme) "darcula" else "github-light")
         GrammarRegistry.getInstance().loadGrammars("language.json")
 
-        // Prewarm: parse all grammars NOW → whichever file the user opens first,
-        // the language is already cached → highlighting is instant.
         ALL_SCOPES.forEach { scope ->
             try { getOrCreateLanguage(scope) } catch (_: Exception) {}
         }
@@ -58,13 +56,10 @@ private fun initTextMate(context: Context, darkTheme: Boolean) {
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Read the saved theme BEFORE super.onCreate → window background & system bar
-        // are correct from the first frame, no white flash.
         val prefs = getSharedPreferences("egg_settings", MODE_PRIVATE)
         val darkTheme = prefs.getString("theme_name", "github-light") == "darcula"
         setTheme(if (darkTheme) R.style.Theme_Egg_Dark else R.style.Theme_Egg_Light)
 
-        // Sync: load theme + prewarm grammar before setContent, so the editor never flashes white.
         initTextMate(this, darkTheme)
 
         super.onCreate(savedInstanceState)

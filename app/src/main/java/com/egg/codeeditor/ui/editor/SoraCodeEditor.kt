@@ -70,12 +70,9 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
         }
         editor.colorScheme = scheme
 
-        // Disable the framework/stock Android scrollbars (white) — Sora draws its
-        // own custom scrollbars with colors from the scheme above.
         editor.setVerticalScrollBarEnabled(false)
         editor.setHorizontalScrollBarEnabled(false)
 
-        // Force a redraw so the change applies immediately
         editor.invalidate()
     } catch (_: Exception) {
     }
@@ -132,7 +129,6 @@ fun SoraCodeEditor(
             factory = {
                 CodeEditor(context).also { editor ->
                     state.editor = editor
-                    // Apply all settings BEFORE the editor is shown → no white flash
                     applyEditorSettings(editor, settings)
                 }
             },
@@ -148,9 +144,6 @@ fun SoraCodeEditor(
         }
     }
 
-    // Language + content are combined: language is set FIRST, then text → highlight appears instantly.
-    // After setEditorLanguage, Sora resets the color scheme to its default (white),
-    // so applyColorScheme is called AGAIN to keep scrollbars and colors correct.
     LaunchedEffect(fileName, content) {
         val editor = state.editor ?: return@LaunchedEffect
         highlightingReady = false
@@ -167,12 +160,9 @@ fun SoraCodeEditor(
         if (editor.getText().toString() != content) {
             editor.setText(content)
         }
-        // Re-apply the scheme after a language change
         applyEditorSettings(editor, settings)
-        // Force analysis + redraw immediately (avoids "plain text until scroll")
         try { editor.rerunAnalysis() } catch (_: Exception) {}
         editor.invalidate()
-        // Tunggu sampai analyzer TextMate selesai (styles siap) — tanpa timing.
         var tries = 0
         while (tries < 40) {
             val styles = try { editor.styles } catch (_: Exception) { null }
@@ -191,7 +181,6 @@ fun SoraCodeEditor(
         }
     }
 
-    // Theme & appearance: applied when settings change (runtime, not startup)
     LaunchedEffect(settings) {
         val editor = state.editor ?: return@LaunchedEffect
         applyEditorSettings(editor, settings)

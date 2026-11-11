@@ -92,28 +92,22 @@ internal fun SplashOverlay() {
         label = "wave"
     )
 
-    // Single 2s progress drives the whole egg-crack sequence.
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         progress.animateTo(1f, tween(2000, easing = FastOutSlowInEasing))
     }
 
-    // Decode via Drawable → Bitmap, because ic_launcher_foreground is a VECTOR drawable
-    // (BitmapFactory.decodeResource would return null → NPE → crash on cold start).
     val context = LocalContext.current
     val eggBitmap = remember {
         val drawable = context.getDrawable(R.drawable.ic_launcher_foreground)
         if (drawable != null) drawableToBitmap(drawable, 512).asImageBitmap() else null
     }
 
-    // 0.10–0.45: rapid jitter (shake) before cracking, decaying to zero.
     val shake = ((progress.value - 0.10f) / 0.35f).coerceIn(0f, 1f)
     val shakeAmp = (sin(shake * PI * 14) * (1f - shake) * 10f).toFloat()
 
-    // 0.30–0.55: crack line draws from top to bottom.
     val crackT = ((progress.value - 0.30f) / 0.25f).coerceIn(0f, 1f)
 
-    // 0.55–1.00: halves slide apart with a fast-out easing.
     val splitT = ((progress.value - 0.55f) / 0.45f).coerceIn(0f, 1f)
     val splitEased = if (splitT <= 0f) 0f else 1f - (1f - splitT).pow(2)
 
@@ -123,7 +117,6 @@ internal fun SplashOverlay() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Egg: bob → shake → crack → split
             Canvas(
                 modifier = Modifier
                     .size(104.dp)
@@ -142,14 +135,12 @@ internal fun SplashOverlay() {
                     val srcSize = IntSize(eggBitmap.width, eggBitmap.height)
                     val dstSize = IntSize(w.toInt(), h.toInt())
 
-                    // Left half
                     withTransform({ translate(leftOff, 0f) }) {
                         clipPath(buildHalfPath(pts, left = true, w = w, h = h)) {
                             drawImage(eggBitmap, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
                         }
                     }
 
-                    // Right half
                     withTransform({ translate(rightOff, 0f) }) {
                         clipPath(buildHalfPath(pts, left = false, w = w, h = h)) {
                             drawImage(eggBitmap, srcSize = srcSize, dstSize = dstSize, alpha = alpha)
@@ -157,7 +148,6 @@ internal fun SplashOverlay() {
                     }
                 }
 
-                // Crack stroke, revealed incrementally
                 if (crackT > 0f) {
                     val total = pts.size - 1
                     val idx = (total * crackT).toInt().coerceIn(0, total)
@@ -190,7 +180,6 @@ internal fun SplashOverlay() {
             )
             Spacer(Modifier.height(16.dp))
 
-            // Wave loading indicator: three dots rising & falling in sequence
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)

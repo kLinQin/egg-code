@@ -41,7 +41,6 @@ internal fun SectionStatusBar(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Garis di ATAS (kebalikan header yang garisnya di bawah)
         HorizontalDivider()
 
         Surface(

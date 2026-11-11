@@ -65,7 +65,6 @@ class EggDocumentsProvider : DocumentsProvider() {
         val rel = if (parts.size > 1) parts[1] else ""
         val root = rootDir(rootId).canonicalFile
         val f = if (rel.isEmpty()) root else File(root, rel).canonicalFile
-        // Tolak path traversal: hasil canonical harus di dalam root.
         if (f != root && !f.path.startsWith(root.path + File.separator)) {
             throw FileNotFoundException("Outside root: $docId")
         }

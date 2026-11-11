@@ -95,7 +95,6 @@ internal fun FileManagerPanel(
         items(vm.visibleNodes, key = { it.uri.toString() }) { node ->
             var showContextMenu by remember { mutableStateOf(false) }
 
-            // Box membungkus baris + popup: popup terikat ke baris ini.
             Box {
                 Row(
                     modifier = Modifier
@@ -166,8 +165,6 @@ internal fun FileManagerPanel(
                     )
                 }
 
-                // Menu konteks ala TabBar: 1 baris horizontal + scroll,
-                // muncul 4dp di bawah baris, rata kiri dengan awal baris.
                 if (showContextMenu) {
                 Popup(
                     alignment = Alignment.TopStart,

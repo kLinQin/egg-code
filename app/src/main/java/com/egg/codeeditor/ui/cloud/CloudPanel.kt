@@ -61,14 +61,12 @@ fun CloudPanel(
     onDiscardAll: () -> Unit = {}
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        // Busy indicator: always visible when an operation is running
         if (cloudBusy) {
             Spacer(Modifier.height(8.dp))
             CircularProgressIndicator()
             Spacer(Modifier.height(8.dp))
         }
 
-        // Message (success or error): always visible, even when not connected
         if (cloudMessage != null) {
             Spacer(Modifier.height(8.dp))
             Text(

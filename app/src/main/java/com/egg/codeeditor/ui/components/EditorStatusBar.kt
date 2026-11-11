@@ -57,7 +57,6 @@ fun EditorStatusBar(
     var column by remember { mutableIntStateOf(1) }
     var chars by remember { mutableIntStateOf(0) }
 
-    // Poll cursor // Pantau kursor & panjang teks secara berkala (Sora tidak punya listener sederhana) text length periodically (Sora has no simple listener)
     LaunchedEffect(editor) {
         while (true) {
             val e = editor

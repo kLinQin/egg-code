@@ -85,7 +85,6 @@ private fun dismissEditorActionMode(editor: CodeEditor?) {
         val c = e.cursor
         e.setSelection(c.leftLine, c.leftColumn)
     } catch (_: Exception) {
-        // abaikan — hanya upaya menutup popup teks
         }
 }
 
@@ -99,7 +98,6 @@ fun EggApp() {
         onDispose { vm.dispose() }
     }
 
-    // Reload file saat app kembali ke foreground (kalau berubah di disk)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -125,10 +123,8 @@ fun EggApp() {
     }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // ── Editor state (WAJIB sebelum launcher supaya tidak unresolved reference) ──
     val editorState = rememberCodeEditorState()
 
-    // ── Splash (cold start) ──
     var showSplash by remember { mutableStateOf(!splashShownForProcess) }
     LaunchedEffect(Unit) {
         if (showSplash) {
@@ -138,7 +134,6 @@ fun EggApp() {
         }
     }
 
-    // ── Terminal notification: permission + receiver "Close Session" ──
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { /* permission result does not need processing */ }
@@ -173,7 +168,6 @@ fun EggApp() {
         }
     }
 
-    // ── Perhitungan garis indent per node ──
     val guidesByUri = remember(vm.visibleNodes) {
         val laterHasBelow = mutableMapOf<Int, Boolean>()
         val result = mutableMapOf<String, List<Boolean>>()
@@ -185,7 +179,6 @@ fun EggApp() {
         result
     }
 
-    // ── Launchers (Activity Result API) ──
     val openFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
@@ -227,7 +220,6 @@ fun EggApp() {
         }
     }
 
-    // ── Undo/redo polling ──
     var canUndo by remember { mutableStateOf(false) }
     var canRedo by remember { mutableStateOf(false) }
 
@@ -257,7 +249,6 @@ fun EggApp() {
         }
     }
 
-    // ── Back handling ──
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
@@ -280,15 +271,12 @@ fun EggApp() {
         }
     }
 
-    // Tutup popup editor (copy/paste) saat drawer terbuka.
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
             dismissEditorActionMode(editorState.editor)
         }
     }
 
-    // Tutup popup editor saat dialog/modal apa pun terbuka (Settings, About,
-    // Git, Cloud, Rename, Delete, konfirmasi keluar, Terminal, dll.).
     val anyModalOpen = vm.showSettings || vm.showAboutDialog || vm.showExitConfirm ||
             vm.showGitRemoteDialog || vm.showCloudConnectDialog ||
             vm.showNewFileDialog || vm.showNewFolderDialog || vm.showRenameDialog || vm.showDeleteDialog ||
@@ -311,7 +299,6 @@ fun EggApp() {
         vm.uiMessages.collect { msg -> snackbarHostState.showSnackbar(msg) }
     }
 
-    // ── Theme global ──
     val appFontFamilyResolved: androidx.compose.ui.text.font.FontFamily? = remember(vm.settings.appFontFamily, vm.settings.appCustomFontPath) {
         when (vm.settings.appFontFamily) {
             "sans" -> androidx.compose.ui.text.font.FontFamily.SansSerif
@@ -365,7 +352,6 @@ fun EggApp() {
                         drawerContainerColor = MaterialTheme.colorScheme.background
                     ) {
                         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
-                            // ── SIDEBAR RAIL (lebar 56dp) ──
                             Column(
                                 modifier = Modifier.width(56.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surface),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -415,7 +401,6 @@ fun EggApp() {
                                 RailStatusBar(versionText = appVersionText)
                             }
 
-                            // ── KONTEN PANEL ──
                             Column(Modifier.fillMaxSize().weight(1f)) {
                                 Surface(color = MaterialTheme.colorScheme.surface) {
                                     Row(
@@ -482,7 +467,6 @@ fun EggApp() {
                                     when (vm.currentSection) {
                                         "File Manager" -> {
                                             if (vm.rootFolderUri == null && !vm.rootIsPrivate) {
-                                                // Tidak ada folder, tapi mungkin ada file tunggal yang dibuka
                                                 if (vm.tabs.any { it.uri != null }) {
                                                     androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
                                                         items(vm.tabs.filter { it.uri != null }, key = { it.id }) { tab ->
@@ -758,7 +742,6 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                 }
             }
 
-            // ── Terminal ──
             if (vm.terminalVisible) {
                 TerminalPanel(vm = vm, onRequestEditorFocus = { editorState.editor?.requestFocus() })
             }
@@ -766,10 +749,8 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
         }
         }
 
-        // ── Dialog & konfirmasi (di luar cabang welcome/UI normal) ──
         EggDialogs(vm = vm, onExit = { (context as? Activity)?.finish() })
 
-        // ── Snackbar ──
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
@@ -784,7 +765,6 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
             )
         }
 
-        // ── Splash overlay (di atas welcome & UI normal) ──
         if (showSplash) {
             SplashOverlay()
         }

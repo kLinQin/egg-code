@@ -170,10 +170,8 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Terminal ──
     var terminalVisible by mutableStateOf(false)
 
-    // ── UI chrome ──
     var headerVisible by mutableStateOf(true)
     var terminalEmulator by mutableStateOf<TerminalEmulator?>(null)
         private set
@@ -319,10 +317,8 @@ class EggViewModel(private val context: Context) {
         terminalEmulator = null
     }
 
-    // ── Navigasi panel ──
     var currentSection by mutableStateOf("File Manager")
 
-    // ── File manager ──
     var rootFolderUri by mutableStateOf<Uri?>(null)
     var rootFolderPath by mutableStateOf<String?>(null)
     var rootIsPrivate by mutableStateOf(false)
@@ -338,7 +334,6 @@ class EggViewModel(private val context: Context) {
     var selectedNode by mutableStateOf<FileNode?>(null)
     var targetParentNode by mutableStateOf<FileNode?>(null)
 
-    // ── Git ──
     var gitRepo by mutableStateOf<Git?>(null)
     var gitStatus by mutableStateOf<GitStatusInfo?>(null)
     var commitMessage by mutableStateOf("")
@@ -351,7 +346,6 @@ class EggViewModel(private val context: Context) {
     var showGitRemoteDialog by mutableStateOf(false)
     var gitRemoteDialogTitle by mutableStateOf("Clone Repository")
 
-    // ── Cloud (B2) ──
     var b2Account by mutableStateOf<B2Account?>(null)
     var b2Bucket by mutableStateOf<B2Bucket?>(null)
     var cloudChanges by mutableStateOf<List<CloudChange>>(emptyList())
@@ -377,13 +371,11 @@ class EggViewModel(private val context: Context) {
         return idx
     }
 
-    // ── Settings & dialog umum ──
     var settings by mutableStateOf(loadSettings(appContext))
     var showSettings by mutableStateOf(false)
     var showAboutDialog by mutableStateOf(false)
     var showExitConfirm by mutableStateOf(false)
 
-    // ── Tabs editor ──
     val tabs = mutableStateListOf<EditorTab>()
     var activeTabId by mutableStateOf<Long?>(null)
     var nextTabId by mutableStateOf(1L)
@@ -394,7 +386,6 @@ class EggViewModel(private val context: Context) {
 
     var showFindBar by mutableStateOf(false)
     var showMarkdownPreview by mutableStateOf(false)
-    // ── Discord Rich Presence ──
     var discordToken by mutableStateOf("")
     var discordEnabled by mutableStateOf(false)
     private var discordScope: kotlinx.coroutines.CoroutineScope? = null
@@ -428,13 +419,11 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Global UI messages (snackbar) ──
     private val _uiMessages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val uiMessages: SharedFlow<String> = _uiMessages.asSharedFlow()
     fun notify(msg: String) { _uiMessages.tryEmit(msg) }
 
     init {
-        // Load discord token
         val prefs = appContext.getSharedPreferences("egg_discord", android.content.Context.MODE_PRIVATE)
         discordToken = prefs.getString("token", "") ?: ""
         discordEnabled = prefs.getBoolean("enabled", false)
@@ -448,7 +437,6 @@ class EggViewModel(private val context: Context) {
     val activeTab: EditorTab?
         get() = tabs.firstOrNull { it.id == activeTabId }
 
-    // ── Persist open tabs (only those with real URIs) ──
     fun persistTabsPublic() { persistTabs() }
 
     private fun persistTabs() {
@@ -492,7 +480,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Settings ──
     private var settingsSaveJob: kotlinx.coroutines.Job? = null
     fun updateSettings(newSettings: EditorSettings) {
         settings = newSettings
@@ -503,7 +490,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── File tree ──
     suspend fun getChildren(uri: Uri, depth: Int): List<FileNode> {
         val path = uri.toString()
         folderCache[path]?.let { return it }
@@ -571,7 +557,6 @@ class EggViewModel(private val context: Context) {
                 }
                 persistTabs()
             } catch (e: Exception) {
-                // silent
             }
         }
     }
@@ -687,7 +672,6 @@ class EggViewModel(private val context: Context) {
             b2Account = null; b2Bucket = null
             cloudChanges = emptyList(); cloudHistory = emptyList(); cloudMessage = null
             rebuildVisibleNodes()
-            // Auto-load Git status jika folder adalah repo
             val rp = rootFolderPath
             if (rp != null) {
                 val repo = runCatching { withContext(Dispatchers.IO) { Git.open(File(rp)) } }.getOrNull()
@@ -813,11 +797,9 @@ class EggViewModel(private val context: Context) {
             }
 
             if (newUri == null) {
-                // rename gagal — jangan rebuild (biar tidak crash)
                 return@launch
             }
 
-            // update tab yang menunjuk ke URI lama (atau di subtree-nya, kalau folder)
             val newUriStr = newUri.toString()
             val isDir = node.isDirectory
             for (i in tabs.indices) {
@@ -831,7 +813,6 @@ class EggViewModel(private val context: Context) {
             }
             persistTabs()
 
-            // update expandedPaths subtree
             if (isDir && expandedPaths.any { it == oldUriStr || it.startsWith(oldUriStr + "/") }) {
                 expandedPaths = expandedPaths.map { ep ->
                     when {
@@ -842,7 +823,6 @@ class EggViewModel(private val context: Context) {
                 }.toSet()
             }
 
-            // kalau yang di-rename adalah root, update root state
             if (node.uri.scheme == "file" && rootIsPrivate) {
                 val oldRootPath = rootFolderPath
                 if (oldRootPath != null) {
@@ -854,18 +834,15 @@ class EggViewModel(private val context: Context) {
                     }
                 }
             } else if (node.uri.scheme != "file" && rootFolderUri == node.uri) {
-                // SAF: URI dokumen stabil, tapi kalau rename berubah (jarang), sinkronkan
                 rootFolderPath = getPathFromTreeUri(newUri)
                 availableSections = buildAvailableSections(rootFolderPath)
             }
 
-            // invalidasi cache parent eksplisit (SAF child URI bisa berubah setelah rename)
             runCatching {
                 val parentUri = DocumentFile.fromSingleUri(appContext, node.uri)?.parentFile?.uri
                 if (parentUri != null) folderCache.remove(parentUri.toString())
             }
             folderCache.clear()
-            // sinkronkan selectedNode ke node baru (biar dialog berikutnya benar)
             selectedNode = visibleNodes.firstOrNull { it.uri == newUri } ?: node.copy(name = newNameClean, uri = newUri)
             rebuildVisibleNodes()
         }
@@ -883,7 +860,6 @@ class EggViewModel(private val context: Context) {
                     }
                 }
             }
-            // Tutup tab yang URI-nya berada di subtree yang baru dihapus
             if (node != null) {
                 val base = node.uri.toString()
                 val affected = tabs.filter { t ->
@@ -916,7 +892,6 @@ class EggViewModel(private val context: Context) {
                 else -> null
             }
         }
-        // Folder: cek semua file yang path-nya di bawah folder ini.
         val dirRel = relativeGitPath(node) ?: return null
         val prefix = if (dirRel.isEmpty()) "" else "$dirRel/"
         fun anyIn(list: List<String>): Boolean =
@@ -966,7 +941,6 @@ class EggViewModel(private val context: Context) {
         targetParentNode?.let { DocumentFile.fromTreeUri(appContext, it.uri) }
             ?: rootFolderUri?.let { DocumentFile.fromTreeUri(appContext, it) }
 
-    // ── Tabs ──
     fun activeTabIndex(): Int = tabs.indexOfFirst { it.id == activeTabId }
 
     fun syncActiveTabContent(text: String) {
@@ -1048,7 +1022,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Backup / Restore ──
     fun performBackup(uri: Uri) {
         scope.launch {
             try {
@@ -1139,7 +1112,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Git actions ──
     fun gitInit() {
         scope.launch {
             if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
@@ -1254,7 +1226,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Git per-file actions ──
     enum class GitActionKind { DISCARD_FILE, DISCARD_ALL }
     data class PendingGitAction(val kind: GitActionKind, val relPath: String = "", val untracked: Boolean = false)
     var pendingGitAction by mutableStateOf<PendingGitAction?>(null)
@@ -1463,7 +1434,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── Cloud (B2) actions ──
     fun openB2FromWelcome() {
         welcomeB2Mode = true
         showCloudConnectDialog = true
@@ -1588,7 +1558,6 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    // ── B2 per-file actions (with confirmation) ──
     enum class CloudActionKind { DISCARD_MODIFIED, DISCARD_UNTRACKED, DELETE_REMOTE, DISCARD_ALL }
     data class PendingCloudAction(val kind: CloudActionKind, val relPath: String = "")
     var pendingCloudAction by mutableStateOf<PendingCloudAction?>(null)

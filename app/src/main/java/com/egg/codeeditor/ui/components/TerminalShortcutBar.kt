@@ -40,7 +40,6 @@ fun TerminalShortcutBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // Shortcut khusus: akses storage device (bind /mnt/sdcard)
             TextButton(
                 onClick = { onCommand("cd /mnt/sdcard/") },
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),

@@ -33,12 +33,9 @@ fun MarkdownPreview(
     val primary = MaterialTheme.colorScheme.primary
     val isDark = (0.299f * bg.red + 0.587f * bg.green + 0.114f * bg.blue) < 0.5f
 
-    // Ambil warna dari Sora EditorColorScheme (fallback ke Compose theme)
     val scheme = editorRef?.colorScheme
     val fgColor = scheme?.getColor(EditorColorScheme.TEXT_NORMAL) ?: fg.toArgb()
     val bgColor = bg.toArgb()
-    // Token warna untuk highlight.js — TextMateColorScheme tidak expose KEYWORD/LITERAL/COMMENT,
-    // jadi pakai hardcoded sesuai theme GitHub Light / Darcula.
     val keyword: Int
     val stringC: Int
     val comment: Int
@@ -130,7 +127,6 @@ fun MarkdownPreview(
         ".task-check.checked::after{content:'\\2713';position:absolute;top:-1px;left:2px;color:" + hex(bg.toArgb()) + ";font-size:15px;font-weight:bold;line-height:1}" +
         ".task-done{opacity:0.6;text-decoration:line-through}" +
         "::-webkit-scrollbar{display:none}" +
-        // highlight.js mapping sesuai Sora scheme
         ".hljs-keyword{color:" + hex(keyword) + "}" +
         ".hljs-built_in{color:" + hex(keyword) + "}" +
         ".hljs-string{color:" + hex(stringC) + "}" +
@@ -146,7 +142,6 @@ fun MarkdownPreview(
         "<script>" +
         "var md=" + jsMarkdown + ";" +
         "md=md.replace(/<t:(\\d+)(?::([a-zA-Z]))?>/g,function(_,ts,fmt){return '<span class=\\\"discord-ts\\\" data-ts=\\\"'+ts+'\\\" data-format=\\\"'+(fmt||'f')+'\\\"></span>';});" +
-        // Callout: > [!TYPE] Title / > body  →  <div class=callout callout-type>
         "var lines=md.split('\\n');var out=[];var i=0;" +
         "while(i<lines.length){" +
         "var l=lines[i];var m=l.match(/^> \\[!(\\w+)\\]\\s*(.*)$/i);" +

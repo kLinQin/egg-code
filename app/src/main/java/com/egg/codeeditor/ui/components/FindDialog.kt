@@ -179,7 +179,6 @@ fun FindBar(
         if (query.isEmpty()) return
         val positions = computeMatches(text, query, caseSensitive, wholeWord)
         if (positions.isEmpty()) return
-        // ganti dari belakang supaya index sebelumnya tidak bergeser
         for (i in positions.indices.reversed()) {
             val (l, col) = positions[i]
             val s = content.getCharIndex(l, col)
@@ -208,7 +207,6 @@ fun FindBar(
         if (matches.isEmpty()) {
             currentIndex = 0
         } else {
-            // cari match pertama yang start-nya >= s + replaceWith.length (maju)
             val nextStart = s + replaceWith.length
             var pick = matches.indexOfFirst { (l, cl) ->
                 content.getCharIndex(l, cl) >= nextStart
@@ -233,8 +231,6 @@ fun FindBar(
             matches = if (searcher.hasQuery()) {
                 val n = searcher.matchedPositionCount
                 val q = query
-                // representasi dummy: kita hanya butuh count, tapi jumpTo butuh (line,col).
-                // Ambil posisi via cursor saat ini sebagai fallback 1 elemen.
                 List(n) { 0 to 0 }
             } else emptyList()
             currentIndex = 0

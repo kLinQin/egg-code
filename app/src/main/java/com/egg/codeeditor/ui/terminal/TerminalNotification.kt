@@ -26,21 +26,18 @@ internal fun ensureTerminalChannel(context: Context) {
 internal fun postTerminalNotification(context: Context, folderPath: String?) {
     ensureTerminalChannel(context)
 
-    // "Close Session" action → sent to the dynamic BroadcastReceiver in EggApp
     val closeIntent = PendingIntent.getBroadcast(
         context, 0,
         Intent(ACTION_CLOSE_TERMINAL),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    // Tap notification → reopen the app
     val openIntent = PendingIntent.getActivity(
         context, 1,
         Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    // Detect the currently active File Manager folder
     val text = folderPath?.let { "Active folder: $it" } ?: "Alpine shell is running"
 
     val notification = NotificationCompat.Builder(context, TERMINAL_CHANNEL_ID)

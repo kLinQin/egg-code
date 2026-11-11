@@ -92,7 +92,6 @@ fun SoraDiffView(
 
     LaunchedEffect(diffText, editorRef) {
         val ed = editorRef ?: return@LaunchedEffect
-        // Tunggu analyzer selesai + layout selesai
         delay(800)
         val hc = HighlightTextContainer()
         val addColor = android.graphics.Color.argb(80, 46, 125, 50)
@@ -111,7 +110,6 @@ fun SoraDiffView(
                 if (len > 0) hc.add(HighlightTextContainer.HighlightText(ln, 0, ln, len, removeR, removeR))
             }
         }
-        // Set default highlight bg (textmate scheme mungkin tidak set)
         try {
             ed.colorScheme.setColor(io.github.rosemoe.sora.widget.schemes.EditorColorScheme.TEXT_HIGHLIGHT_BACKGROUND, android.graphics.Color.argb(80, 100, 100, 100))
             ed.colorScheme.setColor(io.github.rosemoe.sora.widget.schemes.EditorColorScheme.TEXT_HIGHLIGHT_BORDER, android.graphics.Color.TRANSPARENT)

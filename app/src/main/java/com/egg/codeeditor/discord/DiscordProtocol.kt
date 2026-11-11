@@ -14,6 +14,5 @@ internal object DiscordProtocol {
     const val OP_HELLO = 10
     const val OP_HEARTBEAT_ACK = 11
 
-    // Intents minimal untuk presence
     const val INTENTS = (1 shl 0) or (1 shl 12) // GUILDS + RICH_PRESENCE (opsional, presence sendiri tidak butuh banyak)
 }

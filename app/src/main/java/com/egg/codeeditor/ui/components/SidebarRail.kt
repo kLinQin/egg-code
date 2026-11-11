@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.sp
 @Composable
 internal fun RailStatusBar(versionText: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Garis di ATAS, sama seperti SectionStatusBar
         HorizontalDivider()
 
         Surface(
