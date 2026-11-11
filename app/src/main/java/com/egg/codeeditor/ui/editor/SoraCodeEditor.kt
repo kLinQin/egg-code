@@ -121,6 +121,21 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
             scheme.setColor(EditorColorScheme.SCROLL_BAR_TRACK, android.graphics.Color.TRANSPARENT)
         }
         editor.colorScheme = scheme
+        // PLUGIN_BG_AFTER: apply plugin bg after editor takes ownership
+        if (pluginSpec != null) {
+            val cs = editor.colorScheme
+            val bg = pluginSpec.colors["background"]?.let { runCatching { android.graphics.Color.parseColor(it) }.getOrNull() }
+            val fg = pluginSpec.colors["onBackground"]?.let { runCatching { android.graphics.Color.parseColor(it) }.getOrNull() }
+            if (bg != null) {
+                cs.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg)
+                cs.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, bg)
+                cs.setColor(EditorColorScheme.CURRENT_LINE, blendArgb(bg, fg ?: 0xFFFFFFFF.toInt(), 0.08f))
+            }
+            if (fg != null) {
+                cs.setColor(EditorColorScheme.TEXT_NORMAL, fg)
+                cs.setColor(EditorColorScheme.LINE_NUMBER, blendArgb(fg, bg ?: 0xFF000000.toInt(), 0.5f))
+            }
+        }
 
         editor.setVerticalScrollBarEnabled(false)
         editor.setHorizontalScrollBarEnabled(false)
@@ -128,6 +143,15 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
         editor.invalidate()
     } catch (_: Exception) {
     }
+}
+
+private fun blendArgb(a: Int, b: Int, t: Float): Int {
+    val ar = (a shr 16 and 0xFF); val ag = (a shr 8 and 0xFF); val ab = (a and 0xFF)
+    val br = (b shr 16 and 0xFF); val bg2 = (b shr 8 and 0xFF); val bb = (b and 0xFF)
+    val r = (ar + (br - ar) * t).toInt().coerceIn(0, 255)
+    val g = (ag + (bg2 - ag) * t).toInt().coerceIn(0, 255)
+    val bl = (ab + (bb - ab) * t).toInt().coerceIn(0, 255)
+    return (0xFF shl 24) or (r shl 16) or (g shl 8) or bl
 }
 
 private fun resolveTypeface(settings: EditorSettings): Typeface = when (settings.fontFamily) {

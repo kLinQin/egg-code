@@ -226,7 +226,7 @@ fun EggApp() {
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(vm.settings.themeName, editorState.editor) {
         editorState.editor?.let { applyColorScheme(it, vm.settings.themeName) }
         if (vm.tabs.isEmpty()) {
             val t = EditorTab(vm.nextTabId++, "Untitled 1", null, "")
