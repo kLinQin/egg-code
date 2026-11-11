@@ -51,7 +51,14 @@ private fun scopeForName(fileName: String): String? = when {
 
 internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
     try {
-        ThemeRegistry.getInstance().setTheme(themeName)
+        // PLUGIN_COLOR_SCHEME: plugin themes fall back to base dark/light for Sora
+        val pluginSpec = com.egg.extension.api.ThemeRegistry.get(themeName)
+        val soraTheme = when {
+            themeName == "darcula" || themeName == "github-light" -> themeName
+            pluginSpec != null -> if (pluginSpec.dark) "darcula" else "github-light"
+            else -> "github-light"
+        }
+        ThemeRegistry.getInstance().setTheme(soraTheme)
         val scheme = TextMateColorScheme.create(ThemeRegistry.getInstance())
         if (themeName == "darcula") {
             scheme.setColor(EditorColorScheme.SCROLL_BAR_THUMB, android.graphics.Color.parseColor("#3D3D3A"))

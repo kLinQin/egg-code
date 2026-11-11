@@ -313,10 +313,10 @@ fun EggApp() {
         }
     }
 
-    EggTheme(darkTheme = vm.settings.themeName == "darcula", dynamicColor = false, appFontFamily = appFontFamilyResolved, appFontScale = vm.settings.appFontScale) {
+    EggTheme(darkTheme = com.egg.extension.api.ThemeRegistry.get(vm.settings.themeName)?.dark ?: (vm.settings.themeName == "darcula"), dynamicColor = false, pluginThemeId = vm.settings.themeName, appFontFamily = appFontFamilyResolved, appFontScale = vm.settings.appFontScale) {
         val sidebarDividerColor = MaterialTheme.colorScheme.outlineVariant
         EggSystemBarStyle(
-            darkTheme = vm.settings.themeName == "darcula" || vm.terminalVisible,
+            darkTheme = com.egg.extension.api.ThemeRegistry.get(vm.settings.themeName)?.dark ?: (vm.settings.themeName == "darcula") || vm.terminalVisible,
             customBg = if (vm.terminalVisible) 0xFF000000.toInt() else null
         )
 

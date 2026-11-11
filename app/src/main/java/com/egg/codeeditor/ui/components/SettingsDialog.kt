@@ -234,6 +234,21 @@ private fun AppSettingsTab(
                 Text("Dark", fontSize = 13.sp)
             }
         }
+        // PLUGIN_THEMES_UI
+        val pluginThemes = com.egg.extension.api.ThemeRegistry.all()
+        if (pluginThemes.isNotEmpty()) {
+            Text("Plugin Themes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            pluginThemes.forEach { spec ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = settings.themeName == spec.id,
+                        onClick = { onSettingsChange(settings.copy(themeName = spec.id)) }
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(spec.name, fontSize = 13.sp)
+                }
+            }
+        }
         HorizontalDivider()
 
         Text("App Font", style = MaterialTheme.typography.labelLarge)

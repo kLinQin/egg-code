@@ -31,11 +31,13 @@ object ExtensionLoader {
         workDir.mkdirs()
 
         // Extract zip
+        // EXTRACT_ALL: extract semua entry (.dex, manifest, theme/, assets/)
         ZipFile(eggFile).use { zip ->
             zip.entries().asSequence().forEach { entry ->
                 if (entry.isDirectory) return@forEach
-                if (entry.name != MANIFEST && entry.name != DEX) return@forEach
-                val out = File(workDir, entry.name)
+                // security: reject path traversal
+                val safeName = entry.name.replace("..", "").trimStart('/')
+                val out = File(workDir, safeName)
                 out.parentFile?.mkdirs()
                 zip.getInputStream(entry).use { input ->
                     out.outputStream().use { output -> input.copyTo(output) }
@@ -70,6 +72,30 @@ object ExtensionLoader {
         val cls = loader.loadClass(manifest.mainClass)
         val extCtx = ExtensionContext(ctx.applicationContext, manifest.id, workDir)
         val instance = cls.getConstructor(ExtensionContext::class.java).newInstance(extCtx) as ExtensionAPI
+
+        // Auto-scan theme/compose.json → register
+        val themeFile = File(workDir, "theme/compose.json")
+        if (themeFile.exists()) {
+            try {
+                val themeJson = JSONObject(themeFile.readText())
+                val colorsObj = themeJson.optJSONObject("colors") ?: JSONObject()
+                val colors = mutableMapOf<String, String>()
+                colorsObj.keys().forEach { k -> colors[k] = colorsObj.getString(k) }
+                val spec = com.egg.extension.api.ThemeSpec(
+                    id = themeJson.optString("id", manifest.id),
+                    name = themeJson.optString("name", manifest.name + " Theme"),
+                    base = themeJson.optString("base", "dark"),
+                    colors = colors,
+                    syntaxPath = themeJson.optString("syntaxPath").takeIf { it.isNotEmpty() },
+                    dark = themeJson.optBoolean("dark", themeJson.optString("base", "dark") == "dark"),
+                    extensionId = manifest.id
+                )
+                com.egg.extension.api.ThemeRegistry.register(spec)
+                android.util.Log.d("EggThemeLoad", "registered theme: " + spec.id)
+            } catch (e: Exception) {
+                android.util.Log.e("EggThemeLoad", "theme parse failed", e)
+            }
+        }
 
         return LoadedExtension(manifest, instance, eggFile)
     }

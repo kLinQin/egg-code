@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.egg.extension.api.ThemeRegistry
+import com.egg.extension.api.ThemeSpec
 
 private val DarkColorScheme = darkColorScheme(
     primary = ClaudeDarkPrimary,
@@ -94,23 +96,55 @@ fun EggSystemBarStyle(darkTheme: Boolean, customBg: Int? = null) {
     }
 }
 
+// PLUGIN_THEME: build ColorScheme from plugin ThemeSpec (partial override)
+private fun buildPluginScheme(spec: ThemeSpec, base: androidx.compose.material3.ColorScheme): androidx.compose.material3.ColorScheme {
+    fun c(key: String, fallback: Color): Color =
+        spec.colors[key]?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() } ?: fallback
+    return base.copy(
+        primary = c("primary", base.primary),
+        onPrimary = c("onPrimary", base.onPrimary),
+        secondary = c("secondary", base.secondary),
+        onSecondary = c("onSecondary", base.onSecondary),
+        tertiary = c("tertiary", base.tertiary),
+        onTertiary = c("onTertiary", base.onTertiary),
+        background = c("background", base.background),
+        onBackground = c("onBackground", base.onBackground),
+        surface = c("surface", base.surface),
+        onSurface = c("onSurface", base.onSurface),
+        surfaceVariant = c("surfaceVariant", base.surfaceVariant),
+        onSurfaceVariant = c("onSurfaceVariant", base.onSurfaceVariant),
+        outline = c("outline", base.outline),
+        error = c("error", base.error),
+        onError = c("onError", base.onError),
+        primaryContainer = c("primaryContainer", base.primaryContainer),
+        secondaryContainer = c("secondaryContainer", base.secondaryContainer),
+        surfaceContainerLowest = c("surfaceContainerLowest", base.surfaceContainerLowest),
+        surfaceContainerLow = c("surfaceContainerLow", base.surfaceContainerLow),
+        surfaceContainer = c("surfaceContainer", base.surfaceContainer),
+        surfaceContainerHigh = c("surfaceContainerHigh", base.surfaceContainerHigh),
+        surfaceContainerHighest = c("surfaceContainerHighest", base.surfaceContainerHighest)
+    )
+}
+
 @Composable
 fun EggTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    pluginThemeId: String? = null,
     appFontFamily: FontFamily? = null,
     appFontScale: Float = 1f,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    val baseScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    val pluginSpec = pluginThemeId?.let { ThemeRegistry.get(it) }
+    val colorScheme = if (pluginSpec != null) buildPluginScheme(pluginSpec, baseScheme) else baseScheme
 
     val scaleTy: (androidx.compose.ui.text.TextStyle) -> androidx.compose.ui.text.TextStyle = { st ->
         if (appFontScale == 1f) st

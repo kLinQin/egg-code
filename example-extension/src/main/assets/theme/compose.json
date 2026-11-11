@@ -1,0 +1,25 @@
+{
+  "id": "neon",
+  "name": "Neon",
+  "base": "dark",
+  "dark": true,
+  "colors": {
+    "primary": "#00FFAA",
+    "onPrimary": "#000000",
+    "background": "#0A0A0A",
+    "onBackground": "#E0FFE0",
+    "surface": "#141414",
+    "onSurface": "#E0FFE0",
+    "surfaceVariant": "#1E1E1E",
+    "onSurfaceVariant": "#88FF88",
+    "outline": "#00AA66",
+    "secondary": "#FF00AA",
+    "onSecondary": "#000000",
+    "tertiary": "#00AAFF",
+    "onTertiary": "#000000",
+    "surfaceContainerLow": "#121212",
+    "surfaceContainer": "#141414",
+    "surfaceContainerHigh": "#1E1E1E",
+    "surfaceContainerHighest": "#282828"
+  }
+}

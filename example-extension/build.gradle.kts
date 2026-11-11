@@ -60,7 +60,7 @@ tasks.register("assembleEgg") {
 
         val stage = File(work, "stage"); stage.deleteRecursively(); stage.mkdirs()
         copy {
-            from("src/main/assets/manifest.json")
+            from("src/main/assets")  // all assets (manifest.json + theme/ + ...)
             from(dex) { rename { "classes.dex" } }
             into(stage)
         }
@@ -69,7 +69,7 @@ tasks.register("assembleEgg") {
         egg.delete()
         ant.withGroovyBuilder {
             "zip"("destfile" to egg.absolutePath) {
-                "zipfileset"("dir" to stage.absolutePath, "includes" to "manifest.json,classes.dex")
+                "zipfileset"("dir" to stage.absolutePath)
             }
         }
         println("EGG built: ${egg.absolutePath} (${egg.length()} bytes)")

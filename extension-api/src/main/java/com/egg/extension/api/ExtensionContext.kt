@@ -10,4 +10,8 @@ class ExtensionContext(
     val appContext: Context,
     val extensionId: String,
     val extensionDir: File
-)
+) {
+    fun registerTheme(spec: ThemeSpec) {
+        ThemeRegistry.register(spec.copy(extensionId = extensionId))
+    }
+}
