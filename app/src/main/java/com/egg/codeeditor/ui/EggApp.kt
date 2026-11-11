@@ -648,12 +648,12 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                     Icon(Icons.Default.Search, "Search")
                                 }
                                 IconButton(
-                                    onClick = { try { editorState.editor?.undo() } catch (e: Exception) { e.printStackTrace() } },
+                                    onClick = { try { editorState.editor?.undo() } catch (_: Exception) {} },
                                     enabled = canUndo,
                                     colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                 ) { Icon(Icons.AutoMirrored.Filled.Undo, "Undo") }
                                 IconButton(
-                                    onClick = { try { editorState.editor?.redo() } catch (e: Exception) { e.printStackTrace() } },
+                                    onClick = { try { editorState.editor?.redo() } catch (_: Exception) {} },
                                     enabled = canRedo,
                                     colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                 ) { Icon(Icons.AutoMirrored.Filled.Redo, "Redo") }

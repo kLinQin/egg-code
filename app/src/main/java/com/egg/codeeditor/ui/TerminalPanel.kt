@@ -146,7 +146,7 @@ internal fun TerminalPanel(
                                     scope.launch {
                                         terminalFocusRequester.requestFocus()
                                         delay(150.milliseconds)
-                                        try { keyboardController?.show() } catch (e: Exception) { e.printStackTrace() }
+                                        try { keyboardController?.show() } catch (_: Exception) {}
                                         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                                         val focused = (context as? Activity)?.currentFocus
                                         if (focused != null) {

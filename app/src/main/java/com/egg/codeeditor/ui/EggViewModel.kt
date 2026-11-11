@@ -1080,8 +1080,7 @@ class EggViewModel(private val context: Context) {
                 }
                 root.put("tabs", arr)
                 writeFileContent(appContext, uri, root.toString())
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }
@@ -1135,8 +1134,7 @@ class EggViewModel(private val context: Context) {
                     tabs.add(t)
                 }
                 activeTabId = tabs.first().id
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }

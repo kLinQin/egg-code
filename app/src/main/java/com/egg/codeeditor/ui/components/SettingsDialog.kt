@@ -84,7 +84,7 @@ fun SettingsDialog(
                     val newList = settings.editorFontList + target.absolutePath
                     val newAppList = settings.appFontList + target.absolutePath
                     onSettingsChange(settings.copy(fontFamily = "custom", customFontPath = target.absolutePath, editorFontList = newList, appFontList = newAppList))
-                } catch (e: Exception) { e.printStackTrace() }
+                } catch (_: Exception) {}
             }
         }
     }
@@ -105,7 +105,7 @@ fun SettingsDialog(
                     val newList = settings.appFontList + target.absolutePath
                     val newEditorList = settings.editorFontList + target.absolutePath
                     onSettingsChange(settings.copy(appFontFamily = "custom", appCustomFontPath = target.absolutePath, appFontList = newList, editorFontList = newEditorList))
-                } catch (e: Exception) { e.printStackTrace() }
+                } catch (_: Exception) {}
             }
         }
     }

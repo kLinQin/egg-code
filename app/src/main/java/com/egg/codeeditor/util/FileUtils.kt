@@ -86,8 +86,7 @@ suspend fun writeFileContent(context: Context, uri: Uri, content: String): Boole
                 stream.use { it.write(bytes); it.flush() }
                 true
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (_: Exception) {
             false
         }
     }

@@ -140,7 +140,6 @@ class DiscordGateway(
     }
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-        t.printStackTrace()
         scope.launch { delay(5000); connect() }
     }
 }

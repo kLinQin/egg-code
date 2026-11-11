@@ -39,7 +39,6 @@ internal fun getOrCreateLanguage(scope: String): TextMateLanguage? =
         try {
             TextMateLanguage.create(scope, true)
         } catch (e: Exception) {
-            e.printStackTrace()
             null
         }
     }
@@ -78,8 +77,7 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
 
         // Force a redraw so the change applies immediately
         editor.invalidate()
-    } catch (e: Exception) {
-        e.printStackTrace()
+    } catch (_: Exception) {
     }
 }
 
@@ -112,8 +110,7 @@ private fun applyEditorSettings(editor: CodeEditor, settings: EditorSettings) {
             runCatching { completion.hide() }
         }
         editor.setTypefaceText(resolveTypeface(settings))
-    } catch (e: Exception) {
-        e.printStackTrace()
+    } catch (_: Exception) {
     }
 }
 
@@ -163,8 +160,7 @@ fun SoraCodeEditor(
             if (language != null) {
                 try {
                     editor.setEditorLanguage(language)
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (_: Exception) {
                 }
             }
         }

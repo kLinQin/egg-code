@@ -50,10 +50,9 @@ private fun initTextMate(context: Context, darkTheme: Boolean) {
         // Prewarm: parse all grammars NOW → whichever file the user opens first,
         // the language is already cached → highlighting is instant.
         ALL_SCOPES.forEach { scope ->
-            try { getOrCreateLanguage(scope) } catch (e: Exception) { e.printStackTrace() }
+            try { getOrCreateLanguage(scope) } catch (_: Exception) {}
         }
-    } catch (e: Exception) {
-        e.printStackTrace()
+    } catch (_: Exception) {
     }
 }
 
