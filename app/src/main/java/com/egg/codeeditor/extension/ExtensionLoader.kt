@@ -58,20 +58,20 @@ object ExtensionLoader {
             author = ExtensionManifest.Author(json.optJSONObject("author")?.optString("displayName") ?: "Unknown")
         )
 
-        // DexClassLoader
+        // DEX_OPTIONAL: dex is optional — assets-only plugins (theme/grammar/icon packs) work without code
         val dexFile = File(workDir, DEX)
-        require(dexFile.exists()) { "classes.dex missing in ${eggFile.name}" }
-        dexFile.setReadOnly()
-        val loader = DexClassLoader(
-            dexFile.absolutePath,
-            File(ctx.codeCacheDir, "ext_${manifest.id}").apply { mkdirs() }.absolutePath,
-            null,
-            ctx.classLoader
-        )
-
-        val cls = loader.loadClass(manifest.mainClass)
-        val extCtx = ExtensionContext(ctx.applicationContext, manifest.id, workDir)
-        val instance = cls.getConstructor(ExtensionContext::class.java).newInstance(extCtx) as ExtensionAPI
+        val instance: ExtensionAPI? = if (dexFile.exists()) {
+            dexFile.setReadOnly()
+            val loader = DexClassLoader(
+                dexFile.absolutePath,
+                File(ctx.codeCacheDir, "ext_${manifest.id}").apply { mkdirs() }.absolutePath,
+                null,
+                ctx.classLoader
+            )
+            val cls = loader.loadClass(manifest.mainClass)
+            val extCtx = ExtensionContext(ctx.applicationContext, manifest.id, workDir)
+            cls.getConstructor(ExtensionContext::class.java).newInstance(extCtx) as ExtensionAPI
+        } else null
 
         // GRAMMAR_SCAN: scan grammar/ folder for .tmLanguage.json + metadata
         val grammarDir = File(workDir, "grammar")
@@ -130,7 +130,7 @@ object ExtensionLoader {
 
     data class LoadedExtension(
         val manifest: ExtensionManifest,
-        val api: ExtensionAPI,
+        val api: ExtensionAPI?,
         val source: File
     )
 }

@@ -18,7 +18,7 @@ object ExtensionManager {
         ExtensionLoader.listEggFiles(ctx).forEach { file ->
             try {
                 val ext = ExtensionLoader.load(ctx, file)
-                ext.api.onLoad()
+                ext.api?.onLoad()
                 Log.d("EggExtMgr", "loaded " + ext.manifest.id)
                 loaded[ext.manifest.id] = ext
                 results.add(Result.success(ext))
@@ -37,7 +37,7 @@ object ExtensionManager {
     }
 
     fun unloadAll() {
-        loaded.values.forEach { it.api.onDispose() }
+        loaded.values.forEach { it.api?.onDispose() }
         loaded.clear()
     }
 
