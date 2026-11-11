@@ -114,7 +114,11 @@ object ExtensionLoader {
                     name = themeJson.optString("name", manifest.name + " Theme"),
                     base = themeJson.optString("base", "dark"),
                     colors = colors,
-                    syntaxPath = themeJson.optString("syntaxPath").takeIf { it.isNotEmpty() },
+                    // SYNTAX_PATH: resolve syntaxPath relative to theme dir
+                    syntaxPath = run {
+                        val sp = themeJson.optString("syntaxPath").takeIf { it.isNotEmpty() }
+                        sp?.let { File(workDir, it).takeIf { f -> f.exists() }?.absolutePath }
+                    },
                     dark = themeJson.optBoolean("dark", themeJson.optString("base", "dark") == "dark"),
                     extensionId = manifest.id
                 )

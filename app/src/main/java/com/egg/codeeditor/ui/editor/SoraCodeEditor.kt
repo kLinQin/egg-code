@@ -80,14 +80,38 @@ private fun builtinScope(fileName: String): String? = when {
 
 internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
     try {
-        // PLUGIN_COLOR_SCHEME: plugin themes fall back to base dark/light for Sora
+        // PLUGIN_SYNTAX_THEME: plugin theme can ship its own TextMate theme
         val pluginSpec = com.egg.extension.api.ThemeRegistry.get(themeName)
-        val soraTheme = when {
-            themeName == "darcula" || themeName == "github-light" -> themeName
-            pluginSpec != null -> if (pluginSpec.dark) "darcula" else "github-light"
-            else -> "github-light"
+        val pluginSyntax = pluginSpec?.syntaxPath?.let { java.io.File(it) }?.takeIf { it.exists() }
+        if (pluginSyntax != null) {
+            try {
+                val soraRegistry = io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry.getInstance()
+                val themeNameKey = "plugin_${pluginSpec.id}"
+                // Load once
+                if (runCatching { soraRegistry.setTheme(themeNameKey) }.isFailure) {
+                    val model = io.github.rosemoe.sora.langs.textmate.registry.model.ThemeModel(
+                        org.eclipse.tm4e.core.registry.IThemeSource.fromInputStream(
+                            pluginSyntax.inputStream(), pluginSyntax.name, null
+                        ),
+                        themeNameKey
+                    ).apply { isDark = pluginSpec.dark }
+                    model.load(null)
+                    soraRegistry.loadTheme(model)
+                    soraRegistry.setTheme(themeNameKey)
+                }
+            } catch (e: Exception) {
+                // fallback
+                val fallback = if (pluginSpec.dark) "darcula" else "github-light"
+                io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry.getInstance().setTheme(fallback)
+            }
+        } else {
+            val soraTheme = when {
+                themeName == "darcula" || themeName == "github-light" -> themeName
+                pluginSpec != null -> if (pluginSpec.dark) "darcula" else "github-light"
+                else -> "github-light"
+            }
+            io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry.getInstance().setTheme(soraTheme)
         }
-        ThemeRegistry.getInstance().setTheme(soraTheme)
         val scheme = TextMateColorScheme.create(ThemeRegistry.getInstance())
         if (themeName == "darcula") {
             scheme.setColor(EditorColorScheme.SCROLL_BAR_THUMB, android.graphics.Color.parseColor("#3D3D3A"))
