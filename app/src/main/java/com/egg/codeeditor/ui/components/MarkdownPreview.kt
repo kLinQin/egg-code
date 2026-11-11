@@ -126,6 +126,12 @@ fun MarkdownPreview(
         ".task-check.checked{background:" + hex(primary.toArgb()) + "}" +
         ".task-check.checked::after{content:'\\2713';position:absolute;top:-1px;left:2px;color:" + hex(bg.toArgb()) + ";font-size:15px;font-weight:bold;line-height:1}" +
         ".task-done{opacity:0.6;text-decoration:line-through}" +
+        ".accordion{background:" + hex(preBg) + ";border-radius:6px;margin:8px 0;padding:0;border:1px solid " + hex(surface.toArgb()) + "}" +
+        ".accordion summary{padding:10px 12px;cursor:pointer;font-weight:600;color:" + hex(primary.toArgb()) + ";list-style:none}" +
+        ".accordion summary::-webkit-details-marker{display:none}" +
+        ".accordion summary::before{content:'\\25B8';display:inline-block;margin-right:6px;transition:transform .2s}" +
+        ".accordion[open] summary::before{transform:rotate(90deg)}" +
+        ".accordion-body{padding:0 12px 10px}" +
         ".progress-block{position:relative;background:" + hex(preBg) + ";border-radius:6px;height:22px;margin:8px 0;overflow:hidden}" +
         ".progress-bar{height:100%;background:" + hex(primary.toArgb()) + "}" +
         ".progress-block[data-color='green'] .progress-bar{background:#4caf50}" +
@@ -153,7 +159,7 @@ fun MarkdownPreview(
         "while(i<lines.length){" +
         "var l=lines[i];var m=l.match(/^> \\[!(\\w+)\\]\\s*(.*)$/i);" +
         "if(m){" +
-        "var type=m[1].toLowerCase();var title=m[2]||'';var body=[];i++;" +
+        "var type=m[1].toLowerCase();if(type==='accordion'||type==='timeline'||type==='step'||type==='chart'){out.push(l);i++;continue;}var title=m[2]||'';var body=[];i++;" +
         "while(i<lines.length && lines[i].startsWith('> ')){body.push(lines[i].slice(2));i++;}" +
         "out.push('<div class=\\\"callout callout-'+type+'\\\"><div class=\\\"callout-title\\\">'+(title||type)+'</div><div class=\\\"callout-body\\\">'+marked.parse(body.join('\\n'))+'</div></div>');" +
         "}else{out.push(l);i++;}}" +
@@ -165,6 +171,7 @@ fun MarkdownPreview(
         "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
         "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
         "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'\\\" allowfullscreen></iframe></div>';});" +
+        "var _al=md.split('\\n');var _aout=[];var _ai=0;while(_ai<_al.length){var _ac=_al[_ai];var _am=_ac.match(/^> \\[!accordion\\]\\s*(.*)$/i);if(_am){var _at=_am[1]||'Details';var _ab=[];_ai++;while(_ai<_al.length&&_al[_ai].startsWith('> ')){_ab.push(_al[_ai].slice(2));_ai++;}_aout.push('<details class=\\\"accordion\\\"><summary>'+_at+'</summary><div class=\\\"accordion-body\\\">'+marked.parse(_ab.join('\\n'))+'</div></details>');}else{_aout.push(_ac);_ai++;}}md=_aout.join('\\n');" +
         "md=md.replace(/\\[progress\\s+(\\d+)%\\s*(\\w+)?\\]/g,function(_,p,c){c=c||'blue';return '<div class=\\\"progress-block\\\" data-color=\\\"'+c+'\\\"><div class=\\\"progress-bar\\\" style=\\\"width:'+p+'%\\\"></div><div class=\\\"progress-label\\\">'+p+'%</div></div>';});" +
         "document.getElementById('content').innerHTML=marked.parse(md);" +
         "document.querySelectorAll('.spoiler-inline').forEach(function(el){" +
