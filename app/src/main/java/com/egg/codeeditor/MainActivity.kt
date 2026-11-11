@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
         }.start()
 
         super.onCreate(savedInstanceState)
+        window.decorView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         setContent {
             EggApp()
         }
