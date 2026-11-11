@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -25,6 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.egg.codeeditor.model.EditorSettings
+import com.egg.codeeditor.extension.ExtensionManager
+import com.egg.codeeditor.extension.ExtensionLoader
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.mutableStateListOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlinx.coroutines.launch
 
@@ -124,6 +131,7 @@ fun SettingsDialog(
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
                 Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Others") })
                 Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Discord") })
+                Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Extensions") })
             }
 
             Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -132,6 +140,7 @@ fun SettingsDialog(
                     1 -> AppSettingsTab(settings, onSettingsChange, appFontLauncher)
                     2 -> OtherSettingsTab(settings, onSettingsChange, backupLauncher, restoreLauncher)
                     3 -> DiscordSettingsTab(discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
+                    4 -> ExtensionsTab()
                 }
             }
         }
@@ -354,4 +363,96 @@ private fun DiscordSettingsTab(
             Text(savedMsg, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
         }
     }
+}
+
+
+@Composable
+private fun ExtensionsTab() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var refreshKey by remember { mutableIntStateOf(0) }
+    var status by remember { mutableStateOf<String?>(null) }
+
+    val installLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val name = getFileNameStatic(context, it)
+                    val target = File(ExtensionLoader.extensionsRoot(context), name)
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(it)?.use { input ->
+                            target.outputStream().use { out -> input.copyTo(out) }
+                        }
+                    }
+                    status = "Installed: $name"
+                    ExtensionManager.unloadAll()
+                    ExtensionManager.loadAll(context)
+                    refreshKey++
+                } catch (e: Exception) {
+                    status = "Install failed: ${e.message}"
+                }
+            }
+        }
+    }
+
+    val loaded = ExtensionManager.loaded()
+
+    Column(
+        Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Installed Extensions", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Button(onClick = { installLauncher.launch(arrayOf("application/octet-stream", "*/*")) }) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Install .egg", fontSize = 12.sp)
+            }
+        }
+
+        if (loaded.isEmpty()) {
+            Text("No extensions loaded.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            loaded.values.forEach { ext ->
+                Row(
+                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(ext.manifest.name, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                        Text("${ext.manifest.id} · v${ext.manifest.version}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (ext.manifest.description.isNotEmpty()) {
+                            Text(ext.manifest.description, fontSize = 11.sp)
+                        }
+                    }
+                    TextButton(onClick = {
+                        scope.launch {
+                            withContext(Dispatchers.IO) {
+                                ext.source.delete()
+                                File(ExtensionLoader.extensionsRoot(context), ext.manifest.id).deleteRecursively()
+                            }
+                            ExtensionManager.unload(ext.manifest.id)
+                            status = "Uninstalled: ${ext.manifest.name}"
+                            refreshKey++
+                        }
+                    }) { Text("Uninstall", fontSize = 12.sp) }
+                }
+            }
+        }
+
+        status?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary) }
+    }
+}
+
+private fun getFileNameStatic(context: android.content.Context, uri: Uri): String {
+    var name = "extension.egg"
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0) name = cursor.getString(idx)
+        }
+    }
+    return name
 }
