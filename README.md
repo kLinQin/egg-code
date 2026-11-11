@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="96" alt="Egg logo">
+  <img src="static/logo.svg" width="96" alt="Egg logo">
 </p>
 
 <h1 align="center">Egg — Android Code Editor</h1>
