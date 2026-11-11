@@ -73,10 +73,8 @@ object PluginStoreService {
     suspend fun installFromStore(ctx: Context, plugin: StorePlugin): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val file = download(ctx, plugin).getOrThrow()
-            // Register directly via loader
             val ext = ExtensionLoader.load(ctx, file)
             ext.api?.onLoad()
-            // Note: ExtensionManager.loadAll() will re-register on restart
             Unit
         }
     }

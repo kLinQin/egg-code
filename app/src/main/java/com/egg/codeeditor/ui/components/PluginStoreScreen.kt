@@ -43,7 +43,6 @@ fun PluginStoreScreen() {
     LaunchedEffect(Unit) { refresh() }
 
     Column(Modifier.fillMaxWidth()) {
-        // STORE_HEADER
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Plugin Store", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = { scope.launch { refresh() } }) { Text("Refresh", fontSize = 12.sp) }

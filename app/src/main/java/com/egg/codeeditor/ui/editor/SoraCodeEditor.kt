@@ -28,7 +28,6 @@ import kotlinx.coroutines.delay
 
 private val languageCache = HashMap<String, TextMateLanguage?>()
 
-// PLUGIN_GRAMMAR: load grammar from plugin registry if not yet in Sora
 private fun ensureGrammarLoaded(scope: String) {
     try {
         if (io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry.getInstance().findGrammar(scope, false) != null) return
@@ -58,7 +57,6 @@ internal fun getOrCreateLanguage(scope: String): TextMateLanguage? =
     }
 
 private fun scopeForName(fileName: String): String? {
-    // PLUGIN_GRAMMAR: plugin scope takes priority
     val ext = fileName.substringAfterLast('.', "").lowercase()
     if (ext.isNotEmpty()) {
         com.egg.extension.api.GrammarRegistry.scopeForExtension(ext)?.let { return it }
@@ -80,14 +78,12 @@ private fun builtinScope(fileName: String): String? = when {
 
 internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
     try {
-        // PLUGIN_SYNTAX_THEME: plugin theme can ship its own TextMate theme
         val pluginSpec = com.egg.extension.api.ThemeRegistry.get(themeName)
         val pluginSyntax = pluginSpec?.syntaxPath?.let { java.io.File(it) }?.takeIf { it.exists() }
         if (pluginSyntax != null) {
             try {
                 val soraRegistry = io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry.getInstance()
                 val themeNameKey = "plugin_${pluginSpec.id}"
-                // Load once
                 if (runCatching { soraRegistry.setTheme(themeNameKey) }.isFailure) {
                     val model = io.github.rosemoe.sora.langs.textmate.registry.model.ThemeModel(
                         org.eclipse.tm4e.core.registry.IThemeSource.fromInputStream(
@@ -100,7 +96,6 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
                     soraRegistry.setTheme(themeNameKey)
                 }
             } catch (e: Exception) {
-                // fallback
                 val fallback = if (pluginSpec.dark) "darcula" else "github-light"
                 io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry.getInstance().setTheme(fallback)
             }
@@ -121,7 +116,6 @@ internal fun applyColorScheme(editor: CodeEditor, themeName: String) {
             scheme.setColor(EditorColorScheme.SCROLL_BAR_TRACK, android.graphics.Color.TRANSPARENT)
         }
         editor.colorScheme = scheme
-        // PLUGIN_BG_AFTER: apply plugin bg after editor takes ownership
         if (pluginSpec != null) {
             val cs = editor.colorScheme
             val bg = pluginSpec.colors["background"]?.let { runCatching { android.graphics.Color.parseColor(it) }.getOrNull() }

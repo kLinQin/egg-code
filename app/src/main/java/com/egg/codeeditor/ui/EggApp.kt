@@ -586,7 +586,14 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                     },
                                     actions = {
                                         if (vm.activeTab?.name?.endsWith(".md") == true) {
-                                            IconButton(onClick = { vm.showMarkdownPreview = !vm.showMarkdownPreview }) {
+                                            IconButton(onClick = {
+                                    val i = vm.activeTabIndex()
+                                    if (i >= 0 && vm.tabs[i].diffNew == null) {
+                                        val text = editorState.editor?.text?.toString() ?: ""
+                                        if (vm.tabs[i].content != text) vm.tabs[i] = vm.tabs[i].copy(content = text)
+                                    }
+                                    vm.showMarkdownPreview = !vm.showMarkdownPreview
+                                }) {
                                                 Icon(if (vm.showMarkdownPreview) Icons.Default.Edit else Icons.Default.Visibility, "Toggle Preview")
                                             }
                                         }

@@ -25,17 +25,13 @@ object ExtensionLoader {
      * Returns loaded extension or throws.
      */
     fun load(ctx: Context, eggFile: File): LoadedExtension {
-        // FRESH_EXTRACT: hapus sisa extract lama (bisa read-only)
         val workDir = File(extensionsRoot(ctx), eggFile.nameWithoutExtension)
         workDir.deleteRecursively()
         workDir.mkdirs()
 
-        // Extract zip
-        // EXTRACT_ALL: extract semua entry (.dex, manifest, theme/, assets/)
         ZipFile(eggFile).use { zip ->
             zip.entries().asSequence().forEach { entry ->
                 if (entry.isDirectory) return@forEach
-                // security: reject path traversal
                 val safeName = entry.name.replace("..", "").trimStart('/')
                 val out = File(workDir, safeName)
                 out.parentFile?.mkdirs()
@@ -45,7 +41,6 @@ object ExtensionLoader {
             }
         }
 
-        // Parse manifest
         val manifestFile = File(workDir, MANIFEST)
         require(manifestFile.exists()) { "manifest.json missing in ${eggFile.name}" }
         val json = JSONObject(manifestFile.readText())
@@ -58,7 +53,6 @@ object ExtensionLoader {
             author = ExtensionManifest.Author(json.optJSONObject("author")?.optString("displayName") ?: "Unknown")
         )
 
-        // DEX_OPTIONAL: dex is optional — assets-only plugins (theme/grammar/icon packs) work without code
         val dexFile = File(workDir, DEX)
         val instance: ExtensionAPI? = if (dexFile.exists()) {
             dexFile.setReadOnly()
@@ -73,7 +67,6 @@ object ExtensionLoader {
             cls.getConstructor(ExtensionContext::class.java).newInstance(extCtx) as ExtensionAPI
         } else null
 
-        // GRAMMAR_SCAN: scan grammar/ folder for .tmLanguage.json + metadata
         val grammarDir = File(workDir, "grammar")
         if (grammarDir.exists()) {
             grammarDir.listFiles { f -> f.isFile && (f.name.endsWith(".json") || f.name.endsWith(".tmLanguage.json") || f.name.endsWith(".tmLanguage")) }?.forEach { gf ->
@@ -101,7 +94,6 @@ object ExtensionLoader {
             }
         }
 
-        // ICONPACK_SCAN: scan iconpack/icons.json
         val iconPackFile = File(workDir, "iconpack/icons.json")
         if (iconPackFile.exists()) {
             try {
@@ -125,7 +117,6 @@ object ExtensionLoader {
             }
         }
 
-        // Auto-scan theme/compose.json → register
         val themeFile = File(workDir, "theme/compose.json")
         if (themeFile.exists()) {
             try {
@@ -138,7 +129,6 @@ object ExtensionLoader {
                     name = themeJson.optString("name", manifest.name + " Theme"),
                     base = themeJson.optString("base", "dark"),
                     colors = colors,
-                    // SYNTAX_PATH: resolve syntaxPath relative to theme dir
                     syntaxPath = run {
                         val sp = themeJson.optString("syntaxPath").takeIf { it.isNotEmpty() }
                         sp?.let { File(workDir, it).takeIf { f -> f.exists() }?.absolutePath }

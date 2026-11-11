@@ -96,7 +96,6 @@ fun EggSystemBarStyle(darkTheme: Boolean, customBg: Int? = null) {
     }
 }
 
-// PLUGIN_THEME: build ColorScheme from plugin ThemeSpec (partial override)
 private fun buildPluginScheme(spec: ThemeSpec, base: androidx.compose.material3.ColorScheme): androidx.compose.material3.ColorScheme {
     fun c(key: String, fallback: Color): Color =
         spec.colors[key]?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() } ?: fallback

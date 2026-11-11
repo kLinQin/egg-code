@@ -233,7 +233,6 @@ private fun AppSettingsTab(
                 Text("Dark", fontSize = 13.sp)
             }
         }
-        // PLUGIN_THEMES_UI
         val pluginThemes = com.egg.extension.api.ThemeRegistry.all()
         if (pluginThemes.isNotEmpty()) {
             Text("Plugin Themes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -427,7 +426,6 @@ private fun ExtensionsTab() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ===== SECTION 1: INSTALLED =====
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Installed Extensions", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             Button(onClick = { installLauncher.launch(arrayOf("application/octet-stream", "*/*")) }) {
@@ -471,7 +469,6 @@ private fun ExtensionsTab() {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-        // ===== SECTION 2: STORE =====
         PluginStoreScreen()
     }
 }
