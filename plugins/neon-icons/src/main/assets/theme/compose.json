@@ -1,0 +1,21 @@
+{
+  "id": "neon-icons",
+  "name": "Neon Icons",
+  "base": "dark",
+  "dark": true,
+  "colors": {
+    "primary": "#FF00FF",
+    "onPrimary": "#000000",
+    "background": "#050005",
+    "onBackground": "#FFE0FF",
+    "surface": "#0F000F",
+    "onSurface": "#FFE0FF",
+    "surfaceVariant": "#1A001A",
+    "onSurfaceVariant": "#FF88FF",
+    "outline": "#AA00AA",
+    "secondary": "#00FFFF",
+    "onSecondary": "#000000",
+    "tertiary": "#FFAA00",
+    "onTertiary": "#000000"
+  }
+}

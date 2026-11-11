@@ -1,0 +1,10 @@
+{
+  "id": "com.egg.plugin.neonicons",
+  "name": "Neon Icons",
+  "mainClass": "com.egg.plugin.neonicons.Main",
+  "version": "1.0.0",
+  "description": "Neon theme + custom icon colors",
+  "author": {
+    "displayName": "Egg Dev"
+  }
+}
