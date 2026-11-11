@@ -126,6 +126,13 @@ fun MarkdownPreview(
         ".task-check.checked{background:" + hex(primary.toArgb()) + "}" +
         ".task-check.checked::after{content:'\\2713';position:absolute;top:-1px;left:2px;color:" + hex(bg.toArgb()) + ";font-size:15px;font-weight:bold;line-height:1}" +
         ".task-done{opacity:0.6;text-decoration:line-through}" +
+        ".tabs-block{margin:8px 0;background:" + hex(preBg) + ";border-radius:6px;overflow:hidden}" +
+        ".tabs-nav{display:flex;border-bottom:1px solid " + hex(surface.toArgb()) + ";overflow-x:auto}" +
+        ".tab-btn{flex-shrink:0;background:transparent;border:none;padding:8px 14px;color:" + hex(fgColor) + ";font-size:13px;cursor:pointer;opacity:0.6;border-bottom:2px solid transparent}" +
+        ".tab-btn.active{opacity:1;border-bottom-color:" + hex(primary.toArgb()) + ";color:" + hex(primary.toArgb()) + "}" +
+        ".tabs-body{padding:10px 12px}" +
+        ".tab-pane{display:none}" +
+        ".tab-pane.active{display:block}" +
         ".accordion{background:" + hex(preBg) + ";border-radius:6px;margin:8px 0;padding:0;border:1px solid " + hex(surface.toArgb()) + "}" +
         ".accordion summary{padding:10px 12px;cursor:pointer;font-weight:600;color:" + hex(primary.toArgb()) + ";list-style:none}" +
         ".accordion summary::-webkit-details-marker{display:none}" +
@@ -172,8 +179,10 @@ fun MarkdownPreview(
         "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
         "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'\\\" allowfullscreen></iframe></div>';});" +
         "var _al=md.split('\\n');var _aout=[];var _ai=0;while(_ai<_al.length){var _ac=_al[_ai];var _am=_ac.match(/^> \\[!accordion\\]\\s*(.*)$/i);if(_am){var _at=_am[1]||'Details';var _ab=[];_ai++;while(_ai<_al.length&&_al[_ai].startsWith('> ')){_ab.push(_al[_ai].slice(2));_ai++;}_aout.push('<details class=\\\"accordion\\\"><summary>'+_at+'</summary><div class=\\\"accordion-body\\\">'+marked.parse(_ab.join('\\n'))+'</div></details>');}else{_aout.push(_ac);_ai++;}}md=_aout.join('\\n');" +
+        "var _tl=md.split('\\n');var _to=[];var _ti=0;while(_ti<_tl.length){var _tl2=_tl[_ti];var _tm2=_tl2.trim().match(/^::tabs\\s+\\[(.+?)\\]/);if(_tm2){var _tabs=[];while(_ti<_tl.length){var _tln=_tl[_ti].trim();var _tm3=_tln.match(/^::tabs\\s+\\[(.+?)\\]/);if(_tm3){_tabs.push({title:_tm3[1],body:[]});_ti++;continue;}if(_tln==='::tabs-end'){_ti++;break;}if(_tabs.length>0)_tabs[_tabs.length-1].body.push(_tl[_ti]);_ti++;}var _th='<div class=\\\"tabs-block\\\"><div class=\\\"tabs-nav\\\">';for(var _u=0;_u<_tabs.length;_u++){_th+='<button class=\\\"tab-btn'+(_u===0?' active':'')+'\\\" data-tab=\\\"'+_u+'\\\">'+_tabs[_u].title+'</button>';}_th+='</div><div class=\\\"tabs-body\\\">';for(var _u2=0;_u2<_tabs.length;_u2++){_th+='<div class=\\\"tab-pane'+(_u2===0?' active':'')+'\\\" data-pane=\\\"'+_u2+'\\\">'+marked.parse(_tabs[_u2].body.join('\\n'))+'</div>';}_th+='</div></div>';_to.push(_th);}else{_to.push(_tl2);_ti++;}}md=_to.join('\\n');" +
         "md=md.replace(/\\[progress\\s+(\\d+)%\\s*(\\w+)?\\]/g,function(_,p,c){c=c||'blue';return '<div class=\\\"progress-block\\\" data-color=\\\"'+c+'\\\"><div class=\\\"progress-bar\\\" style=\\\"width:'+p+'%\\\"></div><div class=\\\"progress-label\\\">'+p+'%</div></div>';});" +
         "document.getElementById('content').innerHTML=marked.parse(md);" +
+        "document.querySelectorAll('.tabs-block').forEach(function(tb){var btns=tb.querySelectorAll('.tab-btn');var panes=tb.querySelectorAll('.tab-pane');btns.forEach(function(b){b.addEventListener('click',function(){var idx=b.getAttribute('data-tab');btns.forEach(function(x){x.classList.remove('active');});b.classList.add('active');panes.forEach(function(x){x.classList.toggle('active',x.getAttribute('data-pane')===idx);});});});});" +
         "document.querySelectorAll('.spoiler-inline').forEach(function(el){" +
         "el.addEventListener('click',function(){el.classList.toggle('revealed');});" +
         "});" +
