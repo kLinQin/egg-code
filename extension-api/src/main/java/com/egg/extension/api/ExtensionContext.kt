@@ -18,4 +18,8 @@ class ExtensionContext(
     fun registerGrammar(spec: GrammarSpec) {
         GrammarRegistry.register(spec.copy(extensionId = extensionId))
     }
+
+    fun registerCloudProvider(provider: CloudProvider) {
+        CloudProviderRegistry.register(provider)
+    }
 }

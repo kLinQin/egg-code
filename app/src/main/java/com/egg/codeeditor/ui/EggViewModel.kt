@@ -358,6 +358,7 @@ class EggViewModel(private val context: Context) {
     var recentProjects by mutableStateOf<List<Pair<String, String>>>(emptyList())
     private var cloudIndex: CloudIndex? = null
     private var cloudIndexRoot: String? = null
+    private val b2Provider by lazy { com.egg.codeeditor.provider.B2CloudProvider.create(appContext) } // A2_CLOUD_CONNECT
 
     private fun cloudIndexOf(): CloudIndex {
         val root = rootFolderPath ?: return CloudIndex(File("/")).also { it.load() }
@@ -1437,14 +1438,9 @@ class EggViewModel(private val context: Context) {
        scope.launch {
             cloudBusy = true; cloudMessage = null
             try {
-                val acc = b2Authorize(keyId, appKey)
-                val bucketInfo = when {
-                    acc.allowedBucketId != null && acc.allowedBucketName != null ->
-                        B2Bucket(acc.allowedBucketId!!, acc.allowedBucketName!!)
-                    else -> {
-                        b2FindBucket(acc, bucket) ?: throw Exception("Bucket '$bucket' not found")
-                    }
-                }
+                b2Provider.connect(mapOf("keyId" to keyId, "appKey" to appKey, "bucket" to bucket)).getOrThrow()
+                val acc = b2Provider.currentAccount() ?: error("Connect failed")
+                val bucketInfo = b2Provider.currentBucket() ?: error("Bucket missing")
                 if (welcomeB2Mode) {
                     welcomeB2Mode = false
                     pullAfterConnect = true
