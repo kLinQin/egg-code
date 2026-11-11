@@ -126,6 +126,13 @@ fun MarkdownPreview(
         ".task-check.checked{background:" + hex(primary.toArgb()) + "}" +
         ".task-check.checked::after{content:'\\2713';position:absolute;top:-1px;left:2px;color:" + hex(bg.toArgb()) + ";font-size:15px;font-weight:bold;line-height:1}" +
         ".task-done{opacity:0.6;text-decoration:line-through}" +
+        ".progress-block{position:relative;background:" + hex(preBg) + ";border-radius:6px;height:22px;margin:8px 0;overflow:hidden}" +
+        ".progress-bar{height:100%;background:" + hex(primary.toArgb()) + "}" +
+        ".progress-block[data-color='green'] .progress-bar{background:#4caf50}" +
+        ".progress-block[data-color='red'] .progress-bar{background:#e74c3c}" +
+        ".progress-block[data-color='yellow'] .progress-bar{background:#f0ad4e}" +
+        ".progress-block[data-color='purple'] .progress-bar{background:#9c27b0}" +
+        ".progress-label{position:absolute;top:0;left:8px;line-height:22px;font-size:12px;color:" + hex(fgColor) + ";font-family:monospace}" +
         "::-webkit-scrollbar{display:none}" +
         ".hljs-keyword{color:" + hex(keyword) + "}" +
         ".hljs-built_in{color:" + hex(keyword) + "}" +
@@ -158,6 +165,7 @@ fun MarkdownPreview(
         "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
         "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
         "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'\\\" allowfullscreen></iframe></div>';});" +
+        "md=md.replace(/\\[progress\\s+(\\d+)%\\s*(\\w+)?\\]/g,function(_,p,c){c=c||'blue';return '<div class=\\\"progress-block\\\" data-color=\\\"'+c+'\\\"><div class=\\\"progress-bar\\\" style=\\\"width:'+p+'%\\\"></div><div class=\\\"progress-label\\\">'+p+'%</div></div>';});" +
         "document.getElementById('content').innerHTML=marked.parse(md);" +
         "document.querySelectorAll('.spoiler-inline').forEach(function(el){" +
         "el.addEventListener('click',function(){el.classList.toggle('revealed');});" +
