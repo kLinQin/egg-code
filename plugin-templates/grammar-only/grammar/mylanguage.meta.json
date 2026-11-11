@@ -1,0 +1,7 @@
+{
+  "name": "mylanguage",
+  "scopeName": "source.mylanguage",
+  "extensions": [
+    ".ml"
+  ]
+}

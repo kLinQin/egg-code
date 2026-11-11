@@ -1,0 +1,10 @@
+{
+  "id": "com.example.mytheme",
+  "name": "My Theme",
+  "mainClass": "com.example.mytheme.Main",
+  "version": "1.0.0",
+  "description": "A custom theme for Egg",
+  "author": {
+    "displayName": "Your Name"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "com.example.mylanguage",
+  "name": "My Language Grammar",
+  "mainClass": "com.example.mylanguage.Main",
+  "version": "1.0.0",
+  "description": "Syntax highlighting for My Language",
+  "author": {
+    "displayName": "Your Name"
+  }
+}

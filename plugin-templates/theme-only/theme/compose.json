@@ -1,0 +1,17 @@
+{
+  "id": "mytheme",
+  "name": "My Theme",
+  "base": "dark",
+  "dark": true,
+  "colors": {
+    "primary": "#00FFAA",
+    "onPrimary": "#000000",
+    "background": "#0A0A0A",
+    "onBackground": "#E0E0E0",
+    "surface": "#141414",
+    "onSurface": "#E0E0E0",
+    "surfaceVariant": "#1E1E1E",
+    "onSurfaceVariant": "#888888",
+    "outline": "#333333"
+  }
+}
