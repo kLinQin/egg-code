@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.egg.codeeditor.model.EditorSettings
 import com.egg.codeeditor.extension.ExtensionManager
+import com.egg.codeeditor.ui.components.PluginStoreScreen
 import com.egg.codeeditor.extension.ExtensionLoader
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.mutableStateListOf
@@ -130,17 +131,15 @@ fun SettingsDialog(
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Editor") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
                 Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Others") })
-                Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Discord") })
-                Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Extensions") })
+                Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Extensions") })
             }
 
-            Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (selectedTab) {
                     0 -> EditorSettingsTab(settings, onSettingsChange, fontLauncher)
                     1 -> AppSettingsTab(settings, onSettingsChange, appFontLauncher)
-                    2 -> OtherSettingsTab(settings, onSettingsChange, backupLauncher, restoreLauncher)
-                    3 -> DiscordSettingsTab(discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
-                    4 -> ExtensionsTab()
+                    2 -> OtherSettingsTab(settings, onSettingsChange, backupLauncher, restoreLauncher, discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
+                    3 -> ExtensionsTab()
                 }
             }
         }
@@ -153,7 +152,7 @@ private fun EditorSettingsTab(
     onSettingsChange: (EditorSettings) -> Unit,
     fontLauncher: ActivityResultLauncher<Array<String>>
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Font Size: ${settings.fontSizeSp} sp", style = MaterialTheme.typography.labelLarge)
         Slider(
             value = settings.fontSizeSp.toFloat(),
@@ -220,7 +219,7 @@ private fun AppSettingsTab(
     onSettingsChange: (EditorSettings) -> Unit,
     appFontLauncher: ActivityResultLauncher<Array<String>>
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Theme", style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -298,9 +297,13 @@ private fun OtherSettingsTab(
     settings: EditorSettings,
     onSettingsChange: (EditorSettings) -> Unit,
     backupLauncher: ActivityResultLauncher<String>,
-    restoreLauncher: ActivityResultLauncher<Array<String>>
+    restoreLauncher: ActivityResultLauncher<Array<String>>,
+    discordToken: String = "",
+    discordEnabled: Boolean = false,
+    onDiscordTokenChange: (String) -> Unit = {},
+    onDiscordEnabledChange: (Boolean) -> Unit = {}
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SettingSwitchRow("Confirm on Exit", settings.confirmExit) { onSettingsChange(settings.copy(confirmExit = it)) }
         SettingSwitchRow("Show Bottom Bar", settings.showBottomBar) { onSettingsChange(settings.copy(showBottomBar = it)) }
         HorizontalDivider()
@@ -316,10 +319,16 @@ private fun OtherSettingsTab(
                 Text("Backup", fontSize = 13.sp)
             }
             OutlinedButton(onClick = { restoreLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
+
                 Text("Restore", fontSize = 13.sp)
             }
         }
+
+        HorizontalDivider()
+
+        DiscordSettingsTab(discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
     }
+
 }
 
 @Composable
@@ -415,9 +424,10 @@ private fun ExtensionsTab() {
     val loaded = ExtensionManager.loaded()
 
     Column(
-        Modifier.fillMaxWidth().padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // ===== SECTION 1: INSTALLED =====
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Installed Extensions", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             Button(onClick = { installLauncher.launch(arrayOf("application/octet-stream", "*/*")) }) {
@@ -458,6 +468,11 @@ private fun ExtensionsTab() {
         }
 
         status?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary) }
+
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+        // ===== SECTION 2: STORE =====
+        PluginStoreScreen()
     }
 }
 

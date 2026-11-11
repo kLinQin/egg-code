@@ -34,3 +34,4 @@ plugins/**/.gradle/
 extension-api/local.properties
 extension-api/build/
 plugins/**/.kotlin/
+egg-plugin-store/
