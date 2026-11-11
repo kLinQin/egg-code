@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.egg.codeeditor.ui.EggApp
+import com.egg.codeeditor.extension.ExtensionManager
 import com.egg.codeeditor.ui.editor.getOrCreateLanguage
 import io.github.rosemoe.sora.langs.textmate.registry.FileProviderRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry
@@ -57,6 +58,9 @@ class MainActivity : ComponentActivity() {
         setTheme(if (darkTheme) R.style.Theme_Egg_Dark else R.style.Theme_Egg_Light)
 
         initTextMate(this, darkTheme)
+        Thread {
+            ExtensionManager.loadAll(applicationContext)
+        }.start()
 
         super.onCreate(savedInstanceState)
         setContent {

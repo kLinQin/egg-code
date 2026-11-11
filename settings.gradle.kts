@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Egg"
 include(":app")
+include(":extension-api")
 include(":termlib-local")
