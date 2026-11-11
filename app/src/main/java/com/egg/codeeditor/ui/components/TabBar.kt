@@ -121,12 +121,20 @@ private fun EditorTabItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val fileSpec = fileIconSpec(tab.name)
-            Icon(
-                fileSpec.icon,
-                null,
-                Modifier.size(13.dp),
-                tint = fileSpec.color
-            )
+            if (fileSpec.bitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = fileSpec.bitmap,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp)
+                )
+            } else {
+                Icon(
+                    fileSpec.icon,
+                    null,
+                    Modifier.size(13.dp),
+                    tint = fileSpec.color
+                )
+            }
             Spacer(Modifier.width(6.dp))
             val marker = gitMarkerFor(tab)
             val markerColor = when (marker) {

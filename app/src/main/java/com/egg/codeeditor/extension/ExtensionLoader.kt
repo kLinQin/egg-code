@@ -101,6 +101,30 @@ object ExtensionLoader {
             }
         }
 
+        // ICONPACK_SCAN: scan iconpack/icons.json
+        val iconPackFile = File(workDir, "iconpack/icons.json")
+        if (iconPackFile.exists()) {
+            try {
+                val iconJson = JSONObject(iconPackFile.readText())
+                val iconsObj = iconJson.optJSONObject("icons") ?: JSONObject()
+                iconsObj.keys().forEach { ext ->
+                    val o = iconsObj.getJSONObject(ext)
+                    com.egg.extension.api.IconPackRegistry.register(
+                        com.egg.extension.api.IconOverride(
+                            ext = ext,
+                            drawableFile = o.optString("drawable").takeIf { it.isNotEmpty() },
+                            color = o.optString("color").takeIf { it.isNotEmpty() },
+                            extensionId = manifest.id
+                        ),
+                        workDir
+                    )
+                }
+                android.util.Log.d("EggIconPack", "registered " + iconsObj.length() + " icons from " + manifest.id)
+            } catch (e: Exception) {
+                android.util.Log.e("EggIconPack", "iconpack parse failed", e)
+            }
+        }
+
         // Auto-scan theme/compose.json → register
         val themeFile = File(workDir, "theme/compose.json")
         if (themeFile.exists()) {

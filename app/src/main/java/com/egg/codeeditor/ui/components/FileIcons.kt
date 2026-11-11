@@ -6,12 +6,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.vectorResource
 import com.egg.codeeditor.R
 
-internal data class IconSpec(val icon: ImageVector, val color: Color)
+internal data class IconSpec(val icon: ImageVector, val color: Color, val bitmap: androidx.compose.ui.graphics.ImageBitmap? = null)
 
 internal val FOLDER_PALETTE = listOf(
     Color(0xFFFFB74D), Color(0xFF4FC3F7), Color(0xFF81C784),
@@ -24,6 +25,22 @@ internal fun folderIconSpec(depth: Int): IconSpec =
 
 @Composable
 internal fun fileIconSpec(fileName: String): IconSpec {
+    val ext = fileName.substringAfterLast('.', "").lowercase()
+    if (ext.isNotEmpty()) {
+        val ov = com.egg.extension.api.IconPackRegistry.get(ext)
+        if (ov != null) {
+            val color = ov.color?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() } ?: Color.Unspecified
+            val bmp = com.egg.extension.api.IconPackRegistry.drawablePath(ov)?.let { f ->
+                runCatching { android.graphics.BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap() }.getOrNull()
+            }
+            if (bmp != null) {
+                return IconSpec(Icons.Default.Description, color, bmp)
+            }
+            if (color != Color.Unspecified) {
+                return IconSpec(Icons.Default.Description, color)
+            }
+        }
+    }
     val n = fileName.lowercase()
     val dark = isSystemInDarkTheme()
     return when {

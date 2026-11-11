@@ -133,7 +133,7 @@ internal fun FileManagerPanel(
                     } else {
                         Spacer(Modifier.width(20.dp))
                         val fileSpec = fileIconSpec(node.name)
-                        Icon(fileSpec.icon, null, modifier = Modifier.size(18.dp), tint = fileSpec.color)
+                        if (fileSpec.bitmap != null) androidx.compose.foundation.Image(fileSpec.bitmap, null, modifier = Modifier.size(18.dp)) else Icon(fileSpec.icon, null, modifier = Modifier.size(18.dp), tint = fileSpec.color)
                     }
 
                     Spacer(Modifier.width(8.dp))

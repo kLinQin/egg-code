@@ -22,4 +22,8 @@ class ExtensionContext(
     fun registerCloudProvider(provider: CloudProvider) {
         CloudProviderRegistry.register(provider)
     }
+
+    fun registerIcon(override: IconOverride) {
+        IconPackRegistry.register(override.copy(extensionId = extensionId), extensionDir)
+    }
 }
