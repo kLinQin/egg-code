@@ -28,16 +28,45 @@ import kotlinx.coroutines.delay
 
 private val languageCache = HashMap<String, TextMateLanguage?>()
 
+// PLUGIN_GRAMMAR: load grammar from plugin registry if not yet in Sora
+private fun ensureGrammarLoaded(scope: String) {
+    try {
+        if (io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry.getInstance().findGrammar(scope, false) != null) return
+        val spec = com.egg.extension.api.GrammarRegistry.get(scope) ?: return
+        val source = org.eclipse.tm4e.core.registry.IGrammarSource.fromFile(spec.grammarFile)
+        val def = object : io.github.rosemoe.sora.langs.textmate.registry.model.GrammarDefinition {
+            override fun getName() = spec.name
+            override fun getLanguageConfiguration(): String? = null
+            override fun getScopeName() = spec.scopeName
+            override fun getGrammar(): org.eclipse.tm4e.core.registry.IGrammarSource = source
+        }
+        io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry.getInstance().loadGrammar(def)
+        android.util.Log.d("EggGrammar", "Sora loaded: " + scope)
+    } catch (e: Exception) {
+        android.util.Log.e("EggGrammar", "Sora load failed: " + scope, e)
+    }
+}
+
 internal fun getOrCreateLanguage(scope: String): TextMateLanguage? =
     languageCache.getOrPut(scope) {
         try {
+            ensureGrammarLoaded(scope)
             TextMateLanguage.create(scope, true)
         } catch (e: Exception) {
             null
         }
     }
 
-private fun scopeForName(fileName: String): String? = when {
+private fun scopeForName(fileName: String): String? {
+    // PLUGIN_GRAMMAR: plugin scope takes priority
+    val ext = fileName.substringAfterLast('.', "").lowercase()
+    if (ext.isNotEmpty()) {
+        com.egg.extension.api.GrammarRegistry.scopeForExtension(ext)?.let { return it }
+    }
+    return builtinScope(fileName)
+}
+
+private fun builtinScope(fileName: String): String? = when {
     fileName.endsWith(".kt") -> "source.kotlin"
     fileName.endsWith(".java") -> "source.java"
     fileName.endsWith(".js") -> "source.js"

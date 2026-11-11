@@ -22,7 +22,7 @@ dependencyResolutionManagement {
 rootProject.name = "neon-icons"
 
 // Composite: ambil :extension-api dari repo Egg parent
-includeBuild("../../extension-api") {
+includeBuild("../../../extension-api") {
     dependencySubstitution {
         substitute(module("com.egg:extension-api"))
             .using(project(":"))

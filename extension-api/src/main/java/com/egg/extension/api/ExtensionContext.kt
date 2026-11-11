@@ -14,4 +14,8 @@ class ExtensionContext(
     fun registerTheme(spec: ThemeSpec) {
         ThemeRegistry.register(spec.copy(extensionId = extensionId))
     }
+
+    fun registerGrammar(spec: GrammarSpec) {
+        GrammarRegistry.register(spec.copy(extensionId = extensionId))
+    }
 }

@@ -73,6 +73,34 @@ object ExtensionLoader {
         val extCtx = ExtensionContext(ctx.applicationContext, manifest.id, workDir)
         val instance = cls.getConstructor(ExtensionContext::class.java).newInstance(extCtx) as ExtensionAPI
 
+        // GRAMMAR_SCAN: scan grammar/ folder for .tmLanguage.json + metadata
+        val grammarDir = File(workDir, "grammar")
+        if (grammarDir.exists()) {
+            grammarDir.listFiles { f -> f.isFile && (f.name.endsWith(".json") || f.name.endsWith(".tmLanguage.json") || f.name.endsWith(".tmLanguage")) }?.forEach { gf ->
+                try {
+                    val metaFile = File(gf.parentFile, gf.nameWithoutExtension.removeSuffix(".tmLanguage") + ".meta.json")
+                    val meta = if (metaFile.exists()) JSONObject(metaFile.readText()) else JSONObject()
+                    val scope = meta.optString("scopeName", "source." + gf.nameWithoutExtension.removeSuffix(".tmLanguage").lowercase())
+                    val cfgFile = File(grammarDir, gf.nameWithoutExtension.removeSuffix(".tmLanguage") + ".config.json").takeIf { it.exists() }
+                    val extArr = mutableListOf<String>()
+                    meta.optJSONArray("extensions")?.let { arr -> for (i in 0 until arr.length()) extArr.add(arr.getString(i)) }
+                    com.egg.extension.api.GrammarRegistry.register(
+                        com.egg.extension.api.GrammarSpec(
+                            name = meta.optString("name", gf.nameWithoutExtension),
+                            scopeName = scope,
+                            grammarFile = gf,
+                            languageConfigFile = cfgFile,
+                            extensions = extArr,
+                            extensionId = manifest.id
+                        )
+                    )
+                    android.util.Log.d("EggGrammar", "registered: " + scope + " (" + gf.name + ")")
+                } catch (e: Exception) {
+                    android.util.Log.e("EggGrammar", "grammar register failed: " + gf.name, e)
+                }
+            }
+        }
+
         // Auto-scan theme/compose.json → register
         val themeFile = File(workDir, "theme/compose.json")
         if (themeFile.exists()) {

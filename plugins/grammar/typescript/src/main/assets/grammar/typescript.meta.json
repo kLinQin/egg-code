@@ -1,0 +1,8 @@
+{
+  "name": "typescript",
+  "scopeName": "source.ts",
+  "extensions": [
+    ".ts",
+    ".tsx"
+  ]
+}

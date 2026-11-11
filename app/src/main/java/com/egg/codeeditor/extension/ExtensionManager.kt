@@ -2,6 +2,7 @@ package com.egg.codeeditor.extension
 
 import android.content.Context
 import com.egg.extension.api.ThemeRegistry
+import com.egg.extension.api.GrammarRegistry
 import android.util.Log
 import java.io.File
 
@@ -32,6 +33,7 @@ object ExtensionManager {
     fun unload(id: String) {
         loaded.remove(id)?.api?.onDispose()
         ThemeRegistry.unregister(id)
+        GrammarRegistry.unregister(id)
     }
 
     fun unloadAll() {

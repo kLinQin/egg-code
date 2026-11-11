@@ -1,0 +1,10 @@
+{
+  "id": "com.egg.plugin.typescript",
+  "name": "TypeScript Grammar",
+  "mainClass": "com.egg.plugin.typescript.Main",
+  "version": "1.0.0",
+  "description": "TypeScript syntax highlighting",
+  "author": {
+    "displayName": "Egg Dev"
+  }
+}

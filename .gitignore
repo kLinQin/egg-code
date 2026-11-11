@@ -28,8 +28,9 @@ patch.js
 termlib-local/build/
 app/libs/termlib-src/
 build/
-plugins/*/build/
-plugins/*/local.properties
-plugins/*/.gradle/
+plugins/**/build/
+plugins/**/local.properties
+plugins/**/.gradle/
 extension-api/local.properties
 extension-api/build/
+plugins/**/.kotlin/
