@@ -22,30 +22,12 @@ import id.or.oo.pr.engine.PdnTerminalListener
 import id.or.oo.pr.engine.ProotHost
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import com.egg.codeeditor.model.EditorSettings
 import com.egg.codeeditor.model.EditorTab
 import com.egg.codeeditor.model.FileNode
 import com.egg.codeeditor.model.GitStatusInfo
 import com.egg.codeeditor.discord.DiscordRpcManager
-import com.egg.codeeditor.util.B2Account
-import com.egg.codeeditor.util.B2Bucket
-import com.egg.codeeditor.util.B2FileInfo
-import com.egg.codeeditor.util.CloudChange
-import com.egg.codeeditor.util.CloudIndex
 import com.egg.codeeditor.util.GitCommitInfo
-import com.egg.codeeditor.util.b2Authorize
-import com.egg.codeeditor.util.b2DeleteFileVersion
-import com.egg.codeeditor.util.b2DownloadBytes
-import com.egg.codeeditor.util.b2FindBucket
-import com.egg.codeeditor.util.b2ListFileVersions
-import com.egg.codeeditor.util.b2ListFiles
-import com.egg.codeeditor.util.b2UploadFile
-import com.egg.codeeditor.util.computeCloudChanges
 import com.egg.codeeditor.util.findOrCreateDocumentFile
 import com.egg.codeeditor.util.getFileName
 import com.egg.codeeditor.util.getGitRemoteUrl
@@ -60,10 +42,8 @@ import com.egg.codeeditor.util.saveRecentProjects
 import com.egg.codeeditor.util.saveOpenTabs
 import com.egg.codeeditor.util.loadOpenTabs
 import com.egg.codeeditor.util.clearOpenTabs
-import com.egg.codeeditor.util.saveB2Credentials
 import com.egg.codeeditor.util.saveGitCredentials
 import com.egg.codeeditor.util.loadGitCredentials
-import com.egg.codeeditor.util.loadB2Credentials
 import com.egg.codeeditor.util.loadRecentProjects
 import com.egg.codeeditor.util.clearLastPrivateRoot
 import com.egg.codeeditor.util.loadLastProjectUri
@@ -110,10 +90,7 @@ class EggViewModel(private val context: Context) {
                 rootFolderPath = privateRoot
                 rootIsPrivate = true
                 gitRepo = runCatching { Git.open(dir) }.getOrNull()
-                availableSections = if (privateRoot.contains("/b2/"))
-                    listOf("Cloud Storage", "File Manager")
-                else
-                    listOf("Git", "File Manager")
+                availableSections = listOf("Git", "File Manager")
                 scope.launch { rebuildVisibleNodes() }
                 if (gitRepo != null) scheduleGitRefresh()
                 return
@@ -143,9 +120,7 @@ class EggViewModel(private val context: Context) {
     private fun buildAvailableSections(rootPath: String?): List<String> {
         if (rootPath == null) return listOf("File Manager")
         val hasGit = runCatching { org.eclipse.jgit.api.Git.open(File(rootPath)).use { true } }.getOrDefault(false)
-        val hasCloud = loadB2Credentials(appContext) != null // sesuaikan fungsi kredensial yang ada
         val list = mutableListOf("File Manager")
-        if (hasCloud) list.add("Cloud Storage")
         if (hasGit) list.add("Git")
         return list
     }
@@ -344,31 +319,9 @@ class EggViewModel(private val context: Context) {
     var showGitRemoteDialog by mutableStateOf(false)
     var gitRemoteDialogTitle by mutableStateOf("Clone Repository")
 
-    var b2Account by mutableStateOf<B2Account?>(null)
-    var b2Bucket by mutableStateOf<B2Bucket?>(null)
-    var cloudChanges by mutableStateOf<List<CloudChange>>(emptyList())
-    var cloudHistory by mutableStateOf<List<B2FileInfo>>(emptyList())
-    var cloudBusy by mutableStateOf(false)
-    var cloudMessage by mutableStateOf<String?>(null)
-    var showCloudConnectDialog by mutableStateOf(false)
-    private var welcomeB2Mode by mutableStateOf(false)
-    private var pullAfterConnect = false
     var showAppStorageDialog by mutableStateOf(false)
     var appStorageItems by mutableStateOf<List<Pair<String, String>>>(emptyList())
     var recentProjects by mutableStateOf<List<Pair<String, String>>>(emptyList())
-    private var cloudIndex: CloudIndex? = null
-    private var cloudIndexRoot: String? = null
-    private val b2Provider by lazy { com.egg.codeeditor.provider.B2CloudProvider.create(appContext) } // A2_CLOUD_CONNECT
-
-    private fun cloudIndexOf(): CloudIndex {
-        val root = rootFolderPath ?: return CloudIndex(File("/")).also { it.load() }
-        val existing = cloudIndex
-        if (existing != null && cloudIndexRoot == root) return existing
-        val dir = if (rootIsPrivate) File(appContext.filesDir, "index") else null
-        val idx = CloudIndex(File(root), dir).also { it.load() }
-        cloudIndex = idx; cloudIndexRoot = root
-        return idx
-    }
 
     var settings by mutableStateOf(loadSettings(appContext))
     var showSettings by mutableStateOf(false)
@@ -604,12 +557,6 @@ class EggViewModel(private val context: Context) {
                         out.add("repos/${it.name}" to it.absolutePath)
                     }
                 }
-                val b2 = File(appContext.filesDir, "b2")
-                if (b2.isDirectory) {
-                    b2.listFiles()?.filter { it.isDirectory }?.sortedBy { it.name.lowercase() }?.forEach {
-                        out.add("b2/${it.name}" to it.absolutePath)
-                    }
-                }
                 out
             }
             appStorageItems = items
@@ -627,8 +574,7 @@ class EggViewModel(private val context: Context) {
         saveLastPrivateRoot(appContext, path)
         recordRecent(label, path)
         clearLastProjectUri(appContext)
-        val isB2 = label.startsWith("b2/")
-        availableSections = if (isB2) listOf("Cloud Storage", "File Manager") else listOf("Git", "File Manager")
+        availableSections = listOf("Git", "File Manager")
         currentSection = "File Manager"
         expandedPaths = emptySet()
         folderCache.clear()
@@ -637,14 +583,6 @@ class EggViewModel(private val context: Context) {
         tabs.add(t0); activeTabId = t0.id
         gitRepo = runCatching { Git.open(dir) }.getOrNull()
         scope.launch { rebuildVisibleNodes() }
-        if (isB2) {
-            val creds = loadB2Credentials(appContext)
-            if (creds != null) {
-                cloudConnect(creds.keyId, creds.appKey, creds.bucket)
-            } else {
-                notify("Reconnect to B2 needed for '$label'")
-            }
-        }
     }
 
     fun openFolder(uri: Uri) {
@@ -668,8 +606,6 @@ class EggViewModel(private val context: Context) {
 
             gitRepo = null; gitStatus = null; gitCommits = emptyList(); gitRemoteUrl = null
             gitUser = ""; gitToken = ""
-            b2Account = null; b2Bucket = null
-            cloudChanges = emptyList(); cloudHistory = emptyList(); cloudMessage = null
             rebuildVisibleNodes()
             val rp = rootFolderPath
             if (rp != null) {
@@ -687,15 +623,13 @@ class EggViewModel(private val context: Context) {
         clearOpenTabs(appContext)
         clearLastPrivateRoot(appContext)
         rootFolderUri = null; rootFolderPath = null; rootIsPrivate = false; visibleNodes = emptyList()
-        availableSections = listOf("File Manager", "Cloud Storage", "Git")
+        availableSections = listOf("File Manager", "Git")
         expandedPaths = emptySet(); folderCache.clear()
         tabs.clear()
         val t = EditorTab(nextTabId++, "Untitled 1", null, "")
         tabs.add(t); activeTabId = t.id
         gitRepo = null; gitStatus = null; gitCommits = emptyList(); gitRemoteUrl = null
         gitUser = ""; gitToken = ""
-        b2Account = null; b2Bucket = null
-        cloudChanges = emptyList(); cloudHistory = emptyList(); cloudMessage = null
     }
 
     fun refreshFolder() {
@@ -1109,7 +1043,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitInit() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val newGit = withContext(Dispatchers.IO) { Git.init().setDirectory(File(rootFolderPath!!)).call() }
@@ -1134,7 +1068,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitRefresh() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val g = gitRepo ?: run {
@@ -1149,7 +1083,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitCommit() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val g = gitRepo ?: throw IllegalStateException("Repository is not initialized")
@@ -1378,7 +1312,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitFetch() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val g = gitRepo ?: throw IllegalStateException("Repository is not initialized")
@@ -1395,7 +1329,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitPull() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val g = gitRepo ?: throw IllegalStateException("Repository is not initialized")
@@ -1414,7 +1348,7 @@ class EggViewModel(private val context: Context) {
 
     fun gitPush() {
         scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
+            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git features."); return@launch }
             gitBusy = true; gitMessage = null
             try {
                 val g = gitRepo ?: throw IllegalStateException("Repository is not initialized")
@@ -1426,324 +1360,6 @@ class EggViewModel(private val context: Context) {
                 gitMessage = if (result.iterator().hasNext()) "Push succeeded." else "Push failed: nothing pushed."
                 notify(gitMessage!!)
             } catch (e: Exception) { gitMessage = "Push failed: ${e.message}"; notify(gitMessage!!) } finally { gitBusy = false }
-        }
-    }
-
-    fun openB2FromWelcome() {
-        welcomeB2Mode = true
-        showCloudConnectDialog = true
-    }
-
-    fun cloudConnect(keyId: String, appKey: String, bucket: String) {
-       scope.launch {
-            cloudBusy = true; cloudMessage = null
-            try {
-                b2Provider.connect(mapOf("keyId" to keyId, "appKey" to appKey, "bucket" to bucket)).getOrThrow()
-                val acc = b2Provider.currentAccount() ?: error("Connect failed")
-                val bucketInfo = b2Provider.currentBucket() ?: error("Bucket missing")
-                if (welcomeB2Mode) {
-                    welcomeB2Mode = false
-                    pullAfterConnect = true
-                    val dir = File(appContext.filesDir, "b2/${bucketInfo.bucketName}")
-                    dir.mkdirs()
-                    rootFolderUri = null
-                    rootFolderPath = dir.absolutePath
-                    rootIsPrivate = true
-                    saveLastPrivateRoot(appContext, dir.absolutePath)
-                    clearLastProjectUri(appContext)
-                    recordRecent("b2/${bucketInfo.bucketName}", dir.absolutePath)
-                    availableSections = listOf("Cloud Storage", "File Manager")
-                    currentSection = "File Manager"
-                    expandedPaths = emptySet()
-                    folderCache.clear()
-                    tabs.clear()
-                    val t0 = EditorTab(nextTabId++, "Untitled 1", null, "")
-                    tabs.add(t0); activeTabId = t0.id
-                    gitRepo = null
-                    cloudIndex = null; cloudIndexRoot = null
-                    scope.launch { rebuildVisibleNodes() }
-                }
-                b2Account = acc; b2Bucket = bucketInfo
-                saveB2Credentials(appContext, keyId, appKey, bucketInfo.bucketName)
-                val remote = b2ListFiles(acc, bucketInfo.bucketId)
-                val path = rootFolderPath ?: throw IllegalStateException("This project has no filesystem path")
-                cloudChanges = computeCloudChanges(File(path), remote, cloudIndexOf())
-                cloudHistory = b2ListFileVersions(acc, bucketInfo.bucketId)
-                cloudMessage = "Connected to bucket '${bucketInfo.bucketName}'."
-           } catch (e: Exception) {
-                cloudMessage = "Connect failed:\n${e.stackTraceToString().take(1500)}"
-           } finally {
-                cloudBusy = false; cloudMessage?.let { notify(it) }
-                if (pullAfterConnect) { pullAfterConnect = false; scope.launch { cloudPull() } }
-           }
-        }
-    }
-
-    fun cloudFetch() {
-        scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                cloudHistory = b2ListFileVersions(acc, bucket.bucketId)
-                cloudMessage = "Fetch succeeded."
-            } catch (e: Exception) { cloudMessage = "Fetch failed: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    fun cloudRefresh() {
-        scope.launch {
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                val remote = b2ListFiles(acc, bucket.bucketId)
-                cloudChanges = computeCloudChanges(File(rootFolderPath!!), remote, cloudIndexOf())
-                cloudHistory = b2ListFileVersions(acc, bucket.bucketId)
-            } catch (e: Exception) { cloudMessage = "Failed to read status: ${e.message}" } finally { cloudBusy = false }
-        }
-    }
-
-    fun cloudPush() {
-        scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                val remote = b2ListFiles(acc, bucket.bucketId)
-                val changes = computeCloudChanges(File(rootFolderPath!!), remote, cloudIndexOf())
-                val toUpload = changes.mapNotNull {
-                    when (it) {
-                        is CloudChange.New -> it.relPath
-                        is CloudChange.Modified -> it.relPath
-                        is CloudChange.RemoteOnly -> null
-                    }
-                }
-                val sem = Semaphore(4)
-                val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
-                var uploaded = 0
-                coroutineScope {
-                    toUpload.map { relPath ->
-                        async {
-                            sem.withPermit {
-                                runCatching {
-                                    b2UploadFile(acc, bucket.bucketId, relPath, File(rootFolderPath!!, relPath))
-                                }.onSuccess { synchronized(this@EggViewModel) { uploaded++ } }
-                                    .onFailure { errors.add("$relPath: ${it.message}") }
-                            }
-                        }
-                    }.awaitAll()
-                }
-                val remoteAfter = b2ListFiles(acc, bucket.bucketId)
-                cloudChanges = computeCloudChanges(File(rootFolderPath!!), remoteAfter, cloudIndexOf())
-                cloudHistory = b2ListFileVersions(acc, bucket.bucketId)
-                cloudMessage = when {
-                    errors.isNotEmpty() -> "Push: $uploaded uploaded, ${errors.size} failed. First: ${errors.first()}"
-                    uploaded > 0 -> "Push succeeded: $uploaded file(s) uploaded."
-                    else -> "Push succeeded: nothing to upload."
-                }
-            } catch (e: Exception) { cloudMessage = "Push failed: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    enum class CloudActionKind { DISCARD_MODIFIED, DISCARD_UNTRACKED, DELETE_REMOTE, DISCARD_ALL }
-    data class PendingCloudAction(val kind: CloudActionKind, val relPath: String = "")
-    var pendingCloudAction by mutableStateOf<PendingCloudAction?>(null)
-
-    fun cloudRequestDiscard(relPath: String, isUntracked: Boolean) {
-        pendingCloudAction = PendingCloudAction(
-            kind = if (isUntracked) CloudActionKind.DISCARD_UNTRACKED else CloudActionKind.DISCARD_MODIFIED,
-            relPath = relPath
-        )
-    }
-
-    fun cloudRequestDeleteRemote(relPath: String) {
-        pendingCloudAction = PendingCloudAction(CloudActionKind.DELETE_REMOTE, relPath)
-    }
-
-    fun cloudRequestDiscardAll() {
-        pendingCloudAction = PendingCloudAction(CloudActionKind.DISCARD_ALL)
-    }
-
-    fun cloudCancelPending() { pendingCloudAction = null }
-
-    fun cloudConfirmPending() {
-        val act = pendingCloudAction ?: return
-        pendingCloudAction = null
-        when (act.kind) {
-            CloudActionKind.DISCARD_MODIFIED -> discardOne(act.relPath, untracked = false)
-            CloudActionKind.DISCARD_UNTRACKED -> discardOne(act.relPath, untracked = true)
-            CloudActionKind.DELETE_REMOTE -> deleteRemoteOne(act.relPath)
-            CloudActionKind.DISCARD_ALL -> discardAll()
-        }
-    }
-
-    fun cloudPushFile(relPath: String) {
-        scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                b2UploadFile(acc, bucket.bucketId, relPath, File(rootFolderPath!!, relPath))
-                cloudMessage = "Pushed: $relPath"
-                cloudRefresh()
-            } catch (e: Exception) { cloudMessage = "Push failed: $relPath: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    private fun discardOne(relPath: String, untracked: Boolean) {
-        scope.launch {
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                if (rootIsPrivate) {
-                    val root = File(rootFolderPath!!)
-                    val f = File(root, relPath)
-                    if (untracked) {
-                        runCatching { f.delete() }
-                    } else {
-                        val data = b2DownloadBytes(acc, bucket.bucketName, relPath)
-                        f.parentFile?.mkdirs()
-                        f.writeBytes(data)
-                    }
-                } else {
-                    if (untracked) {
-                        val target = findOrCreateDocumentFile(appContext, rootFolderUri!!, relPath)
-                        target?.delete()
-                    } else {
-                        val data = b2DownloadBytes(acc, bucket.bucketName, relPath)
-                        val target = findOrCreateDocumentFile(appContext, rootFolderUri!!, relPath)
-                            ?: throw Exception("Cannot create local file: $relPath")
-                        appContext.contentResolver.openOutputStream(target.uri, "wt")?.use { it.write(data) }
-                            ?: throw Exception("Cannot open output stream: $relPath")
-                    }
-                }
-                cloudIndexOf()
-                cloudMessage = "Discarded: $relPath"
-                cloudRefresh()
-            } catch (e: Exception) { cloudMessage = "Discard failed: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    private fun deleteRemoteOne(relPath: String) {
-        scope.launch {
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val info = cloudHistory.firstOrNull { it.fileName == relPath && it.fileId.isNotEmpty() }
-                    ?: throw Exception("No fileId for $relPath (refresh History first)")
-                b2DeleteFileVersion(acc, relPath, info.fileId)
-                cloudMessage = "Deleted remote: $relPath"
-                cloudRefresh()
-            } catch (e: Exception) { cloudMessage = "Delete failed: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    private fun discardAll() {
-        scope.launch {
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                val mods = cloudChanges.filterIsInstance<CloudChange.Modified>().map { it.relPath }
-                val news = cloudChanges.filterIsInstance<CloudChange.New>().map { it.relPath }
-                val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
-                var done = 0
-                val sem = Semaphore(4)
-                coroutineScope {
-                    (mods.map { it to false } + news.map { it to true }).map { (rp, untracked) ->
-                        async {
-                            sem.withPermit {
-                                runCatching {
-                                    if (rootIsPrivate) {
-                                        val root = File(rootFolderPath!!)
-                                        val f = File(root, rp)
-                                        if (untracked) {
-                                            f.delete()
-                                        } else {
-                                            val data = b2DownloadBytes(acc, bucket.bucketName, rp)
-                                            f.parentFile?.mkdirs()
-                                            f.writeBytes(data)
-                                        }
-                                    } else {
-                                        if (untracked) {
-                                            findOrCreateDocumentFile(appContext, rootFolderUri!!, rp)?.delete()
-                                        } else {
-                                            val data = b2DownloadBytes(acc, bucket.bucketName, rp)
-                                            val t = findOrCreateDocumentFile(appContext, rootFolderUri!!, rp)
-                                                ?: throw Exception("cannot create $rp")
-                                            appContext.contentResolver.openOutputStream(t.uri, "wt")?.use { it.write(data) }
-                                                ?: throw Exception("cannot open $rp")
-                                        }
-                                    }
-                                }.onSuccess { synchronized(this@EggViewModel) { done++ } }
-                                    .onFailure { errors.add("$rp: ${it.message}") }
-                            }
-                        }
-                    }.awaitAll()
-                }
-                cloudMessage = when {
-                    errors.isNotEmpty() -> "Discard All: $done done, ${errors.size} failed. First: ${errors.first()}"
-                    else -> "Discard All: $done file(s) discarded."
-                }
-                cloudRefresh()
-            } catch (e: Exception) { cloudMessage = "Discard All failed: ${e.message}" } finally { cloudBusy = false; cloudMessage?.let { notify(it) } }
-        }
-    }
-
-    fun cloudPull() {
-       scope.launch {
-            if (rootFolderPath == null) { notify("This project has no filesystem path; use Open from App Storage for Git/B2 features."); return@launch }
-            cloudBusy = true; cloudMessage = null
-            try {
-                val acc = b2Account ?: throw IllegalStateException("Not connected")
-                val bucket = b2Bucket ?: throw IllegalStateException("Not connected")
-                val remote = b2ListFiles(acc, bucket.bucketId)
-                val changes = computeCloudChanges(File(rootFolderPath!!), remote, cloudIndexOf())
-                val toPull = changes.mapNotNull { (it as? CloudChange.RemoteOnly)?.relPath }
-                val sem = Semaphore(4)
-                val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
-                var downloaded = 0
-                coroutineScope {
-                    toPull.map { relPath ->
-                        async {
-                            sem.withPermit {
-                                runCatching {
-                                    val data = b2DownloadBytes(acc, bucket.bucketName, relPath)
-                                    if (rootIsPrivate) {
-                                        val root = File(rootFolderPath!!)
-                                        val target = File(root, relPath)
-                                        target.parentFile?.mkdirs()
-                                        target.writeBytes(data)
-                                    } else {
-                                        val target = findOrCreateDocumentFile(appContext, rootFolderUri!!, relPath)
-                                            ?: throw Exception("Cannot create local file: $relPath")
-                                        appContext.contentResolver.openOutputStream(target.uri, "wt")?.use { it.write(data) }
-                                            ?: throw Exception("Cannot open output stream: $relPath")
-                                    }
-                                }.onSuccess { synchronized(this@EggViewModel) { downloaded++ } }
-                                    .onFailure { errors.add("$relPath: ${it.message}") }
-                            }
-                        }
-                    }.awaitAll()
-                }
-                val remoteAfter = b2ListFiles(acc, bucket.bucketId)
-                cloudChanges = computeCloudChanges(File(rootFolderPath!!), remoteAfter, cloudIndexOf())
-                cloudHistory = b2ListFileVersions(acc, bucket.bucketId)
-                cloudMessage = when {
-                    errors.isNotEmpty() -> "Pull: $downloaded downloaded, ${errors.size} failed. First: ${errors.first()}"
-                    downloaded > 0 -> "Pull succeeded: $downloaded file(s) downloaded."
-                   else -> "Pull succeeded: nothing to pull."
-                }
-            } catch (e: Exception) {
-                cloudMessage = "Pull failed: ${e.message}"
-           } finally {
-                cloudBusy = false; cloudMessage?.let { notify(it) }
-            }
         }
     }
 }

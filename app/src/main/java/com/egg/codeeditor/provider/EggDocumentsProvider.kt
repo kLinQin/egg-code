@@ -18,8 +18,7 @@ class EggDocumentsProvider : DocumentsProvider() {
     companion object {
         const val AUTHORITY = "com.egg.codeeditor.documents"
         private const val ROOT_REPOS = "repos"
-        private const val ROOT_B2 = "b2"
-
+        
         private val DEFAULT_ROOT_PROJECTION = arrayOf(
             Root.COLUMN_ROOT_ID,
             Root.COLUMN_MIME_TYPES,
@@ -53,7 +52,7 @@ class EggDocumentsProvider : DocumentsProvider() {
     private fun fileForDocId(docId: String): File {
         val parts = docId.split("/", limit = 2)
         val rootId = parts[0]
-        if (rootId != ROOT_REPOS && rootId != ROOT_B2) throw FileNotFoundException("Bad root: $docId")
+        if (rootId != ROOT_REPOS) throw FileNotFoundException("Bad root: $docId")
         val rel = if (parts.size > 1) parts[1] else ""
         val root = rootDir(rootId).canonicalFile
         val f = if (rel.isEmpty()) root else File(root, rel).canonicalFile
@@ -83,7 +82,6 @@ class EggDocumentsProvider : DocumentsProvider() {
         val cols = projection ?: DEFAULT_ROOT_PROJECTION
         val c = MatrixCursor(cols)
         addRoot(c, ROOT_REPOS, "Egg — Repositories", "Cloned Git repositories")
-        addRoot(c, ROOT_B2, "Egg — Backblaze B2", "Pulled B2 buckets")
         return c
     }
 
@@ -224,7 +222,7 @@ class EggDocumentsProvider : DocumentsProvider() {
         projection: Array<out String>?
     ): Cursor {
         val c = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
-        if (rootId != ROOT_REPOS && rootId != ROOT_B2) return c
+        if (rootId != ROOT_REPOS) return c
         val root = rootDir(rootId)
         root.walkTopDown().filter { it.name.contains(query, ignoreCase = true) }.forEach {
             if (it != root) includeFile(c, it, docIdForFile(rootId, it))

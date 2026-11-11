@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExitToApp
@@ -154,47 +153,6 @@ fun GitActionBar(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun CloudActionBar(
-    connected: Boolean,
-    cloudBusy: Boolean,
-    onConnect: () -> Unit,
-    onRefresh: () -> Unit,
-    onFetch: () -> Unit,
-    onPush: () -> Unit,
-    onPull: () -> Unit
-) {
-    if (!connected) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                onClick = onConnect,
-                modifier = Modifier.weight(1f),
-                enabled = !cloudBusy,
-                shape = RectangleShape,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Default.Cloud, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Connect B2")
-            }
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            GitActionPill(onClick = onRefresh, enabled = !cloudBusy, icon = Icons.Default.Refresh, label = "Status")
-            GitActionPill(onClick = onFetch, enabled = !cloudBusy, icon = Icons.Default.Sync, label = "Fetch")
-            GitActionPill(onClick = onPull, enabled = !cloudBusy, icon = Icons.Default.ArrowDownward, label = "Pull")
-            GitActionPill(onClick = onPush, enabled = !cloudBusy, icon = Icons.Default.ArrowUpward, label = "Push")
         }
     }
 }

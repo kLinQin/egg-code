@@ -25,9 +25,6 @@ private const val KEY_LAST_PROJECT_URI = "last_project_uri"
 private const val KEY_LAST_PRIVATE_ROOT = "last_private_root"
 private const val KEY_RECENT_PROJECTS = "recent_projects"
 private const val KEY_OPEN_TABS = "open_tabs"
-private const val KEY_B2_KEY_ID = "b2_key_id"
-private const val KEY_B2_APP_KEY = "b2_app_key"
-private const val KEY_B2_BUCKET = "b2_bucket"
 private const val KEY_GITHUB_USER = "github_user"
 private const val KEY_GITHUB_TOKEN = "github_token"
 private const val KEY_EDITOR_FONT_LIST = "editor_font_list"
@@ -122,30 +119,9 @@ fun clearRecentProjects(context: Context) {
         .edit().remove(KEY_RECENT_PROJECTS).apply()
 }
 
-fun saveB2Credentials(context: Context, keyId: String, appKey: String, bucket: String) {
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit()
-        .putString(KEY_B2_KEY_ID, keyId)
-        .putString(KEY_B2_APP_KEY, appKey)
-        .putString(KEY_B2_BUCKET, bucket)
-        .apply()
-}
 
-data class B2Credentials(val keyId: String, val appKey: String, val bucket: String)
 
-fun loadB2Credentials(context: Context): B2Credentials? {
-    val p = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    val k = p.getString(KEY_B2_KEY_ID, null) ?: return null
-    val a = p.getString(KEY_B2_APP_KEY, null) ?: return null
-    val b = p.getString(KEY_B2_BUCKET, null) ?: return null
-    if (k.isEmpty() || a.isEmpty() || b.isEmpty()) return null
-    return B2Credentials(k, a, b)
-}
 
-fun clearB2Credentials(context: Context) {
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit().remove(KEY_B2_KEY_ID).remove(KEY_B2_APP_KEY).remove(KEY_B2_BUCKET).apply()
-}
 
 fun saveOpenTabs(context: Context, json: String) {
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

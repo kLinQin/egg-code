@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Source
@@ -39,7 +38,6 @@ fun WelcomeScreen(
     onOpenFolder: () -> Unit,
     onOpenFile: () -> Unit,
     onOpenGit: () -> Unit,
-    onOpenB2: () -> Unit,
     onOpenAppStorage: () -> Unit,
     recentProjects: List<Pair<String, String>> = emptyList(),
     onOpenRecent: (String, String) -> Unit = { _, _ -> },
@@ -73,8 +71,6 @@ fun WelcomeScreen(
                 "Edit a single file without a project", onOpenFile)
             WelcomeItem(Icons.Default.Source, "Open Git Repository",
                 "Clone a repository and open it", onOpenGit)
-            WelcomeItem(Icons.Default.Cloud, "Open Backblaze B2",
-                "Connect a bucket and pull files", onOpenB2)
             WelcomeItem(Icons.Default.Storage, "Open from App Storage",
                 "Open a cloned repository or pulled bucket", onOpenAppStorage)
 

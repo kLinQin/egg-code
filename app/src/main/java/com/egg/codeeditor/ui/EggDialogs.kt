@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.egg.codeeditor.ui.cloud.CloudConnectDialog
 import com.egg.codeeditor.ui.components.InputDialog
 import com.egg.codeeditor.ui.components.SettingsDialog
 import com.egg.codeeditor.ui.git.GitRemoteDialog
@@ -201,38 +200,6 @@ internal fun EggDialogs(
         )
     }
 
-    vm.pendingCloudAction?.let { act ->
-        val (title, body, confirmLabel) = when (act.kind) {
-            EggViewModel.CloudActionKind.DISCARD_MODIFIED -> Triple(
-                "Discard changes",
-                "Revert '${act.relPath}' to the remote version? Local changes will be lost.",
-                "Discard")
-            EggViewModel.CloudActionKind.DISCARD_UNTRACKED -> Triple(
-                "Delete local file",
-                "Delete local file '${act.relPath}'? It does not exist on remote.",
-                "Delete")
-            EggViewModel.CloudActionKind.DELETE_REMOTE -> Triple(
-                "Delete remote file",
-                "Delete '${act.relPath}' from Backblaze B2? This cannot be undone.",
-                "Delete")
-            EggViewModel.CloudActionKind.DISCARD_ALL -> Triple(
-                "Discard All",
-                "Revert all modified files and delete all untracked files? This cannot be undone.",
-                "Discard All")
-        }
-        AlertDialog(
-            onDismissRequest = { vm.cloudCancelPending() },
-            title = { Text(title) },
-            text = { Text(body) },
-            confirmButton = {
-                TextButton(onClick = { vm.cloudConfirmPending() }) { Text(confirmLabel) }
-            },
-            dismissButton = {
-                TextButton(onClick = { vm.cloudCancelPending() }) { Text("Cancel") }
-            }
-        )
-    }
-
     vm.pendingGitAction?.let { act ->
         val (title, body, confirmLabel) = when (act.kind) {
             EggViewModel.GitActionKind.DISCARD_FILE -> if (act.untracked) Triple(
@@ -284,13 +251,4 @@ internal fun EggDialogs(
         )
     }
 
-    if (vm.showCloudConnectDialog) {
-        CloudConnectDialog(
-            onConfirm = { keyId, appKey, bucket ->
-                vm.showCloudConnectDialog = false
-                vm.cloudConnect(keyId, appKey, bucket)
-            },
-            onDismiss = { vm.showCloudConnectDialog = false }
-        )
-    }
 }

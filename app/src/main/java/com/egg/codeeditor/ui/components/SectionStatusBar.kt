@@ -31,7 +31,6 @@ internal fun SectionStatusBar(
     visibleNodes: List<FileNode>,
     gitRepo: Git?,
     gitStatus: GitStatusInfo?,
-    cloudBucketName: String?,
     activeFileName: String? = null
 ) {
     val branchName = remember(gitRepo) {
@@ -108,7 +107,7 @@ internal fun SectionStatusBar(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            cloudBucketName ?: "Not connected",
+                            "Not connected",
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
