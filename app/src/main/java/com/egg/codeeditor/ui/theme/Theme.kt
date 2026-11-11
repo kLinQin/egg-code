@@ -38,7 +38,7 @@ private val DarkColorScheme = darkColorScheme(
     // Container mapping (tab aktif, panel, sheet)
     primaryContainer = ClaudeDarkActive,
     onPrimaryContainer = ClaudeDarkTextPrimary,
-    secondaryContainer = ClaudeDarkActive,
+    secondaryContainer = Color(0xFF333333),
     onSecondaryContainer = ClaudeDarkTextPrimary,
     tertiaryContainer = ClaudeDarkHover,
     onTertiaryContainer = ClaudeDarkTextPrimary,
@@ -50,9 +50,33 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = ClaudeDarkPrimary,          // orange tetap sama
+    onPrimary = ClaudeLightOnPrimary,
+    secondary = ClaudeLightTextSecondary,
+    onSecondary = ClaudeLightBackground,
+    tertiary = ClaudeLightAccentBlue,
+    onTertiary = ClaudeLightOnPrimary,
+    background = ClaudeLightBackground,
+    onBackground = ClaudeLightTextPrimary,
+    surface = ClaudeLightSurface,
+    onSurface = ClaudeLightTextPrimary,
+    surfaceVariant = ClaudeLightSurfaceVariant,
+    onSurfaceVariant = ClaudeLightTextSecondary,
+    outline = ClaudeLightOutline,
+    outlineVariant = ClaudeLightOutline,
+    error = Color(0xFFE07161),
+    onError = ClaudeLightOnPrimary,
+    primaryContainer = ClaudeLightSurfaceVariant,
+    onPrimaryContainer = ClaudeLightTextPrimary,
+    secondaryContainer = Color(0xFFEFEFEF),
+    onSecondaryContainer = ClaudeLightTextPrimary,
+    tertiaryContainer = ClaudeLightSurface,
+    onTertiaryContainer = ClaudeLightTextPrimary,
+    surfaceContainerLowest = ClaudeLightBackground,
+    surfaceContainerLow = ClaudeLightSurface,
+    surfaceContainer = ClaudeLightSurfaceVariant,
+    surfaceContainerHigh = ClaudeLightOutline,
+    surfaceContainerHighest = ClaudeLightSurfaceVariant
 )
 
 @Composable

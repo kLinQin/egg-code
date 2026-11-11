@@ -177,7 +177,7 @@ internal fun FileManagerPanel(
                 ) {
                     Surface(
                         shape = RectangleShape,
-                        color = MaterialTheme.colorScheme.surface,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest, // DROPDOWN_STYLE
                         tonalElevation = 6.dp,
                         shadowElevation = 8.dp,
                         modifier = Modifier.widthIn(max = 360.dp)
