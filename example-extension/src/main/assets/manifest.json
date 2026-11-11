@@ -1,0 +1,10 @@
+{
+  "id": "com.egg.example",
+  "name": "Example Extension",
+  "mainClass": "com.egg.example.Main",
+  "version": "1.0.0",
+  "description": "Sample Egg extension",
+  "author": {
+    "displayName": "Egg Dev"
+  }
+}

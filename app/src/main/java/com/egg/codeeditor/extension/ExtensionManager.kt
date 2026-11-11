@@ -1,20 +1,27 @@
 package com.egg.codeeditor.extension
 
 import android.content.Context
+import android.util.Log
 import java.io.File
 
 object ExtensionManager {
     private val loaded = mutableMapOf<String, ExtensionLoader.LoadedExtension>()
 
     fun loadAll(ctx: Context): List<Result<ExtensionLoader.LoadedExtension>> {
+        Log.d("EggExtMgr", "loadAll start, root=" + ExtensionLoader.extensionsRoot(ctx).absolutePath)
         val results = mutableListOf<Result<ExtensionLoader.LoadedExtension>>()
+        val eggs = ExtensionLoader.listEggFiles(ctx)
+        Log.d("EggExtMgr", "found " + eggs.size + " egg files")
+        eggs.forEach { Log.d("EggExtMgr", "egg: " + it.name + " size=" + it.length()) }
         ExtensionLoader.listEggFiles(ctx).forEach { file ->
             try {
                 val ext = ExtensionLoader.load(ctx, file)
                 ext.api.onLoad()
+                Log.d("EggExtMgr", "loaded " + ext.manifest.id)
                 loaded[ext.manifest.id] = ext
                 results.add(Result.success(ext))
             } catch (t: Throwable) {
+                Log.e("EggExtMgr", "load failed: " + file.name, t)
                 results.add(Result.failure(t))
             }
         }

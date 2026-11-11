@@ -25,7 +25,10 @@ object ExtensionLoader {
      * Returns loaded extension or throws.
      */
     fun load(ctx: Context, eggFile: File): LoadedExtension {
-        val workDir = File(extensionsRoot(ctx), eggFile.nameWithoutExtension).apply { mkdirs() }
+        // FRESH_EXTRACT: hapus sisa extract lama (bisa read-only)
+        val workDir = File(extensionsRoot(ctx), eggFile.nameWithoutExtension)
+        workDir.deleteRecursively()
+        workDir.mkdirs()
 
         // Extract zip
         ZipFile(eggFile).use { zip ->
@@ -56,6 +59,7 @@ object ExtensionLoader {
         // DexClassLoader
         val dexFile = File(workDir, DEX)
         require(dexFile.exists()) { "classes.dex missing in ${eggFile.name}" }
+        dexFile.setReadOnly()
         val loader = DexClassLoader(
             dexFile.absolutePath,
             File(ctx.codeCacheDir, "ext_${manifest.id}").apply { mkdirs() }.absolutePath,
