@@ -25,6 +25,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
+import com.termux.terminal.TerminalColors
+import com.termux.terminal.TextStyle
+import java.util.Properties
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 import java.io.File
@@ -34,6 +37,7 @@ import java.io.File
 fun EggTerminalScreen(
     modifier: Modifier = Modifier,
     workingDir: String = EggTerminalEnv.sandboxHomeDir().absolutePath,
+    isDarkTheme: Boolean = true,
     onClose: () -> Unit = {},
     onOpenFile: (String) -> Unit = {},
 ) {
@@ -70,6 +74,11 @@ fun EggTerminalScreen(
 
     val session = sessions.getOrNull(currentIndex)
     val bgArgb = MaterialTheme.colorScheme.background.toArgb()
+    val surfaceArgb = MaterialTheme.colorScheme.surface.toArgb()
+    val onSurfaceArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val terminalColors = remember(isDarkTheme, surfaceArgb, onSurfaceArgb) {
+        buildTerminalColors(isDarkTheme, surfaceArgb, onSurfaceArgb)
+    }
 
     fun writeSeq(seq: String) {
         val s = session ?: return
@@ -105,6 +114,7 @@ fun EggTerminalScreen(
                             setTerminalViewClient(backend)
                             setTextSize(28)
                             setBackgroundColor(bgArgb)
+                            applyTerminalColors(surfaceArgb, onSurfaceArgb, terminalColors)
                             attachSession(session)
                             terminalViewRef = java.lang.ref.WeakReference(this)
                             isFocusableInTouchMode = true
@@ -118,6 +128,7 @@ fun EggTerminalScreen(
                     },
                     update = { view ->
                         if (view.currentSession !== session) view.attachSession(session)
+                        view.applyTerminalColors(surfaceArgb, onSurfaceArgb, terminalColors)
                     }
                 )
             } else {
@@ -319,4 +330,56 @@ class Backend : TerminalSessionClient, TerminalViewClient {
             as? android.view.inputmethod.InputMethodManager ?: return
         imm.showSoftInput(tv, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
     }
+}
+
+private val DARK_ANSI_PALETTE = mapOf(
+    "color0" to "#393552", "color8" to "#6e6a86",
+    "color1" to "#eb6f92", "color9" to "#eb6f92",
+    "color2" to "#3e8fb0", "color10" to "#3e8fb0",
+    "color3" to "#f6c177", "color11" to "#f6c177",
+    "color4" to "#9ccfd8", "color12" to "#9ccfd8",
+    "color5" to "#c4a7e7", "color13" to "#c4a7e7",
+    "color6" to "#ea9a97", "color14" to "#ea9a97",
+    "color7" to "#e0def4", "color15" to "#e0def4"
+)
+
+private val LIGHT_ANSI_PALETTE = mapOf(
+    "color0" to "#1d1f21", "color8" to "#969896",
+    "color1" to "#CC342B", "color9" to "#CC342B",
+    "color2" to "#198844", "color10" to "#198844",
+    "color3" to "#FBA922", "color11" to "#FBA922",
+    "color4" to "#3971ED", "color12" to "#3971ED",
+    "color5" to "#A36AC7", "color13" to "#A36AC7",
+    "color6" to "#3971ED", "color14" to "#3971ED",
+    "color7" to "#c5c8c6", "color15" to "#ffffff",
+    "color16" to "#F96A38", "color17" to "#3971ED",
+    "color18" to "#282a2e", "color19" to "#373b41",
+    "color20" to "#b4b7b4", "color21" to "#e0e0e0"
+)
+
+private fun Int.toHexColor(): String {
+    val r = (this ushr 16) and 0xFF
+    val g = (this ushr 8) and 0xFF
+    val b = this and 0xFF
+    return "#%02X%02X%02X".format(r, g, b)
+}
+
+private fun buildTerminalColors(isDarkTheme: Boolean, surfaceArgb: Int, onSurfaceArgb: Int): Properties =
+    Properties().apply {
+        put("background", surfaceArgb.toHexColor())
+        put("foreground", onSurfaceArgb.toHexColor())
+        put("cursor", onSurfaceArgb.toHexColor())
+        (if (isDarkTheme) DARK_ANSI_PALETTE else LIGHT_ANSI_PALETTE).forEach { (k, v) -> put(k, v) }
+    }
+
+private fun TerminalView.applyTerminalColors(surfaceColor: Int, onSurfaceColor: Int, terminalColors: Properties) {
+    onScreenUpdated()
+    mEmulator?.mColors?.reset()
+    TerminalColors.COLOR_SCHEME.updateWith(terminalColors)
+    mEmulator?.mColors?.mCurrentColors?.apply {
+        set(TextStyle.COLOR_INDEX_FOREGROUND, onSurfaceColor)
+        set(TextStyle.COLOR_INDEX_BACKGROUND, surfaceColor)
+        set(TextStyle.COLOR_INDEX_CURSOR, onSurfaceColor)
+    }
+    invalidate()
 }

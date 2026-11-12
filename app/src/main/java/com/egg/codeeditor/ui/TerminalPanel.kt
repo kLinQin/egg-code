@@ -12,6 +12,7 @@ internal fun TerminalPanel(
     EggTerminalScreen(
         modifier = Modifier,
         workingDir = vm.rootFolderPath ?: "/",
+        isDarkTheme = com.egg.extension.api.ThemeRegistry.get(vm.settings.themeName)?.dark ?: (vm.settings.themeName == "darcula"),
         onOpenFile = { path -> vm.openTerminalFile(path) },
         onClose = {
             vm.terminalVisible = false
