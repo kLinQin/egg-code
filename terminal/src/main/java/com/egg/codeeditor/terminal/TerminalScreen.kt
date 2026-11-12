@@ -27,6 +27,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,7 @@ fun EggTerminalScreen(
     modifier: Modifier = Modifier,
     workingDir: String = EggTerminalEnv.sandboxHomeDir().absolutePath,
     onClose: () -> Unit = {},
+    onOpenFile: (String) -> Unit = {},
 ) {
     val sessions = remember { mutableStateListOf<TerminalSession>() }
     var currentIndex by remember { mutableStateOf(0) }
@@ -48,6 +50,7 @@ fun EggTerminalScreen(
     SideEffect {
         backend.ctrl = ctrlDown
         backend.alt = altDown
+        backend.onOpenFile = onOpenFile
     }
 
     fun newSession() {
@@ -84,7 +87,7 @@ fun EggTerminalScreen(
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize()) {
             Row(
-                Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 8.dp),
+                Modifier.fillMaxWidth().height(48.dp).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.Menu, "Menu") }
@@ -163,8 +166,27 @@ fun EggTerminalScreen(
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     Text("Sessions", fontSize = 14.sp)
                     sessions.forEachIndexed { i, s ->
-                        TextButton(onClick = { currentIndex = i; menuOpen = false }) {
-                            Text("Session ${i+1} (pid ${s.pid})")
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = { currentIndex = i; menuOpen = false },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Session ${i+1} (pid ${s.pid})")
+                            }
+                            IconButton(onClick = {
+                                runCatching { s.writeStr("exit\n") }
+                                sessions.removeAt(i)
+                                if (sessions.isEmpty()) {
+                                    newSession()
+                                } else if (currentIndex >= sessions.size) {
+                                    currentIndex = sessions.lastIndex
+                                }
+                            }) {
+                                Icon(Icons.Default.Close, "Close session")
+                            }
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -201,15 +223,19 @@ class Backend : TerminalSessionClient, TerminalViewClient {
     }
     var onOpenFile: ((String) -> Unit)? = null
 
-    override fun getFilePathRanges(text: String, row: Int): List<IntArray> {
-        return FilePathUtils.detectFilePaths(text, getCwdForRow(row)).map { intArrayOf(it.start, it.end) }
+    override fun getFilePathRanges(text: String, row: Int): List<IntArray> = emptyList()
+
+    private fun openFileFromTerminal(file: File) {
+        onOpenFile?.invoke(file.absolutePath)
     }
 
-    private fun openFileFromTerminal(file: String) {
-        val resolved = if (file.startsWith("/")) file else "$workingDir/$file"
-        onOpenFile?.invoke(resolved)
+
+    private fun getCwdForRow(row: Int): File {
+        val guest = terminalViewRef.get()?.mEmulator?.getCwdForRow(row) ?: return getCwd()
+        return terminalToHostFile(guest)
     }
 
+    private fun getCwd(): File = EggTerminalEnv.sandboxHomeDir()
 
     override fun onTitleChanged(session: TerminalSession) {}
     override fun onSessionFinished(session: TerminalSession) {}
@@ -263,7 +289,7 @@ class Backend : TerminalSessionClient, TerminalViewClient {
             val matches = FilePathUtils.detectFilePaths(rowText, getCwdForRow(row))
             val clickedMatch = matches.find { col >= it.start && col < it.end }
             if (clickedMatch != null) {
-                openFileFromTerminal(rowText.substring(clickedMatch.start, clickedMatch.end))
+                openFileFromTerminal(clickedMatch.file)
                 return
             }
         }

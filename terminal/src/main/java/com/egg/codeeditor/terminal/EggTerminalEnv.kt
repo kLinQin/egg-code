@@ -45,3 +45,27 @@ object EggTerminalEnv {
 }
 
 fun File.child(name: String): File = File(this, name)
+
+
+private val identityMounts = listOf("/sdcard", "/storage", "/data", "/system", "/vendor", "/product", "/apex")
+
+fun terminalToHostFile(path: String): File {
+    val normalized = normalizeUriToPath(path)
+
+    fun under(prefix: String) = normalized == prefix || normalized.startsWith("$prefix/")
+
+    return when {
+        under("~") -> File(EggTerminalEnv.sandboxHomeDir(), normalized.removePrefix("~"))
+        under("/root") -> File(EggTerminalEnv.sandboxHomeDir(), normalized.removePrefix("/root"))
+        under("/home") -> File(EggTerminalEnv.sandboxHomeDir(), normalized.removePrefix("/home"))
+        identityMounts.any(::under) -> File(normalized)
+        else -> File(EggTerminalEnv.sandboxDir(), normalized.removePrefix("/"))
+    }
+}
+
+fun normalizeUriToPath(path: String): String =
+    if (path.startsWith("file:")) {
+        runCatching { File(java.net.URI(path)).path }.getOrDefault(path)
+    } else {
+        path
+    }

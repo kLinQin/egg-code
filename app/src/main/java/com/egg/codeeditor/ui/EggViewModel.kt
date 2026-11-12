@@ -513,6 +513,30 @@ class EggViewModel(private val context: Context) {
         }
     }
 
+    fun openTerminalFile(hostPath: String) {
+        scope.launch {
+            try {
+                val f = File(hostPath)
+                if (!f.exists()) { notify("File not found: $hostPath"); return@launch }
+                if (f.isDirectory) { notify("This is a folder: ${f.name}"); return@launch }
+                val name = f.name
+                val content = runCatching { f.readText() }.getOrDefault("")
+                availableSections = listOf("File Manager")
+                currentSection = "File Manager"
+                val uri = Uri.fromFile(f)
+                val existing = tabs.indexOfFirst { it.uri == uri }
+                if (existing >= 0) {
+                    activeTabId = tabs[existing].id
+                } else {
+                    val t = EditorTab(nextTabId++, name, uri, content)
+                    tabs.add(t)
+                    activeTabId = t.id
+                }
+                persistTabs()
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun loadRecentFromPrefs() {
         val raw = loadRecentProjects(appContext) ?: run { recentProjects = emptyList(); return }
         val arr = runCatching { org.json.JSONArray(raw) }.getOrNull() ?: run { recentProjects = emptyList(); return }

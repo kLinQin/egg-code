@@ -12,6 +12,7 @@ internal fun TerminalPanel(
     EggTerminalScreen(
         modifier = Modifier,
         workingDir = vm.rootFolderPath ?: "/",
+        onOpenFile = { path -> vm.openTerminalFile(path) },
         onClose = {
             vm.terminalVisible = false
             onRequestEditorFocus()
