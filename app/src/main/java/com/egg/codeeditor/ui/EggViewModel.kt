@@ -145,6 +145,7 @@ class EggViewModel(private val context: Context) {
             for (i in tabs.indices) {
                 val t = tabs[i]
                 val uri = t.uri ?: continue
+                if (uri.scheme == "supabase") continue
                 if (t.isDirty) continue
                 val disk = runCatching { readFileContent(appContext, uri) }.getOrNull() ?: continue
                 if (disk != t.content) toReload.add(i)
@@ -433,6 +434,7 @@ class EggViewModel(private val context: Context) {
                 val name = o.optString("name", "")
                 if (uriStr.isEmpty()) continue
                 val uri = runCatching { Uri.parse(uriStr) }.getOrNull() ?: continue
+                if (uri.scheme == "supabase") continue
                 val ok = runCatching {
                     if (uri.scheme == "file") {
                         uri.path?.let { File(it).exists() } == true

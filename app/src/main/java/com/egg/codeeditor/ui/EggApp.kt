@@ -83,6 +83,14 @@ private fun dismissEditorActionMode(editor: CodeEditor?) {
     }
 }
 
+
+private fun isMarkdownTab(tab: EditorTab?): Boolean {
+    val t = tab ?: return false
+    val n = t.name.lowercase()
+    if (n.endsWith(".md") || n.endsWith(".markdown")) return true
+    return t.uri?.scheme == "supabase"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EggApp() {
@@ -603,7 +611,7 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                         }
                                     },
                                     actions = {
-                                        if (vm.activeTab?.name?.endsWith(".md") == true) {
+                                        if (isMarkdownTab(vm.activeTab)) {
                                             IconButton(onClick = {
                                     val i = vm.activeTabIndex()
                                     if (i >= 0 && vm.tabs[i].diffNew == null) {
@@ -705,7 +713,7 @@ IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, 
                                         settings = vm.settings,
                                         modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp)
                                     )
-                                } else if (vm.showMarkdownPreview && vm.activeTab?.name?.endsWith(".md") == true) {
+                                } else if (vm.showMarkdownPreview && isMarkdownTab(vm.activeTab)) {
                                     com.egg.codeeditor.ui.components.MarkdownPreview(
                                         markdown = vm.activeTab?.content ?: "",
                                         editorSettings = vm.settings,
@@ -715,7 +723,7 @@ IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, 
                                 } else SoraCodeEditor(
                                     modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 8.dp),
                                     state = editorState,
-                                    fileName = vm.activeTab?.name ?: "Untitled",
+                                    fileName = if (vm.activeTab?.uri?.scheme == "supabase") (vm.activeTab?.name ?: "note") + ".md" else vm.activeTab?.name ?: "Untitled",
                                     content = vm.activeTab?.content ?: "",
                                     settings = vm.settings,
                                     onTextChange = {
