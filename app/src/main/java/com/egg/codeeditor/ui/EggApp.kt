@@ -61,6 +61,7 @@ import com.egg.codeeditor.ui.terminal.cancelTerminalNotification
 import com.egg.codeeditor.ui.terminal.postTerminalNotification
 import com.egg.codeeditor.ui.theme.EggSystemBarStyle
 import com.egg.codeeditor.ui.theme.EggTheme
+import com.egg.codeeditor.util.SupabaseClient
 import com.egg.codeeditor.util.getFileName
 import com.egg.codeeditor.util.readFileContent
 import com.egg.codeeditor.util.writeFileContent
@@ -319,7 +320,7 @@ fun EggApp() {
 
         Box(modifier = Modifier.fillMaxSize()) {
             val hasProject = vm.rootFolderPath != null || vm.rootFolderUri != null ||
-                    vm.tabs.any { it.uri != null || it.content.isNotEmpty() }
+                    vm.isSupabaseMode || vm.tabs.any { it.uri != null || it.content.isNotEmpty() }
             val showWelcome = !hasProject
             if (showWelcome) {
                 WelcomeScreen(
@@ -330,7 +331,11 @@ fun EggApp() {
                     recentProjects = vm.recentProjects,
                     onOpenRecent = { label, path -> vm.openPrivateRoot(label, path) },
                     onRemoveRecent = { path -> vm.removeRecent(path) },
-                    versionText = appVersionText
+                    versionText = appVersionText,
+                    supabaseUser = vm.supabaseUser,
+                    onLogin = { email, password -> vm.supabaseLogin(email, password) },
+                    onSignUp = { email, password, name -> vm.supabaseSignUp(email, password, name) },
+                    onLogout = { vm.supabaseLogout() }
                 )
             } else {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -424,7 +429,7 @@ fun EggApp() {
                                                     onNewFolder = { vm.targetParentNode = null; vm.showNewFolderDialog = true },
                                                     onRefresh = { vm.refreshFolder() },
                                                     onToggleCollapse = { vm.collapseAllOrExpandRoots() },
-                                                    onCloseProject = { vm.closeProject() }
+                                                    onCloseProject = { if (vm.isSupabaseMode) vm.supabaseLogout() else vm.closeProject() }
                                                 )
                                                 "Git" -> GitActionBar(
                                                     gitRepo = vm.gitRepo,
@@ -447,7 +452,20 @@ fun EggApp() {
                                         Box(Modifier.weight(1f).fillMaxWidth()) {
                                             when (vm.currentSection) {
                                                 "File Manager" -> {
-                                                    if (vm.rootFolderUri == null && !vm.rootIsPrivate) {
+                                                    if (vm.isSupabaseMode) {
+    FileManagerPanel(
+        vm = vm,
+        guidesByUri = emptyMap(),
+        onOpenFile = { node ->
+            if (node.isDirectory) vm.toggleExpand(node.uri.toString())
+            else if (node.uri.scheme == "supabase") {
+                val id = SupabaseClient.noteIdFromUri(node.uri)
+                if (id != null) vm.openSupabaseNote(id)
+            }
+            scope.launch { drawerState.close() }
+        }
+    )
+} else if (vm.rootFolderUri == null && !vm.rootIsPrivate) {
                                                         if (vm.tabs.any { it.uri != null }) {
                                                             androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
                                                                 items(vm.tabs.filter { it.uri != null }, key = { it.id }) { tab ->
@@ -631,7 +649,7 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                             colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                         ) { Icon(Icons.Default.Save, "Save") }
                                         IconButton(onClick = { vm.terminalVisible = true }) { Icon(Icons.Default.Terminal, "Terminal") }
-                                        IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, "Settings") }
+IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, "Settings") }
                                     }
                                 )
                             },

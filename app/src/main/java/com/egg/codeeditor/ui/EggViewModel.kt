@@ -69,11 +69,25 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.json.JSONArray
 import org.json.JSONObject
 
+import com.egg.codeeditor.util.SupabaseClient
+import com.egg.codeeditor.util.SupabaseNote
+import com.egg.codeeditor.util.SupabaseUser
+
 class EggViewModel(private val context: Context) {
 
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var gitRefreshJob: Job? = null
+
+    init {
+        SupabaseClient.init(appContext)
+        scope.launch {
+            if (SupabaseClient.restoreSession()) {
+                supabaseUser = SupabaseClient.currentUser
+                afterSupabaseAuth()
+            }
+        }
+    }
 
     fun dispose() {
         runCatching { scope.cancel() }
@@ -300,6 +314,12 @@ class EggViewModel(private val context: Context) {
     var expandedPaths by mutableStateOf<Set<String>>(emptySet())
     val folderCache = mutableStateMapOf<String, List<FileNode>>()
 
+    var supabaseUser by mutableStateOf<SupabaseUser?>(null)
+    var supabaseNotes by mutableStateOf<List<SupabaseNote>>(emptyList())
+    var showLoginDialog by mutableStateOf(false)
+    private val supabaseExpandedPaths = mutableStateOf<Set<String>>(emptySet())
+    val isSupabaseMode: Boolean get() = supabaseUser != null
+
     var showNewFileDialog by mutableStateOf(false)
     var showNewFolderDialog by mutableStateOf(false)
     var showRenameDialog by mutableStateOf(false)
@@ -464,6 +484,86 @@ class EggViewModel(private val context: Context) {
         return nodes
     }
 
+    fun buildSupabaseFileNodes(): List<FileNode> {
+        val result = mutableListOf<FileNode>()
+        val mains = supabaseNotes.groupBy { it.mainCategory.ifBlank { "general" } }
+        for ((mainCat, notes) in mains) {
+            val mainUri = Uri.parse("supabase://folder/" + Uri.encode(mainCat))
+            val mainNode = FileNode(mainCat, true, mainUri, 0)
+            result.add(mainNode)
+            if (!supabaseExpandedPaths.value.contains(mainUri.toString())) continue
+            val subs = notes.groupBy { it.category.ifBlank { "general" } }
+            for ((cat, catNotes) in subs) {
+                val subUri = Uri.parse("supabase://folder/" + Uri.encode(mainCat) + "/" + Uri.encode(cat))
+                val subNode = FileNode(cat, true, subUri, 1)
+                result.add(subNode)
+                if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
+                for (n in catNotes.sortedByDescending { it.updatedAt }) {
+                    result.add(FileNode(n.title.ifBlank { "Untitled" }, false, Uri.parse("supabase://note/${n.id}"), 2))
+                }
+            }
+        }
+        return result
+    }
+
+    private suspend fun afterSupabaseAuth() {
+        val r = SupabaseClient.listNotes()
+        r.onSuccess { supabaseNotes = it }
+            .onFailure { notify(it.message ?: "Failed to load notes") }
+        supabaseExpandedPaths.value = emptySet()
+        currentSection = "File Manager"
+        visibleNodes = buildSupabaseFileNodes()
+    }
+
+    fun supabaseLogin(email: String, password: String) {
+        scope.launch {
+            val r = SupabaseClient.signInWithPassword(email.trim(), password)
+            r.onSuccess {
+                supabaseUser = it
+                afterSupabaseAuth()
+            }.onFailure { notify(it.message ?: "Login failed") }
+        }
+    }
+
+    fun supabaseSignUp(email: String, password: String, name: String) {
+        scope.launch {
+            val r = SupabaseClient.signUp(email.trim(), password, name.trim())
+            r.onSuccess {
+                supabaseUser = it
+                afterSupabaseAuth()
+            }.onFailure { notify(it.message ?: "Sign up failed") }
+        }
+    }
+
+    fun supabaseLogout() {
+        scope.launch {
+            SupabaseClient.signOut()
+            supabaseUser = null
+            supabaseNotes = emptyList()
+            supabaseExpandedPaths.value = emptySet()
+            rebuildVisibleNodes()
+        }
+    }
+
+    fun openSupabaseNote(id: Long?) {
+        if (id == null) return
+        scope.launch {
+            val content = SupabaseClient.getNoteContent(id)
+            if (content == null) { notify("Failed to load note"); return@launch }
+            val uri = Uri.parse("supabase://note/$id")
+            val name = supabaseNotes.firstOrNull { it.id == id }?.title?.ifBlank { "Untitled" } ?: "Note $id"
+            val exists = tabs.indexOfFirst { it.uri == uri }
+            if (exists >= 0) {
+                activeTabId = tabs[exists].id
+            } else {
+                val t = EditorTab(nextTabId++, name, uri, content)
+                tabs.add(t)
+                activeTabId = t.id
+            }
+            currentSection = "File Manager"
+        }
+    }
+
     suspend fun rebuildVisibleNodes() {
         val rootUri = when {
             rootIsPrivate -> rootFolderPath?.let { Uri.fromFile(File(it)) }
@@ -482,6 +582,11 @@ class EggViewModel(private val context: Context) {
     }
 
     fun toggleExpand(uri: String) {
+        if (isSupabaseMode) {
+            supabaseExpandedPaths.value = if (supabaseExpandedPaths.value.contains(uri)) supabaseExpandedPaths.value - uri else supabaseExpandedPaths.value + uri
+            visibleNodes = buildSupabaseFileNodes()
+            return
+        }
         expandedPaths = if (expandedPaths.contains(uri)) expandedPaths - uri else expandedPaths + uri
         scope.launch { rebuildVisibleNodes() }
     }
@@ -931,8 +1036,13 @@ class EggViewModel(private val context: Context) {
         val t = tabs[i]
         if (t.uri != null) {
             scope.launch {
-                writeFileContent(appContext, t.uri, t.content)
-                scheduleGitRefresh()
+                if (SupabaseClient.isSupabaseNote(t.uri)) {
+                    val id = SupabaseClient.noteIdFromUri(t.uri)
+                    if (id != null) SupabaseClient.updateNoteContent(id, t.content)
+                } else {
+                    writeFileContent(appContext, t.uri, t.content)
+                    scheduleGitRefresh()
+                }
                 reallyCloseTab(t.id)
             }
         } else {

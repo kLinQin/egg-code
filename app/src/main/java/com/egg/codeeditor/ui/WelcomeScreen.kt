@@ -24,14 +24,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.egg.codeeditor.util.SupabaseUser
 
 @Composable
 fun WelcomeScreen(
@@ -42,7 +45,11 @@ fun WelcomeScreen(
     recentProjects: List<Pair<String, String>> = emptyList(),
     onOpenRecent: (String, String) -> Unit = { _, _ -> },
     onRemoveRecent: (String) -> Unit = {},
-    versionText: String = ""
+    versionText: String = "",
+    supabaseUser: SupabaseUser? = null,
+    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
+    onSignUp: (email: String, password: String, name: String) -> Unit = { _, _, _ -> },
+    onLogout: () -> Unit = {}
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -89,6 +96,25 @@ fun WelcomeScreen(
                     }
                 }
             }
+            Spacer(Modifier.height(24.dp))
+            Text("Account", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            if (supabaseUser == null) {
+                LoginForm(onLogin = onLogin, onSignUp = onSignUp)
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        supabaseUser.email ?: supabaseUser.name ?: "Signed in",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 13.sp
+                    )
+                    TextButton(onClick = onLogout) { Text("Logout", fontSize = 11.sp) }
+                }
+            }
+
             if (versionText.isNotEmpty()) {
                 Spacer(Modifier.height(24.dp))
                 androidx.compose.foundation.layout.Row(
@@ -125,4 +151,62 @@ private fun WelcomeItem(
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+
+
+@Composable
+private fun LoginForm(
+    onLogin: (String, String) -> Unit,
+    onSignUp: (String, String, String) -> Unit
+) {
+    var mode by remember { mutableStateOf("login") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (mode == "signup") {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { mode = if (mode == "login") "signup" else "login" }) {
+                    Text(if (mode == "login") "Need an account? Sign up" else "Have an account? Login")
+                }
+            }
+            Button(
+                onClick = { if (mode == "login") onLogin(email, password) else onSignUp(email, password, name) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (mode == "login") "Login" else "Sign Up") }
+        }
+    }
 }
