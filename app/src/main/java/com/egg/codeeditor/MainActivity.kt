@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.egg.codeeditor.ui.EggApp
+import com.egg.codeeditor.terminal.EggTerminalEnv
 import com.egg.codeeditor.extension.ExtensionManager
 import com.egg.codeeditor.ui.editor.getOrCreateLanguage
 import io.github.rosemoe.sora.langs.textmate.registry.FileProviderRegistry
@@ -53,6 +54,7 @@ private fun initTextMate(context: Context, darkTheme: Boolean) {
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        EggTerminalEnv.init(application)
         val prefs = getSharedPreferences("egg_settings", MODE_PRIVATE)
         val darkTheme = prefs.getString("theme_name", "github-light") == "darcula"
         setTheme(if (darkTheme) R.style.Theme_Egg_Dark else R.style.Theme_Egg_Light)

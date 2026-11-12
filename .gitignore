@@ -36,3 +36,6 @@ extension-api/build/
 plugins/**/.kotlin/
 egg-plugin-store/
 .zed/
+
+# build dirs & backups
+*.bak

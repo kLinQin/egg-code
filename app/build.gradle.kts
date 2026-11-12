@@ -69,6 +69,7 @@ dependencies {
     implementation(files("libs/pdn-engine-0.6.18.aar"))
 
     implementation(project(":termlib-local"))
+    implementation(project(":terminal"))
     implementation(project(":extension-api"))
     implementation(libs.markwon)
     implementation(libs.markwon.ext.tables)
