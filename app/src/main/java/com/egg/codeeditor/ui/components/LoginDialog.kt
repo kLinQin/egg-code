@@ -11,7 +11,8 @@ import androidx.compose.ui.unit.dp
 fun LoginDialog(
     onDismiss: () -> Unit,
     onLogin: (email: String, password: String) -> Unit,
-    onSignUp: (email: String, password: String, name: String) -> Unit
+    onSignUp: (email: String, password: String, name: String) -> Unit,
+    isLoading: Boolean = false
 ) {
     var mode by remember { mutableStateOf("login") }
     var email by remember { mutableStateOf("") }
@@ -55,9 +56,22 @@ fun LoginDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (mode == "login") onLogin(email, password) else onSignUp(email, password, name)
-            }) { Text(if (mode == "login") "Login" else "Sign Up") }
+            Button(
+                onClick = {
+                    if (mode == "login") onLogin(email, password) else onSignUp(email, password, name)
+                },
+                enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(if (mode == "login") "Login" else "Sign Up")
+                }
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )

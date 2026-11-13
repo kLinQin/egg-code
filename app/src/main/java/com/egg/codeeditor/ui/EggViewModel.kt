@@ -318,6 +318,7 @@ class EggViewModel(private val context: Context) {
     var supabaseUser by mutableStateOf<SupabaseUser?>(null)
     var supabaseNotes by mutableStateOf<List<SupabaseNote>>(emptyList())
     var showLoginDialog by mutableStateOf(false)
+    var supabaseLoading by mutableStateOf(false)
     private val supabaseExpandedPaths = mutableStateOf<Set<String>>(emptySet())
     val isSupabaseMode: Boolean get() = supabaseUser != null
 
@@ -518,22 +519,26 @@ class EggViewModel(private val context: Context) {
     }
 
     fun supabaseLogin(email: String, password: String) {
+        supabaseLoading = true
         scope.launch {
             val r = SupabaseClient.signInWithPassword(email.trim(), password)
             r.onSuccess {
                 supabaseUser = it
                 afterSupabaseAuth()
             }.onFailure { notify(it.message ?: "Login failed") }
+            supabaseLoading = false
         }
     }
 
     fun supabaseSignUp(email: String, password: String, name: String) {
+        supabaseLoading = true
         scope.launch {
             val r = SupabaseClient.signUp(email.trim(), password, name.trim())
             r.onSuccess {
                 supabaseUser = it
                 afterSupabaseAuth()
             }.onFailure { notify(it.message ?: "Sign up failed") }
+            supabaseLoading = false
         }
     }
 

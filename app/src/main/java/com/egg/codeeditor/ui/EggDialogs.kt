@@ -192,9 +192,13 @@ internal fun EggDialogs(
     if (vm.showLoginDialog) {
         LoginDialog(
             onDismiss = { vm.showLoginDialog = false },
-            onLogin = { email, password -> vm.supabaseLogin(email, password); vm.showLoginDialog = false },
-            onSignUp = { email, password, name -> vm.supabaseSignUp(email, password, name); vm.showLoginDialog = false }
+            onLogin = { email, password -> vm.supabaseLogin(email, password) },
+            onSignUp = { email, password, name -> vm.supabaseSignUp(email, password, name) },
+            isLoading = vm.supabaseLoading
         )
+    }
+    if (vm.supabaseUser != null && vm.showLoginDialog) {
+        vm.showLoginDialog = false
     }
     if (vm.showGitRemoteDialog) {
         GitRemoteDialog(
