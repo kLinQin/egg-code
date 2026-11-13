@@ -1,5 +1,6 @@
 package com.egg.codeeditor.terminal
 
+import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
@@ -72,6 +73,8 @@ fun EggTerminalScreen(
 
     LaunchedEffect(Unit) { if (sessions.isEmpty()) newSession() }
 
+    DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
+
     val session = sessions.getOrNull(currentIndex)
     val bgArgb = MaterialTheme.colorScheme.background.toArgb()
     val surfaceArgb = MaterialTheme.colorScheme.surface.toArgb()
@@ -113,6 +116,8 @@ fun EggTerminalScreen(
                         TerminalView(ctx, null).apply {
                             setTerminalViewClient(backend)
                             setTextSize(28)
+                            val fontFile = File(EggTerminalEnv.sandboxHomeDir().parentFile, "etc/font.ttf")
+                            if (fontFile.exists()) setTypeface(Typeface.createFromFile(fontFile))
                             setBackgroundColor(bgArgb)
                             applyTerminalColors(surfaceArgb, onSurfaceArgb, terminalColors)
                             attachSession(session)
@@ -227,6 +232,7 @@ private var terminalViewRef: java.lang.ref.WeakReference<TerminalView?> = java.l
 class Backend : TerminalSessionClient, TerminalViewClient {
     @Volatile var ctrl: Boolean = false
     @Volatile var alt: Boolean = false
+    @Volatile var currentCwd: String = ""
 
     // ===== TerminalSessionClient =====
     override fun onTextChanged(session: TerminalSession) {
@@ -248,6 +254,9 @@ class Backend : TerminalSessionClient, TerminalViewClient {
 
     private fun getCwd(): File = EggTerminalEnv.sandboxHomeDir()
 
+    override fun onCwdChanged(session: TerminalSession, guestPath: String) {
+        currentCwd = guestPath
+    }
     override fun onTitleChanged(session: TerminalSession) {}
     override fun onSessionFinished(session: TerminalSession) {}
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
