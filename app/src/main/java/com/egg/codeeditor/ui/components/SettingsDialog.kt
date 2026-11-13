@@ -132,6 +132,7 @@ fun SettingsDialog(
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("App") })
                 Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Others") })
                 Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Extensions") })
+                Tab(selected = selectedTab == 4, onClick = { selectedTab = 4 }, text = { Text("Terminal") })
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -140,6 +141,7 @@ fun SettingsDialog(
                     1 -> AppSettingsTab(settings, onSettingsChange, appFontLauncher)
                     2 -> OtherSettingsTab(settings, onSettingsChange, backupLauncher, restoreLauncher, discordToken, discordEnabled, onDiscordTokenChange, onDiscordEnabledChange)
                     3 -> ExtensionsTab()
+                    4 -> TerminalSettingsTab(settings, onSettingsChange)
                 }
             }
         }
@@ -482,4 +484,61 @@ private fun getFileNameStatic(context: android.content.Context, uri: Uri): Strin
         }
     }
     return name
+}
+
+@Composable
+private fun TerminalSettingsTab(
+    settings: EditorSettings,
+    onSettingsChange: (EditorSettings) -> Unit
+) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Terminal Settings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        HorizontalDivider()
+
+        Text("Font Size: ${settings.terminalFontSize} dp", style = MaterialTheme.typography.labelLarge)
+        Slider(
+            value = settings.terminalFontSize.toFloat(),
+            onValueChange = { onSettingsChange(settings.copy(terminalFontSize = it.toInt())) },
+            valueRange = 8f..24f,
+            steps = 15
+        )
+
+        Text("Cursor Style", style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("block", "bar", "underline").forEach { style ->
+                FilterChip(
+                    selected = settings.terminalCursorStyle == style,
+                    onClick = { onSettingsChange(settings.copy(terminalCursorStyle = style)) },
+                    label = { Text(style.replaceFirstChar { it.uppercase() }) }
+                )
+            }
+        }
+
+        Text("Scrollback Buffer: ${settings.terminalScrollback}", style = MaterialTheme.typography.labelLarge)
+        Slider(
+            value = settings.terminalScrollback.toFloat(),
+            onValueChange = { onSettingsChange(settings.copy(terminalScrollback = it.toInt())) },
+            valueRange = 500f..20000f,
+            steps = 38
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = settings.projectAsPwd,
+                onCheckedChange = { onSettingsChange(settings.copy(projectAsPwd = it)) }
+            )
+            Text("Use project folder as working directory")
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = settings.terminateOnExit,
+                onCheckedChange = { onSettingsChange(settings.copy(terminateOnExit = it)) }
+            )
+            Text("Terminate sessions on exit")
+        }
+    }
 }

@@ -66,7 +66,13 @@ data class EditorSettings(
     val autocomplete: Boolean = true,
     val indentGuide: Boolean = true,
     val highlightActiveLine: Boolean = true,
-    val closeBracket: Boolean = true
+    val closeBracket: Boolean = true,
+    val terminalFontSize: Int = 14,
+    val terminalCursorStyle: String = "block",
+    val terminalScrollback: Int = 2000,
+    val terminalFontPath: String? = null,
+    val projectAsPwd: Boolean = false,
+    val terminateOnExit: Boolean = true
 )
 
 data class ProjectSearchResult(

@@ -14,6 +14,9 @@ internal fun TerminalPanel(
         workingDir = vm.rootFolderPath ?: "/",
         isDarkTheme = com.egg.extension.api.ThemeRegistry.get(vm.settings.themeName)?.dark ?: (vm.settings.themeName == "darcula"),
         onOpenFile = { path -> vm.openTerminalFile(path) },
+        terminalFontSize = vm.settings.terminalFontSize,
+        terminalCursorStyle = vm.settings.terminalCursorStyle,
+        terminalScrollback = vm.settings.terminalScrollback,
         onClose = {
             vm.terminalVisible = false
             onRequestEditorFocus()
