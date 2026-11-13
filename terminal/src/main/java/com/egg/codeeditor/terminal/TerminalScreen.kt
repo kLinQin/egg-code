@@ -44,9 +44,12 @@ fun EggTerminalScreen(
     terminalFontSize: Int = 14,
     terminalCursorStyle: String = "block",
     terminalScrollback: Int = 2000,
+    serviceBinder: TerminalSessionService.SessionBinder? = null,
 ) {
-    val sessions = remember { mutableStateListOf<TerminalSession>() }
-    var currentIndex by remember { mutableStateOf(0) }
+    val sessionList by serviceBinder?.getService()?.sessionList?.collectAsState(emptyList()) ?: remember { mutableStateOf(emptyList<String>()) }
+    val currentSessionId by serviceBinder?.getService()?.currentSession?.collectAsState("main") ?: remember { mutableStateOf("main") }
+    val sessions = remember(sessionList) { sessionList.mapNotNull { serviceBinder?.getSession(it) } }
+    var currentIndex by remember(sessionList, currentSessionId) { mutableStateOf(sessionList.indexOf(currentSessionId).coerceAtLeast(0)) }
     var menuOpen by remember { mutableStateOf(false) }
     var ctrlDown by remember { mutableStateOf(false) }
     var altDown by remember { mutableStateOf(false) }
@@ -62,23 +65,27 @@ fun EggTerminalScreen(
     }
 
     fun newSession() {
-        val session = TerminalSession(
-            "/system/bin/sh",
-            workingDir,
-            arrayOf("-i"),          // interactive shell
-            null,
-            terminalScrollback,
-            backend
-        )
-        sessions.add(session)
-        currentIndex = sessions.lastIndex
+        if (serviceBinder != null) {
+            val id = "session_${System.currentTimeMillis()}"
+            serviceBinder.createSession(id, backend)
+            serviceBinder.getService().currentSession.value = id
+        } else {
+            val session = TerminalSession(
+                "/system/bin/sh",
+                workingDir,
+                arrayOf("-i"),
+                null,
+                terminalScrollback,
+                backend
+            )
+        }
     }
 
-    LaunchedEffect(Unit) { if (sessions.isEmpty()) newSession() }
+    LaunchedEffect(serviceBinder) { if (sessionList.isEmpty()) newSession() }
 
     DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
 
-    val session = sessions.getOrNull(currentIndex)
+    val session = if (serviceBinder != null) serviceBinder.getSession(sessionList.getOrNull(currentIndex) ?: "") else sessions.getOrNull(currentIndex)
     val bgArgb = MaterialTheme.colorScheme.background.toArgb()
     val surfaceArgb = MaterialTheme.colorScheme.surface.toArgb()
     val onSurfaceArgb = MaterialTheme.colorScheme.onSurface.toArgb()
@@ -195,18 +202,16 @@ fun EggTerminalScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(
-                                onClick = { currentIndex = i; menuOpen = false },
+                                onClick = { if (serviceBinder != null) serviceBinder.getService().currentSession.value = sessionList[i]; currentIndex = i; menuOpen = false },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Session ${i+1} (pid ${s.pid})")
                             }
                             IconButton(onClick = {
-                                runCatching { s.writeStr("exit\n") }
-                                sessions.removeAt(i)
-                                if (sessions.isEmpty()) {
-                                    newSession()
-                                } else if (currentIndex >= sessions.size) {
-                                    currentIndex = sessions.lastIndex
+                                if (serviceBinder != null) {
+                                    serviceBinder.terminateSession(sessionList[i])
+                                } else {
+                                    runCatching { s.writeStr("exit\n") }
                                 }
                             }) {
                                 Icon(Icons.Default.Close, "Close session")
