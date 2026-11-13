@@ -321,6 +321,7 @@ class EggViewModel(private val context: Context) {
     var supabaseLoading by mutableStateOf(false)
     private val supabaseExpandedPaths = mutableStateOf<Set<String>>(emptySet())
     val isSupabaseMode: Boolean get() = supabaseUser != null
+    var supabaseProjectActive by mutableStateOf(false)
 
     var showNewFileDialog by mutableStateOf(false)
     var showNewFolderDialog by mutableStateOf(false)
@@ -514,6 +515,7 @@ class EggViewModel(private val context: Context) {
         r.onSuccess { supabaseNotes = it }
             .onFailure { notify(it.message ?: "Failed to load notes") }
         supabaseExpandedPaths.value = emptySet()
+        supabaseProjectActive = true
         currentSection = "File Manager"
         visibleNodes = buildSupabaseFileNodes()
     }
@@ -540,6 +542,16 @@ class EggViewModel(private val context: Context) {
             }.onFailure { notify(it.message ?: "Sign up failed") }
             supabaseLoading = false
         }
+    }
+
+    fun enterSupabaseMode() {
+        if (supabaseUser == null) return
+        scope.launch { afterSupabaseAuth() }
+    }
+
+    fun clearGitCredentials() {
+        gitUser = ""; gitToken = ""
+        saveGitCredentials(appContext, "", "")
     }
 
     fun supabaseLogout() {
@@ -758,7 +770,7 @@ class EggViewModel(private val context: Context) {
         clearLastProjectUri(appContext)
         clearOpenTabs(appContext)
         clearLastPrivateRoot(appContext)
-        rootFolderUri = null; rootFolderPath = null; rootIsPrivate = false; visibleNodes = emptyList()
+        rootFolderUri = null; rootFolderPath = null; rootIsPrivate = false; visibleNodes = emptyList(); supabaseProjectActive = false
         availableSections = listOf("File Manager", "Git")
         expandedPaths = emptySet(); folderCache.clear()
         tabs.clear()

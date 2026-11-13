@@ -50,7 +50,10 @@ fun WelcomeScreen(
     versionText: String = "",
     supabaseUser: SupabaseUser? = null,
     onShowLogin: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onOpenSupabase: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    hasGitCredentials: Boolean = false,
+    onClearGitCredentials: () -> Unit = {}
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -77,8 +80,13 @@ fun WelcomeScreen(
                 "Browse a folder on this device", onOpenFolder)
             WelcomeItem(Icons.Default.Description, "Open File",
                 "Edit a single file without a project", onOpenFile)
-            WelcomeItem(Icons.Default.Source, "Open Git Repository",
-                "Clone a repository and open it", onOpenGit)
+            if (hasGitCredentials) {
+                WelcomeItemWithAction(Icons.Default.Source, "Open Git Repository",
+                    "Credentials saved", onOpenGit, "Clear", onClearGitCredentials)
+            } else {
+                WelcomeItem(Icons.Default.Source, "Open Git Repository",
+                    "Clone a repository and open it", onOpenGit)
+            }
             WelcomeItem(Icons.Default.Storage, "Open from App Storage",
                 "Open a cloned repository or pulled bucket", onOpenAppStorage)
 
@@ -104,8 +112,8 @@ fun WelcomeScreen(
                 WelcomeItem(Icons.Default.Cloud, "Sign In to Supabase",
                     "Sync your projects and notes to the cloud", onShowLogin)
             } else {
-                WelcomeItem(Icons.Default.Person, supabaseUser.email ?: supabaseUser.name ?: "Signed in",
-                    "Tap to sign out", onLogout)
+                WelcomeItemWithAction(Icons.Default.Cloud, supabaseUser.email ?: supabaseUser.name ?: "Signed in",
+                    "Open your cloud projects", onOpenSupabase, "Sign Out", onLogout)
             }
 
             if (versionText.isNotEmpty()) {
@@ -119,6 +127,34 @@ fun WelcomeScreen(
             }
         }
     }
+}
+
+@Composable
+private fun WelcomeItemWithAction(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, modifier = Modifier.size(22.dp),
+            tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(subtitle, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        TextButton(onClick = onAction) { Text(actionLabel, fontSize = 11.sp) }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable

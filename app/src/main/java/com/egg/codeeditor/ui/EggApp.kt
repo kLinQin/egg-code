@@ -306,7 +306,7 @@ fun EggApp() {
 
         Box(modifier = Modifier.fillMaxSize()) {
             val hasProject = vm.rootFolderPath != null || vm.rootFolderUri != null ||
-                    vm.isSupabaseMode || vm.tabs.any { it.uri != null || it.content.isNotEmpty() }
+                    vm.supabaseProjectActive || vm.tabs.any { it.uri != null || it.content.isNotEmpty() }
             val showWelcome = !hasProject
             if (showWelcome) {
                 WelcomeScreen(
@@ -320,7 +320,10 @@ fun EggApp() {
                     versionText = appVersionText,
                     supabaseUser = vm.supabaseUser,
                     onShowLogin = { vm.showLoginDialog = true },
-                    onLogout = { vm.supabaseLogout() }
+                    onOpenSupabase = { vm.enterSupabaseMode() },
+                    onLogout = { vm.supabaseLogout() },
+                    hasGitCredentials = vm.gitUser.isNotBlank(),
+                    onClearGitCredentials = { vm.clearGitCredentials() }
                 )
             } else {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -414,7 +417,7 @@ fun EggApp() {
                                                     onNewFolder = { vm.targetParentNode = null; vm.showNewFolderDialog = true },
                                                     onRefresh = { vm.refreshFolder() },
                                                     onToggleCollapse = { vm.collapseAllOrExpandRoots() },
-                                                    onCloseProject = { if (vm.isSupabaseMode) vm.supabaseLogout() else vm.closeProject() },
+                                                    onCloseProject = { vm.closeProject() },
                                                     actionDisabled = vm.isSupabaseMode
                                                 )
                                                 "Git" -> GitActionBar(
