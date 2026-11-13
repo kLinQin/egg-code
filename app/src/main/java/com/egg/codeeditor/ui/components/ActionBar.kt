@@ -58,7 +58,8 @@ fun FileManagerActionBar(
     onNewFolder: () -> Unit,
     onRefresh: () -> Unit,
     onToggleCollapse: () -> Unit,
-    onCloseProject: () -> Unit
+    onCloseProject: () -> Unit,
+    actionDisabled: Boolean = false
 ) {
     val hasFolder = rootFolderUri != null || rootFolderPath != null
     Row(
@@ -66,8 +67,8 @@ fun FileManagerActionBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File", enabled = hasFolder)
-        ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder", enabled = hasFolder)
+        ActionPillVertical(onNewFile, Icons.Default.NoteAdd, "New File", enabled = hasFolder && !actionDisabled)
+        ActionPillVertical(onNewFolder, Icons.Default.CreateNewFolder, "New Folder", enabled = hasFolder && !actionDisabled)
         ActionPillVertical(onRefresh, painterResource(R.drawable.ic_git_branch), "Refresh", enabled = hasFolder)
         ActionPillVertical(onToggleCollapse,
             if (expandedPaths.isNotEmpty()) Icons.Default.UnfoldLess else Icons.Default.UnfoldMore,

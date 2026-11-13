@@ -1071,10 +1071,16 @@ class EggViewModel(private val context: Context) {
         scope.launch {
             withContext(Dispatchers.IO) {
                 tab.uri?.let { u ->
-                    if (u.scheme == "file") {
-                        u.path?.let { pth -> runCatching { File(pth).delete() } }
-                    } else {
-                        runCatching { DocumentFile.fromSingleUri(appContext, u)?.delete() }
+                    when (u.scheme) {
+                        "file" -> u.path?.let { pth -> runCatching { File(pth).delete() } }
+                        "supabase" -> {
+                            val nid = SupabaseClient.noteIdFromUri(u)
+                            if (nid != null) {
+                                SupabaseClient.deleteNote(nid)
+                                supabaseNotes = supabaseNotes.filterNot { it.id == nid }
+                            }
+                        }
+                        else -> runCatching { DocumentFile.fromSingleUri(appContext, u)?.delete() }
                     }
                 }
             }
@@ -1083,7 +1089,7 @@ class EggViewModel(private val context: Context) {
             if (activeTabId == tab.id) switchAfterRemoval(idx)
             persistTabs()
             folderCache.clear()
-            rebuildVisibleNodes()
+            if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes() else rebuildVisibleNodes()
         }
     }
 

@@ -198,6 +198,12 @@ object SupabaseClient {
         runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
     }
 
+
+    suspend fun deleteNote(id: Long): Boolean = withContext(Dispatchers.IO) {
+        val url = "/rest/v1/notes?id=eq.$id"
+        val req = requestBuilder(url, "DELETE", null, auth = true).build()
+        runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
+    }
     fun isSupabaseNote(uri: Uri): Boolean = uri.scheme == "supabase"
 
     fun noteIdFromUri(uri: Uri): Long? = uri.path?.substringAfterLast('/')?.toLongOrNull()

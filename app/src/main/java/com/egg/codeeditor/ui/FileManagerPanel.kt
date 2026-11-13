@@ -186,26 +186,28 @@ internal fun FileManagerPanel(
                                     clipboardManager.setText(AnnotatedString(node.uri.toString()))
                                     showContextMenu = false
                                 }
-                                MenuTextAction("Rename") {
-                                    vm.selectedNode = node
-                                    vm.showRenameDialog = true
-                                    showContextMenu = false
-                                }
-                                MenuTextAction("Delete") {
-                                    vm.selectedNode = node
-                                    vm.showDeleteDialog = true
-                                    showContextMenu = false
-                                }
-                                if (node.isDirectory) {
-                                    MenuTextAction("New File Here") {
-                                        vm.targetParentNode = node
-                                        vm.showNewFileDialog = true
+                                if (!vm.isSupabaseMode) {
+                                    MenuTextAction("Rename") {
+                                        vm.selectedNode = node
+                                        vm.showRenameDialog = true
                                         showContextMenu = false
                                     }
-                                    MenuTextAction("New Folder Here") {
-                                        vm.targetParentNode = node
-                                        vm.showNewFolderDialog = true
+                                    MenuTextAction("Delete") {
+                                        vm.selectedNode = node
+                                        vm.showDeleteDialog = true
                                         showContextMenu = false
+                                    }
+                                    if (node.isDirectory) {
+                                        MenuTextAction("New File Here") {
+                                            vm.targetParentNode = node
+                                            vm.showNewFileDialog = true
+                                            showContextMenu = false
+                                        }
+                                        MenuTextAction("New Folder Here") {
+                                            vm.targetParentNode = node
+                                            vm.showNewFolderDialog = true
+                                            showContextMenu = false
+                                        }
                                     }
                                 }
                         }

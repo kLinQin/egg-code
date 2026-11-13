@@ -263,7 +263,7 @@ if(HAS_POKEDATA_WORKAROUND)
     set(LOADER_INFO_C "${CMAKE_CURRENT_BINARY_DIR}/loader/loader-info.c")
     add_custom_command(
         OUTPUT "${LOADER_INFO_C}"
-        COMMAND ${READELF_TOOL} -s "$<TARGET_FILE:loader_64>" | awk -f "${CMAKE_CURRENT_SOURCE_DIR}/loader/loader-info.awk" > "${LOADER_INFO_C}"
+        COMMAND ${READELF_TOOL} -s "$<TARGET_FILE:loader_64>" | "C:/Program Files/Git/usr/bin/awk.exe" -f "${CMAKE_CURRENT_SOURCE_DIR}/loader/loader-info.awk" > "${LOADER_INFO_C}"
         DEPENDS loader_64
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         VERBATIM

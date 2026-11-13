@@ -437,7 +437,8 @@ fun EggApp() {
                                                     onNewFolder = { vm.targetParentNode = null; vm.showNewFolderDialog = true },
                                                     onRefresh = { vm.refreshFolder() },
                                                     onToggleCollapse = { vm.collapseAllOrExpandRoots() },
-                                                    onCloseProject = { if (vm.isSupabaseMode) vm.supabaseLogout() else vm.closeProject() }
+                                                    onCloseProject = { if (vm.isSupabaseMode) vm.supabaseLogout() else vm.closeProject() },
+                                                    actionDisabled = vm.isSupabaseMode
                                                 )
                                                 "Git" -> GitActionBar(
                                                     gitRepo = vm.gitRepo,
@@ -644,8 +645,13 @@ Apache-2.0. Third-party: Sora Editor (LGPL-2.1), JGit (EPL-2.0).
                                                         val tab = vm.tabs[i]
                                                         if (tab.uri != null) {
                                                             val text = editorState.editor?.text?.toString() ?: ""
-                                                            writeFileContent(context, tab.uri, text)
-                                                            vm.scheduleGitRefresh()
+                                                            if (SupabaseClient.isSupabaseNote(tab.uri)) {
+                                                                val nid = SupabaseClient.noteIdFromUri(tab.uri)
+                                                                if (nid != null) SupabaseClient.updateNoteContent(nid, text)
+                                                            } else {
+                                                                writeFileContent(context, tab.uri, text)
+                                                                vm.scheduleGitRefresh()
+                                                            }
                                                             vm.tabs[i] = vm.tabs[i].copy(content = text, isDirty = false)
                                                         } else {
                                                             saveFileLauncher.launch("${tab.name}.txt")
@@ -685,8 +691,13 @@ IconButton(onClick = { vm.showSettings = true }) { Icon(Icons.Default.Settings, 
                                             if (i >= 0) {
                                                 val t = vm.tabs[i]
                                                 if (t.uri != null) {
-                                                    writeFileContent(context, t.uri, t.content)
-                                                    vm.scheduleGitRefresh()
+                                                    if (SupabaseClient.isSupabaseNote(t.uri)) {
+                                                        val nid = SupabaseClient.noteIdFromUri(t.uri)
+                                                        if (nid != null) SupabaseClient.updateNoteContent(nid, t.content)
+                                                    } else {
+                                                        writeFileContent(context, t.uri, t.content)
+                                                        vm.scheduleGitRefresh()
+                                                    }
                                                     vm.tabs[i] = vm.tabs[i].copy(isDirty = false)
                                                 } else {
                                                     vm.activeTabId = t.id
