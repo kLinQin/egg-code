@@ -319,8 +319,7 @@ fun EggApp() {
                     onRemoveRecent = { path -> vm.removeRecent(path) },
                     versionText = appVersionText,
                     supabaseUser = vm.supabaseUser,
-                    onLogin = { email, password -> vm.supabaseLogin(email, password) },
-                    onSignUp = { email, password, name -> vm.supabaseSignUp(email, password, name) },
+                    onShowLogin = { vm.showLoginDialog = true },
                     onLogout = { vm.supabaseLogout() }
                 )
             } else {

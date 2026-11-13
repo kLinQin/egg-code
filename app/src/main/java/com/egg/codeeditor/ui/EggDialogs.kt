@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.egg.codeeditor.ui.components.InputDialog
 import com.egg.codeeditor.ui.components.SettingsDialog
+import com.egg.codeeditor.ui.components.LoginDialog
 import com.egg.codeeditor.ui.git.GitRemoteDialog
 
 private const val GITHUB_URL = ""
@@ -188,6 +189,13 @@ internal fun EggDialogs(
         )
     }
 
+    if (vm.showLoginDialog) {
+        LoginDialog(
+            onDismiss = { vm.showLoginDialog = false },
+            onLogin = { email, password -> vm.supabaseLogin(email, password); vm.showLoginDialog = false },
+            onSignUp = { email, password, name -> vm.supabaseSignUp(email, password, name); vm.showLoginDialog = false }
+        )
+    }
     if (vm.showGitRemoteDialog) {
         GitRemoteDialog(
             title = vm.gitRemoteDialogTitle,

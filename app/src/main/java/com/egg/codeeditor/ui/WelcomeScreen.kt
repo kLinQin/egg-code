@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Source
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,8 +49,7 @@ fun WelcomeScreen(
     onRemoveRecent: (String) -> Unit = {},
     versionText: String = "",
     supabaseUser: SupabaseUser? = null,
-    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
-    onSignUp: (email: String, password: String, name: String) -> Unit = { _, _, _ -> },
+    onShowLogin: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -100,19 +101,11 @@ fun WelcomeScreen(
             Text("Account", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             if (supabaseUser == null) {
-                LoginForm(onLogin = onLogin, onSignUp = onSignUp)
+                WelcomeItem(Icons.Default.Cloud, "Sign In to Supabase",
+                    "Sync your projects and notes to the cloud", onShowLogin)
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        supabaseUser.email ?: supabaseUser.name ?: "Signed in",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 13.sp
-                    )
-                    TextButton(onClick = onLogout) { Text("Logout", fontSize = 11.sp) }
-                }
+                WelcomeItem(Icons.Default.Person, supabaseUser.email ?: supabaseUser.name ?: "Signed in",
+                    "Tap to sign out", onLogout)
             }
 
             if (versionText.isNotEmpty()) {
@@ -155,58 +148,3 @@ private fun WelcomeItem(
 
 
 
-@Composable
-private fun LoginForm(
-    onLogin: (String, String) -> Unit,
-    onSignUp: (String, String, String) -> Unit
-) {
-    var mode by remember { mutableStateOf("login") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (mode == "signup") {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { mode = if (mode == "login") "signup" else "login" }) {
-                    Text(if (mode == "login") "Need an account? Sign up" else "Have an account? Login")
-                }
-            }
-            Button(
-                onClick = { if (mode == "login") onLogin(email, password) else onSignUp(email, password, name) },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (mode == "login") "Login" else "Sign Up") }
-        }
-    }
-}
