@@ -85,7 +85,7 @@ internal class TerminalScreenState(
         if (screenIndex in snapshot.lines.indices) {
             snapshot.lines[screenIndex]
         } else {
-            // Return empty line if index out of bounds
+
             TerminalLine.empty(
                 row = screenIndex,
                 cols = snapshot.cols,
@@ -103,11 +103,11 @@ internal class TerminalScreenState(
      */
     fun getVisibleLine(row: Int): TerminalLine {
         if (scrollbackPosition > 0) {
-            // Calculate actual row in scrollback/screen
+
             val actualIndex = snapshot.scrollback.size - scrollbackPosition + row
             return getLine(actualIndex.coerceIn(0, totalLines - 1))
         }
-        // Not scrolled - show current screen
+
         return if (row in snapshot.lines.indices) {
             snapshot.lines[row]
         } else {
@@ -375,14 +375,14 @@ private const val MAX_URL_CONTINUATION_ROWS = 6
 internal fun rememberTerminalScreenState(
     terminalEmulator: TerminalEmulatorImpl,
 ): TerminalScreenState {
-    // Create state instance once per emulator, using the current value as initial
+
     val state = remember(terminalEmulator) {
         TerminalScreenState(terminalEmulator.snapshot.value)
     }
 
-    // Collecting in a LaunchedEffect keeps this adapter composable stable instead of
-    // recomposing it because of Flow collection in this function. Updates to
-    // state.snapshot still invalidate/recompose any composables that read it.
+
+
+
     LaunchedEffect(terminalEmulator) {
         terminalEmulator.snapshot.collect { newSnapshot ->
             state.updateSnapshot(newSnapshot)

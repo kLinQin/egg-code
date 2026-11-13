@@ -156,7 +156,7 @@ public final class TerminalSession extends TerminalOutput {
                         mMainThreadHandler.sendEmptyMessage(MSG_NEW_INPUT);
                     }
                 } catch (Exception e) {
-                    // Ignore, just shutting down.
+
                 }
             }
         }.start();
@@ -172,7 +172,7 @@ public final class TerminalSession extends TerminalOutput {
                         termOut.write(buffer, 0, bytesToWrite);
                     }
                 } catch (IOException e) {
-                    // Ignore.
+
                 }
             }
         }.start();
@@ -200,7 +200,7 @@ public final class TerminalSession extends TerminalOutput {
      */
     public void writeCodePoint(boolean prependEscape, int codePoint) {
         if (codePoint > 1114111 || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
-            // 1114111 (= 2**16 + 1024**2 - 1) is the highest code point, [0xD800,0xDFFF] is the surrogate range.
+
             throw new IllegalArgumentException("Invalid code point: " + codePoint);
         }
 
@@ -275,7 +275,7 @@ public final class TerminalSession extends TerminalOutput {
             mShellExitStatus = exitStatus;
         }
 
-        // Stop the reader and writer threads, and close the I/O streams
+
         mTerminalToProcessIOQueue.close();
         mProcessToTerminalIOQueue.close();
         JNI.close(mTerminalFileDescriptor);
@@ -333,7 +333,7 @@ public final class TerminalSession extends TerminalOutput {
             try {
                 descriptorField = FileDescriptor.class.getDeclaredField("descriptor");
             } catch (NoSuchFieldException e) {
-                // For desktop java:
+
                 descriptorField = FileDescriptor.class.getDeclaredField("fd");
             }
             descriptorField.setAccessible(true);
@@ -364,10 +364,10 @@ public final class TerminalSession extends TerminalOutput {
 
                 String exitDescription = "\r\n[Process completed";
                 if (exitCode > 0) {
-                    // Non-zero process exit.
+
                     exitDescription += " (code " + exitCode + ")";
                 } else if (exitCode < 0) {
-                    // Negated signal.
+
                     exitDescription += " (signal " + (-exitCode) + ")";
                 }
                 exitDescription += " - press Enter]";

@@ -53,7 +53,7 @@ import com.egg.codeeditor.ui.components.folderIconSpec
 private fun gitMarkerColor(marker: Char): androidx.compose.ui.graphics.Color {
     val onSurface = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
     val lum = 0.299f * onSurface.red + 0.587f * onSurface.green + 0.114f * onSurface.blue
-    val dark = lum > 0.5f  // teks terang = bg gelap
+    val dark = lum > 0.5f
     return when (marker) {
         'M' -> if (dark) androidx.compose.ui.graphics.Color(0xFFE2C08D) else androidx.compose.ui.graphics.Color(0xFFB58900)
         'U' -> if (dark) androidx.compose.ui.graphics.Color(0xFF73C991) else androidx.compose.ui.graphics.Color(0xFF2E7D32)
@@ -170,7 +170,7 @@ internal fun FileManagerPanel(
                 ) {
                     Surface(
                         shape = RectangleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest, // DROPDOWN_STYLE
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         tonalElevation = 6.dp,
                         shadowElevation = 8.dp,
                         modifier = Modifier.widthIn(max = 360.dp)

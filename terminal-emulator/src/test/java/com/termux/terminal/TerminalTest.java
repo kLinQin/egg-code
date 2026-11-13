@@ -56,9 +56,9 @@ public class TerminalTest extends TerminalTestCase {
 		mTerminal.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, 3, 4, false);
 		assertEquals("\033[<0;3;4m", mOutput.getOutputAndClear());
 
-		// When the client says that a click is outside (which could happen when pixels are outside
-		// the terminal area, see https://github.com/termux/termux-app/issues/501) the terminal
-		// sends a click at the edge.
+
+
+
 		mTerminal.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, 0, 0, true);
 		assertEquals("\033[<0;1;1M", mOutput.getOutputAndClear());
 		mTerminal.sendMouseEvent(TerminalEmulator.MOUSE_LEFT_BUTTON, 11, 11, false);
@@ -66,13 +66,13 @@ public class TerminalTest extends TerminalTestCase {
 	}
 
 	public void testNormalization() throws UnsupportedEncodingException {
-		// int lowerCaseN = 0x006E;
-		// int combiningTilde = 0x0303;
-		// int combined = 0x00F1;
+
+
+
 		withTerminalSized(3, 3).assertLinesAre("   ", "   ", "   ");
 		enterString("\u006E\u0303");
 		assertEquals(1, WcWidth.width("\u006E\u0303".toCharArray(), 0));
-		// assertEquals("\u00F1  ", new String(mTerminal.getScreen().getLine(0)));
+
 		assertLinesAre("\u006E\u0303  ", "   ", "   ");
 	}
 
@@ -151,13 +151,13 @@ public class TerminalTest extends TerminalTestCase {
 		assertEquals(2, mTerminal.mForeColor);
 		assertEquals(3, mTerminal.mBackColor);
 
-		// SGR 0 should reset both foreground and background color.
+
 		enterString("\033[0m");
 		assertEquals(TextStyle.COLOR_INDEX_FOREGROUND, mTerminal.mForeColor);
 		assertEquals(TextStyle.COLOR_INDEX_BACKGROUND, mTerminal.mBackColor);
 
-		// Test CSI resetting to default if sequence starts with ; or has sequential ;;
-        // Check TerminalEmulator.parseArg()
+
+
         enterString("\033[31m\033[m");
         assertEquals(TextStyle.COLOR_INDEX_FOREGROUND, mTerminal.mForeColor);
         enterString("\033[31m\033[;m".replace(';', separator));
@@ -180,7 +180,7 @@ public class TerminalTest extends TerminalTestCase {
         enterString("\033[0m");
         assertEquals(TextStyle.COLOR_INDEX_BACKGROUND, mTerminal.mBackColor);
 
-		// 256 colors:
+
 		enterString("\033[38;5;119m".replace(';', separator));
 		assertEquals(119, mTerminal.mForeColor);
 		assertEquals(TextStyle.COLOR_INDEX_BACKGROUND, mTerminal.mBackColor);
@@ -188,17 +188,17 @@ public class TerminalTest extends TerminalTestCase {
 		assertEquals(119, mTerminal.mForeColor);
 		assertEquals(129, mTerminal.mBackColor);
 
-		// Invalid parameter:
+
 		enterString("\033[48;8;129m".replace(';', separator));
 		assertEquals(119, mTerminal.mForeColor);
 		assertEquals(129, mTerminal.mBackColor);
 
-		// Multiple parameters at once:
+
 		enterString("\033[38;5;178".replace(';', separator) + ";" + "48;5;179m".replace(';', separator));
 		assertEquals(178, mTerminal.mForeColor);
 		assertEquals(179, mTerminal.mBackColor);
 
-		// Omitted parameter means zero:
+
 		enterString("\033[38;5;m".replace(';', separator));
 		assertEquals(0, mTerminal.mForeColor);
 		assertEquals(179, mTerminal.mBackColor);
@@ -206,8 +206,8 @@ public class TerminalTest extends TerminalTestCase {
 		assertEquals(0, mTerminal.mForeColor);
 		assertEquals(0, mTerminal.mBackColor);
 
-		// 24 bit colors:
-		enterString(("\033[0m")); // Reset fg and bg colors.
+
+		enterString(("\033[0m"));
 		enterString("\033[38;2;255;127;2m".replace(';', separator));
 		int expectedForeground = 0xff000000 | (255 << 16) | (127 << 8) | 2;
 		assertEquals(expectedForeground, mTerminal.mForeColor);
@@ -217,20 +217,20 @@ public class TerminalTest extends TerminalTestCase {
 		assertEquals(expectedForeground, mTerminal.mForeColor);
 		assertEquals(expectedBackground, mTerminal.mBackColor);
 
-		// 24 bit colors, set fg and bg at once:
-		enterString(("\033[0m")); // Reset fg and bg colors.
+
+		enterString(("\033[0m"));
 		assertEquals(TextStyle.COLOR_INDEX_FOREGROUND, mTerminal.mForeColor);
 		assertEquals(TextStyle.COLOR_INDEX_BACKGROUND, mTerminal.mBackColor);
 		enterString("\033[38;2;255;127;2".replace(';', separator) + ";" + "48;2;1;2;254m".replace(';', separator));
 		assertEquals(expectedForeground, mTerminal.mForeColor);
 		assertEquals(expectedBackground, mTerminal.mBackColor);
 
-		// 24 bit colors, invalid input:
+
 		enterString("\033[38;2;300;127;2;48;2;1;300;254m".replace(';', separator));
 		assertEquals(expectedForeground, mTerminal.mForeColor);
 		assertEquals(expectedBackground, mTerminal.mBackColor);
 
-		// 24 bit colors, omitted parameter means zero:
+
 		enterString("\033[38;2;255;127;m".replace(';', separator));
 		expectedForeground = 0xff000000 | (255 << 16) | (127 << 8);
 		assertEquals(expectedForeground, mTerminal.mForeColor);
@@ -240,7 +240,7 @@ public class TerminalTest extends TerminalTestCase {
 		assertEquals(expectedForeground, mTerminal.mForeColor);
 		assertEquals(expectedBackground, mTerminal.mBackColor);
 
-		// 24 bit colors, extra sub-parameters are skipped:
+
 		expectedForeground = 0xff000000 | (255 << 16) | (127 << 8) | 2;
 		enterString("\033[0;38:2:255:127:2:48:2:1:2:254m");
 		assertEquals(expectedForeground, mTerminal.mForeColor);
@@ -258,11 +258,11 @@ public class TerminalTest extends TerminalTestCase {
 				assertEquals(TextStyle.COLOR_INDEX_BACKGROUND, TextStyle.decodeBackColor(style));
 			}
 		}
-		// Foreground color to 119:
+
 		enterString("\033[38;5;119m");
-		// Background color to 129:
+
 		enterString("\033[48;5;129m");
-		// Clear with ED, Erase in Display:
+
 		enterString("\033[2J");
 		for (int r = 0; r < rows; r++) {
 			for (int c = 0; c < cols; c++) {
@@ -271,9 +271,9 @@ public class TerminalTest extends TerminalTestCase {
 				assertEquals(129, TextStyle.decodeBackColor(style));
 			}
 		}
-		// Background color to 139:
+
 		enterString("\033[48;5;139m");
-		// Insert two blank lines.
+
 		enterString("\033[2L");
 		for (int r = 0; r < rows; r++) {
 			for (int c = 0; c < cols; c++) {
@@ -283,9 +283,9 @@ public class TerminalTest extends TerminalTestCase {
 		}
 
 		withTerminalSized(cols, rows);
-		// Background color to 129:
+
 		enterString("\033[48;5;129m");
-		// Erase two characters, filling them with background color:
+
 		enterString("\033[2X");
 		assertEquals(129, TextStyle.decodeBackColor(getStyleAt(0, 0)));
 		assertEquals(129, TextStyle.decodeBackColor(getStyleAt(0, 1)));
@@ -309,15 +309,15 @@ public class TerminalTest extends TerminalTestCase {
 
 	/** The ncurses library still uses this. */
 	public void testLineDrawing() {
-		// 016 - shift out / G1. 017 - shift in / G0. "ESC ) 0" - use line drawing for G1
+
 		withTerminalSized(4, 2).enterString("q\033)0q\016q\017q").assertLinesAre("qq─q", "    ");
-		// "\0337", saving cursor should save G0, G1 and invoked charset and "ESC 8" should restore.
+
 		withTerminalSized(4, 2).enterString("\033)0\016qqq\0337\017\0338q").assertLinesAre("────", "    ");
 	}
 
 	public void testSoftTerminalReset() {
-		// See http://vt100.net/docs/vt510-rm/DECSTR and https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=650304
-		// "\033[?7l" is DECRST to disable wrap-around, and DECSTR ("\033[!p") should reset it.
+
+
 		withTerminalSized(3, 3).enterString("\033[?7lABCD").assertLinesAre("ABD", "   ", "   ");
 		enterString("\033[!pEF").assertLinesAre("ABE", "F  ", "   ");
 	}

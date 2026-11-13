@@ -41,7 +41,7 @@ fun computeLineDiff(oldText: String, newText: String): List<DiffLine> {
         }
     }
 
-    val ops = ArrayList<Triple<Int, Int, DiffLine.Kind>>() // (x, y, kind)
+    val ops = ArrayList<Triple<Int, Int, DiffLine.Kind>>()
     var x = n
     var y = m
     for (d in foundD downTo 1) {

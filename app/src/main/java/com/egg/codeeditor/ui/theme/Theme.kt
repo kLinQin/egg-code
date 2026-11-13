@@ -51,7 +51,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = ClaudeDarkPrimary,          // orange tetap sama
+    primary = ClaudeDarkPrimary,
     onPrimary = ClaudeLightOnPrimary,
     secondary = ClaudeLightTextSecondary,
     onSecondary = ClaudeLightBackground,

@@ -50,21 +50,21 @@ public class WcWidthTest extends TestCase {
 	}
 
 	public void testWordJoiner() {
-		// https://en.wikipedia.org/wiki/Word_joiner
-		// The word joiner (WJ) is a code point in Unicode used to separate words when using scripts
-		// that do not use explicit spacing. It is encoded since Unicode version 3.2
-		// (released in 2002) as U+2060 WORD JOINER (HTML &#8288;).
-		// The word joiner does not produce any space, and prohibits a line break at its position.
+
+
+
+
+
 		assertWidthIs(0, 0x2060);
 	}
 
 	public void testSofthyphen() {
-		// http://osdir.com/ml/internationalization.linux/2003-05/msg00006.html:
-		// "Existing implementation practice in terminals is that the SOFT HYPHEN is
-		// a spacing graphical character, and the purpose of my wcwidth() was to
-		// predict the advancement of the cursor position after a string is sent to
-		// a terminal. Hence, I have no choice but to keep wcwidth(SOFT HYPHEN) = 1.
-		// VT100-style terminals do not hyphenate."
+
+
+
+
+
+
 		assertWidthIs(1, 0x00AD);
 	}
 
@@ -73,9 +73,9 @@ public class WcWidthTest extends TestCase {
 	}
 
 	public void testEmojis() {
-		assertWidthIs(2, 0x1F428); // KOALA.
-		assertWidthIs(2, 0x231a);  // WATCH.
-		assertWidthIs(2, 0x1F643); // UPSIDE-DOWN FACE (Unicode 8).
+		assertWidthIs(2, 0x1F428);
+		assertWidthIs(2, 0x231a);
+		assertWidthIs(2, 0x1F643);
 	}
 
 }

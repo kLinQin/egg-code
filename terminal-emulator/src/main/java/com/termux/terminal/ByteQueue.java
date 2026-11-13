@@ -23,7 +23,7 @@ final class ByteQueue {
                 try {
                     wait();
                 } catch (InterruptedException e) {
-                    // Ignore.
+
                 }
             } else {
                 return 0;
@@ -71,7 +71,7 @@ final class ByteQueue {
                     try {
                         wait();
                     } catch (InterruptedException e) {
-                        // Ignore.
+
                     }
                 }
                 if (!mOpen) return false;
@@ -83,12 +83,12 @@ final class ByteQueue {
                     int tail = mHead + mStoredBytes;
                     int oneRun;
                     if (tail >= bufferLength) {
-                        // Buffer: [.............]
-                        // ________________H_______T
-                        // =>
-                        // Buffer: [.............]
-                        // ___________T____H
-                        // onRun= _____----_
+
+
+
+
+
+
                         tail = tail - bufferLength;
                         oneRun = mHead - tail;
                     } else {

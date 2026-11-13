@@ -3,6 +3,8 @@ package com.egg.codeeditor.terminal
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import androidx.core.app.NotificationCompat
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
@@ -35,8 +37,8 @@ class TerminalSessionService : Service() {
     inner class SessionBinder : Binder() {
         fun getService(): TerminalSessionService = this@TerminalSessionService
 
-        fun createSession(id: SessionId, client: TerminalSessionClient): SessionInfo {
-            val (session, pwd) = MkSession.createSession(this@TerminalSessionService, client, id)
+        fun createSession(id: SessionId, client: TerminalSessionClient, workingDir: String? = null): SessionInfo {
+            val (session, pwd) = MkSession.createSession(this@TerminalSessionService, client, id, workingDir)
             sessions[id] = session
             sessionWorkDirs[id] = pwd
             _sessionList.update { list -> list + id }
@@ -117,6 +119,7 @@ class TerminalSessionService : Service() {
 
     override fun onDestroy() {
         sessions.forEach { it.value.finishIfRunning() }
+        sessions.clear()
         if (wakeLock?.isHeld == true) wakeLock?.release()
         super.onDestroy()
     }
@@ -139,12 +142,25 @@ class TerminalSessionService : Service() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "ACTION_EXIT") {
+            sessions.forEach { it.value.finishIfRunning() }
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        return START_STICKY
+    }
+
     private fun createNotification(): Notification {
         val count = sessions.size
-        return android.app.Notification.Builder(this, "egg_terminal")
+        val exitIntent = Intent(this, TerminalSessionService::class.java).apply { action = "ACTION_EXIT" }
+        val exitPending = PendingIntent.getService(this, 1, exitIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        return NotificationCompat.Builder(this, "egg_terminal")
             .setContentTitle("Egg Terminal")
             .setContentText("$count session(s) running")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .addAction(NotificationCompat.Action.Builder(null, "Exit", exitPending).build())
+            .setOngoing(true)
             .build()
     }
 

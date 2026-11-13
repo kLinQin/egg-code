@@ -389,7 +389,7 @@ public final class TerminalEmulator {
 
     private void setDecsetinternalBit(int internalBit, boolean set) {
         if (set) {
-            // The mouse modes are mutually exclusive.
+
             if (internalBit == DECSET_BIT_MOUSE_TRACKING_PRESS_RELEASE) {
                 setDecsetinternalBit(DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT, false);
             } else if (internalBit == DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT) {
@@ -431,7 +431,7 @@ public final class TerminalEmulator {
                 return DECSET_BIT_BRACKETED_PASTE_MODE;
             default:
                 return -1;
-            // throw new IllegalArgumentException("Unsupported decset: " + decsetBit);
+
         }
     }
 
@@ -479,12 +479,12 @@ public final class TerminalEmulator {
         if (row > mRows) row = mRows;
 
         if (mouseButton == MOUSE_LEFT_BUTTON_MOVED && !isDecsetInternalBitSet(DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT)) {
-            // Do not send tracking.
+
         } else if (isDecsetInternalBitSet(DECSET_BIT_MOUSE_PROTOCOL_SGR)) {
             mSession.write(String.format("\033[<%d;%d;%d" + (pressed ? 'M' : 'm'), mouseButton, column, row));
         } else {
-            mouseButton = pressed ? mouseButton : 3; // 3 for release of all buttons.
-            // Clip to screen, and clip to the limits of 8-bit data.
+            mouseButton = pressed ? mouseButton : 3;
+
             boolean out_of_bounds = column > 255 - 32 || row > 255 - 32;
             if (!out_of_bounds) {
                 byte[] data = {'\033', '[', 'M', (byte) (32 + mouseButton), (byte) (32 + column), (byte) (32 + row)};
@@ -620,7 +620,7 @@ public final class TerminalEmulator {
     private void processByte(byte byteToProcess) {
         if (mUtf8ToFollow > 0) {
             if ((byteToProcess & 0b11000000) == 0b10000000) {
-                // 10xxxxxx, a continuation byte.
+
                 mUtf8InputBuffer[mUtf8Index++] = byteToProcess;
                 if (--mUtf8ToFollow == 0) {
                     byte firstByteMask = (byte) (mUtf8Index == 2 ? 0b00011111 : (mUtf8Index == 3 ? 0b00001111 : 0b00000111));
@@ -629,18 +629,18 @@ public final class TerminalEmulator {
                         codePoint = ((codePoint << 6) | (mUtf8InputBuffer[i] & 0b00111111));
                     if (((codePoint <= 0b1111111) && mUtf8Index > 1) || (codePoint < 0b11111111111 && mUtf8Index > 2)
                             || (codePoint < 0b1111111111111111 && mUtf8Index > 3)) {
-                        // Overlong encoding.
+
                         codePoint = UNICODE_REPLACEMENT_CHAR;
                     }
 
                     mUtf8Index = mUtf8ToFollow = 0;
 
                     if (codePoint >= 0x80 && codePoint <= 0x9F) {
-                        // Sequence decoded to a C1 control character which we ignore. They are
-                        // not used nowadays and increases the risk of messing up the terminal state
-                        // on binary input. XTerm does not allow them in utf-8:
-                        // "It is not possible to use a C1 control obtained from decoding the
-                        // UTF-8 text" - http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+
+
+
+
+
                     } else {
                         switch (Character.getType(codePoint)) {
                             case Character.UNASSIGNED:
@@ -651,30 +651,30 @@ public final class TerminalEmulator {
                     }
                 }
             } else {
-                // Not a UTF-8 continuation byte so replace the entire sequence up to now with the replacement char:
+
                 mUtf8Index = mUtf8ToFollow = 0;
                 emitCodePoint(UNICODE_REPLACEMENT_CHAR);
-                // The Unicode Standard Version 6.2 – Core Specification
-                // (http://www.unicode.org/versions/Unicode6.2.0/ch03.pdf):
-                // "If the converter encounters an ill-formed UTF-8 code unit sequence which starts with a valid first
-                // byte, but which does not continue with valid successor bytes (see Table 3-7), it must not consume the
-                // successor bytes as part of the ill-formed subsequence
-                // whenever those successor bytes themselves constitute part of a well-formed UTF-8 code unit
-                // subsequence."
+
+
+
+
+
+
+
                 processByte(byteToProcess);
             }
         } else {
-            if ((byteToProcess & 0b10000000) == 0) { // The leading bit is not set so it is a 7-bit ASCII character.
+            if ((byteToProcess & 0b10000000) == 0) {
                 processCodePoint(byteToProcess);
                 return;
-            } else if ((byteToProcess & 0b11100000) == 0b11000000) { // 110xxxxx, a two-byte sequence.
+            } else if ((byteToProcess & 0b11100000) == 0b11000000) {
                 mUtf8ToFollow = 1;
-            } else if ((byteToProcess & 0b11110000) == 0b11100000) { // 1110xxxx, a three-byte sequence.
+            } else if ((byteToProcess & 0b11110000) == 0b11100000) {
                 mUtf8ToFollow = 2;
-            } else if ((byteToProcess & 0b11111000) == 0b11110000) { // 11110xxx, a four-byte sequence.
+            } else if ((byteToProcess & 0b11111000) == 0b11110000) {
                 mUtf8ToFollow = 3;
             } else {
-                // Not a valid UTF-8 sequence start, signal invalid data:
+
                 processCodePoint(UNICODE_REPLACEMENT_CHAR);
                 return;
             }
@@ -683,7 +683,7 @@ public final class TerminalEmulator {
     }
 
     public void processCodePoint(int b) {
-        // The Application Program-Control (APC) string might be arbitrary non-printable characters, so handle that early.
+
         if (mEscapeState == ESC_APC) {
             doApc(b);
             return;
@@ -693,17 +693,17 @@ public final class TerminalEmulator {
         }
 
         switch (b) {
-            case 0: // Null character (NUL, ^@). Do nothing.
+            case 0:
                 break;
-            case 7: // Bell (BEL, ^G, \a). If in an OSC sequence, BEL may terminate a string; otherwise signal bell.
+            case 7:
                 if (mEscapeState == ESC_OSC)
                     doOsc(b);
                 else
                     mSession.onBell();
                 break;
-            case 8: // Backspace (BS, ^H).
+            case 8:
                 if (mLeftMargin == mCursorCol) {
-                    // Jump to previous line if it was auto-wrapped.
+
                     int previousRow = mCursorRow - 1;
                     if (previousRow >= 0 && mScreen.getLineWrap(previousRow)) {
                         mScreen.clearLineWrap(previousRow);
@@ -713,42 +713,42 @@ public final class TerminalEmulator {
                     setCursorCol(mCursorCol - 1);
                 }
                 break;
-            case 9: // Horizontal tab (HT, \t) - move to next tab stop, but not past edge of screen
-                // XXX: Should perhaps use color if writing to new cells. Try with
-                //       printf "\033[41m\tXX\033[0m\n"
-                // The OSX Terminal.app colors the spaces from the tab red, but xterm does not.
-                // Note that Terminal.app only colors on new cells, in e.g.
-                //       printf "\033[41m\t\r\033[42m\tXX\033[0m\n"
-                // the first cells are created with a red background, but when tabbing over
-                // them again with a green background they are not overwritten.
+            case 9:
+
+
+
+
+
+
+
                 mCursorCol = nextTabStop(1);
                 break;
-            case 10: // Line feed (LF, \n).
-            case 11: // Vertical tab (VT, \v).
-            case 12: // Form feed (FF, \f).
+            case 10:
+            case 11:
+            case 12:
                 doLinefeed();
                 break;
-            case 13: // Carriage return (CR, \r).
+            case 13:
                 setCursorCol(mLeftMargin);
                 break;
-            case 14: // Shift Out (Ctrl-N, SO) → Switch to Alternate Character Set. This invokes the G1 character set.
+            case 14:
                 mUseLineDrawingUsesG0 = false;
                 break;
-            case 15: // Shift In (Ctrl-O, SI) → Switch to Standard Character Set. This invokes the G0 character set.
+            case 15:
                 mUseLineDrawingUsesG0 = true;
                 break;
-            case 24: // CAN.
-            case 26: // SUB.
+            case 24:
+            case 26:
                 if (mEscapeState != ESC_NONE) {
-                    // FIXME: What is this??
+
                     mEscapeState = ESC_NONE;
                     emitCodePoint(127);
                 }
                 break;
-            case 27: // ESC
-                // Starts an escape sequence unless we're parsing a string
+            case 27:
+
                 if (mEscapeState == ESC_P) {
-                    // XXX: Ignore escape when reading device control sequence, since it may be part of string terminator.
+
                     return;
                 } else if (mEscapeState != ESC_OSC) {
                     startEscapeSequence();
@@ -768,10 +768,10 @@ public final class TerminalEmulator {
                     case ESC_POUND:
                         doEscPound(b);
                         break;
-                    case ESC_SELECT_LEFT_PAREN: // Designate G0 Character Set (ISO 2022, VT100).
+                    case ESC_SELECT_LEFT_PAREN:
                         mUseLineDrawingG0 = (b == '0');
                         break;
-                    case ESC_SELECT_RIGHT_PAREN: // Designate G1 Character Set (ISO 2022, VT100).
+                    case ESC_SELECT_RIGHT_PAREN:
                         mUseLineDrawingG1 = (b == '0');
                         break;
                     case ESC_CSI:
@@ -782,7 +782,7 @@ public final class TerminalEmulator {
                         doCsiUnsupportedParameterOrIntermediateByte(b);
                         break;
                     case ESC_CSI_EXCLAMATION:
-                        if (b == 'p') { // Soft terminal reset (DECSTR, http://vt100.net/docs/vt510-rm/DECSTR).
+                        if (b == 'p') {
                             reset();
                         } else {
                             unknownSequence(b);
@@ -801,46 +801,46 @@ public final class TerminalEmulator {
                         int effectiveLeftMargin = originMode ? mLeftMargin : 0;
                         int effectiveRightMargin = originMode ? mRightMargin : mColumns;
                         switch (b) {
-                            case 'v': // ${CSI}${SRC_TOP}${SRC_LEFT}${SRC_BOTTOM}${SRC_RIGHT}${SRC_PAGE}${DST_TOP}${DST_LEFT}${DST_PAGE}$v"
-                                // Copy rectangular area (DECCRA - http://vt100.net/docs/vt510-rm/DECCRA):
-                                // "If Pbs is greater than Pts, or Pls is greater than Prs, the terminal ignores DECCRA.
-                                // The coordinates of the rectangular area are affected by the setting of origin mode (DECOM).
-                                // DECCRA is not affected by the page margins.
-                                // The copied text takes on the line attributes of the destination area.
-                                // If the value of Pt, Pl, Pb, or Pr exceeds the width or height of the active page, then the value
-                                // is treated as the width or height of that page.
-                                // If the destination area is partially off the page, then DECCRA clips the off-page data.
-                                // DECCRA does not change the active cursor position."
+                            case 'v':
+
+
+
+
+
+
+
+
+
                                 int topSource = Math.min(getArg(0, 1, true) - 1 + effectiveTopMargin, mRows);
                                 int leftSource = Math.min(getArg(1, 1, true) - 1 + effectiveLeftMargin, mColumns);
-                                // Inclusive, so do not subtract one:
+
                                 int bottomSource = Math.min(Math.max(getArg(2, mRows, true) + effectiveTopMargin, topSource), mRows);
                                 int rightSource = Math.min(Math.max(getArg(3, mColumns, true) + effectiveLeftMargin, leftSource), mColumns);
-                                // int sourcePage = getArg(4, 1, true);
+
                                 int destionationTop = Math.min(getArg(5, 1, true) - 1 + effectiveTopMargin, mRows);
                                 int destinationLeft = Math.min(getArg(6, 1, true) - 1 + effectiveLeftMargin, mColumns);
-                                // int destinationPage = getArg(7, 1, true);
+
                                 int heightToCopy = Math.min(mRows - destionationTop, bottomSource - topSource);
                                 int widthToCopy = Math.min(mColumns - destinationLeft, rightSource - leftSource);
                                 mScreen.blockCopy(leftSource, topSource, widthToCopy, heightToCopy, destinationLeft, destionationTop);
                                 break;
-                            case '{': // ${CSI}${TOP}${LEFT}${BOTTOM}${RIGHT}${"
-                                // Selective erase rectangular area (DECSERA - http://www.vt100.net/docs/vt510-rm/DECSERA).
-                            case 'x': // ${CSI}${CHAR};${TOP}${LEFT}${BOTTOM}${RIGHT}$x"
-                                // Fill rectangular area (DECFRA - http://www.vt100.net/docs/vt510-rm/DECFRA).
-                            case 'z': // ${CSI}$${TOP}${LEFT}${BOTTOM}${RIGHT}$z"
-                                // Erase rectangular area (DECERA - http://www.vt100.net/docs/vt510-rm/DECERA).
+                            case '{':
+
+                            case 'x':
+
+                            case 'z':
+
                                 boolean erase = b != 'x';
                                 boolean selective = b == '{';
-                                // Only DECSERA keeps visual attributes, DECERA does not:
+
                                 boolean keepVisualAttributes = erase && selective;
                                 int argIndex = 0;
                                 int fillChar = erase ? ' ' : getArg(argIndex++, -1, true);
-                                // "Pch can be any value from 32 to 126 or from 160 to 255. If Pch is not in this range, then the
-                                // terminal ignores the DECFRA command":
+
+
                                 if ((fillChar >= 32 && fillChar <= 126) || (fillChar >= 160 && fillChar <= 255)) {
-                                    // "If the value of Pt, Pl, Pb, or Pr exceeds the width or height of the active page, the value
-                                    // is treated as the width or height of that page."
+
+
                                     int top = Math.min(getArg(argIndex++, 1, true) + effectiveTopMargin, effectiveBottomMargin + 1);
                                     int left = Math.min(getArg(argIndex++, 1, true) + effectiveLeftMargin, effectiveRightMargin + 1);
                                     int bottom = Math.min(getArg(argIndex++, mRows, true) + effectiveTopMargin, effectiveBottomMargin);
@@ -852,12 +852,12 @@ public final class TerminalEmulator {
                                                 mScreen.setChar(col, row, fillChar, keepVisualAttributes ? mScreen.getStyleAt(row, col) : style);
                                 }
                                 break;
-                            case 'r': // "${CSI}${TOP}${LEFT}${BOTTOM}${RIGHT}${ATTRIBUTES}$r"
-                                // Change attributes in rectangular area (DECCARA - http://vt100.net/docs/vt510-rm/DECCARA).
-                            case 't': // "${CSI}${TOP}${LEFT}${BOTTOM}${RIGHT}${ATTRIBUTES}$t"
-                                // Reverse attributes in rectangular area (DECRARA - http://www.vt100.net/docs/vt510-rm/DECRARA).
+                            case 'r':
+
+                            case 't':
+
                                 boolean reverse = b == 't';
-                                // FIXME: "coordinates of the rectangular area are affected by the setting of origin mode (DECOM)".
+
                                 int top = Math.min(getArg(0, 1, true) - 1, effectiveBottomMargin) + effectiveTopMargin;
                                 int left = Math.min(getArg(1, 1, true) - 1, effectiveRightMargin) + effectiveLeftMargin;
                                 int bottom = Math.min(getArg(2, mRows, true) + 1, effectiveBottomMargin - 1) + effectiveTopMargin;
@@ -866,51 +866,51 @@ public final class TerminalEmulator {
                                     if (mArgIndex >= mArgs.length) mArgIndex = mArgs.length - 1;
                                     for (int i = 4; i <= mArgIndex; i++) {
                                         int bits = 0;
-                                        boolean setOrClear = true; // True if setting, false if clearing.
+                                        boolean setOrClear = true;
                                         switch (getArg(i, 0, false)) {
-                                            case 0: // Attributes off (no bold, no underline, no blink, positive image).
+                                            case 0:
                                                 bits = (TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE | TextStyle.CHARACTER_ATTRIBUTE_BLINK
                                                         | TextStyle.CHARACTER_ATTRIBUTE_INVERSE);
                                                 if (!reverse) setOrClear = false;
                                                 break;
-                                            case 1: // Bold.
+                                            case 1:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_BOLD;
                                                 break;
-                                            case 4: // Underline.
+                                            case 4:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                                                 break;
-                                            case 5: // Blink.
+                                            case 5:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_BLINK;
                                                 break;
-                                            case 7: // Negative image.
+                                            case 7:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_INVERSE;
                                                 break;
-                                            case 22: // No bold.
+                                            case 22:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_BOLD;
                                                 setOrClear = false;
                                                 break;
-                                            case 24: // No underline.
+                                            case 24:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                                                 setOrClear = false;
                                                 break;
-                                            case 25: // No blink.
+                                            case 25:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_BLINK;
                                                 setOrClear = false;
                                                 break;
-                                            case 27: // Positive image.
+                                            case 27:
                                                 bits = TextStyle.CHARACTER_ATTRIBUTE_INVERSE;
                                                 setOrClear = false;
                                                 break;
                                         }
                                         if (reverse && !setOrClear) {
-                                            // Reverse attributes in rectangular area ignores non-(1,4,5,7) bits.
+
                                         } else {
                                             mScreen.setOrClearEffect(bits, setOrClear, reverse, isDecsetInternalBitSet(DECSET_BIT_RECTANGULAR_CHANGEATTRIBUTE),
                                                     effectiveLeftMargin, effectiveRightMargin, top, left, bottom, right);
                                         }
                                     }
                                 } else {
-                                    // Do nothing.
+
                                 }
                                 break;
                             default:
@@ -919,13 +919,13 @@ public final class TerminalEmulator {
                         break;
                     case ESC_CSI_DOUBLE_QUOTE:
                         if (b == 'q') {
-                            // http://www.vt100.net/docs/vt510-rm/DECSCA
+
                             int arg = getArg0(0);
                             if (arg == 0 || arg == 2) {
-                                // DECSED and DECSEL can erase characters.
+
                                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_PROTECTED;
                             } else if (arg == 1) {
-                                // DECSED and DECSEL cannot erase characters.
+
                                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_PROTECTED;
                             } else {
                                 unknownSequence(b);
@@ -935,13 +935,13 @@ public final class TerminalEmulator {
                         }
                         break;
                     case ESC_CSI_SINGLE_QUOTE:
-                        if (b == '}') { // Insert Ps Column(s) (default = 1) (DECIC), VT420 and up.
+                        if (b == '}') {
                             int columnsAfterCursor = mRightMargin - mCursorCol;
                             int columnsToInsert = Math.min(getArg0(1), columnsAfterCursor);
                             int columnsToMove = columnsAfterCursor - columnsToInsert;
                             mScreen.blockCopy(mCursorCol, 0, columnsToMove, mRows, mCursorCol + columnsToInsert, 0);
                             blockClear(mCursorCol, 0, columnsToInsert, mRows);
-                        } else if (b == '~') { // Delete Ps Column(s) (default = 1) (DECDC), VT420 and up.
+                        } else if (b == '~') {
                             int columnsAfterCursor = mRightMargin - mCursorCol;
                             int columnsToDelete = Math.min(getArg0(1), columnsAfterCursor);
                             int columnsToMove = columnsAfterCursor - columnsToDelete;
@@ -963,19 +963,19 @@ public final class TerminalEmulator {
                         break;
                     case ESC_CSI_QUESTIONMARK_ARG_DOLLAR:
                         if (b == 'p') {
-                            // Request DEC private mode (DECRQM).
+
                             int mode = getArg0(0);
                             int value;
                             if (mode == 47 || mode == 1047 || mode == 1049) {
-                                // This state is carried by mScreen pointer.
+
                                 value = (mScreen == mAltBuffer) ? 1 : 2;
                             } else {
                                 int internalBit = mapDecSetBitToInternalBit(mode);
                                 if (internalBit != -1) {
-                                    value = isDecsetInternalBitSet(internalBit) ? 1 : 2; // 1=set, 2=reset.
+                                    value = isDecsetInternalBitSet(internalBit) ? 1 : 2;
                                 } else {
                                     Logger.logError(mClient, LOG_TAG, "Got DECRQM for unrecognized private DEC mode=" + mode);
-                                    value = 0; // 0=not recognized, 3=permanently set, 4=permanently reset
+                                    value = 0;
                                 }
                             }
                             mSession.write(String.format(Locale.US, "\033[?%d;%d$y", mode, value));
@@ -986,26 +986,26 @@ public final class TerminalEmulator {
                     case ESC_CSI_ARGS_SPACE:
                         int arg = getArg0(0);
                         switch (b) {
-                            case 'q': // "${CSI}${STYLE} q" - set cursor style (http://www.vt100.net/docs/vt510-rm/DECSCUSR).
+                            case 'q':
                                 switch (arg) {
-                                    case 0: // Blinking block.
-                                    case 1: // Blinking block.
-                                    case 2: // Steady block.
+                                    case 0:
+                                    case 1:
+                                    case 2:
                                         mCursorStyle = TERMINAL_CURSOR_STYLE_BLOCK;
                                         break;
-                                    case 3: // Blinking underline.
-                                    case 4: // Steady underline.
+                                    case 3:
+                                    case 4:
                                         mCursorStyle = TERMINAL_CURSOR_STYLE_UNDERLINE;
                                         break;
-                                    case 5: // Blinking bar (xterm addition).
-                                    case 6: // Steady bar (xterm addition).
+                                    case 5:
+                                    case 6:
                                         mCursorStyle = TERMINAL_CURSOR_STYLE_BAR;
                                         break;
                                 }
                                 break;
                             case 't':
                             case 'u':
-                                // Set margin-bell volume - ignore.
+
                                 break;
                             default:
                                 unknownSequence(b);
@@ -1014,7 +1014,7 @@ public final class TerminalEmulator {
                     case ESC_CSI_ARGS_ASTERIX:
                         int attributeChangeExtent = getArg0(0);
                         if (b == 'x' && (attributeChangeExtent >= 0 && attributeChangeExtent <= 2)) {
-                            // Select attribute change extent (DECSACE - http://www.vt100.net/docs/vt510-rm/DECSACE).
+
                             setDecsetinternalBit(DECSET_BIT_RECTANGULAR_CHANGEATTRIBUTE, attributeChangeExtent == 2);
                         } else {
                             unknownSequence(b);
@@ -1034,55 +1034,55 @@ public final class TerminalEmulator {
      */
     private void doDeviceControl(int b) {
         switch (b) {
-            case (byte) '\\': // End of ESC \ string Terminator
+            case (byte) '\\':
             {
                 String dcs = mOSCOrDeviceControlArgs.toString();
-                // DCS $ q P t ST. Request Status String (DECRQSS)
+
                 if (dcs.startsWith("$q")) {
                     if (dcs.equals("$q\"p")) {
-                        // DECSCL, conformance level, http://www.vt100.net/docs/vt510-rm/DECSCL:
+
                         String csiString = "64;1\"p";
                         mSession.write("\033P1$r" + csiString + "\033\\");
                     } else {
                         finishSequenceAndLogError("Unrecognized DECRQSS string: '" + dcs + "'");
                     }
                 } else if (dcs.startsWith("+q")) {
-                    // Request Termcap/Terminfo String. The string following the "q" is a list of names encoded in
-                    // hexadecimal (2 digits per character) separated by ; which correspond to termcap or terminfo key
-                    // names.
-                    // Two special features are also recognized, which are not key names: Co for termcap colors (or colors
-                    // for terminfo colors), and TN for termcap name (or name for terminfo name).
-                    // xterm responds with DCS 1 + r P t ST for valid requests, adding to P t an = , and the value of the
-                    // corresponding string that xterm would send, or DCS 0 + r P t ST for invalid requests. The strings are
-                    // encoded in hexadecimal (2 digits per character).
-                    // Example:
-                    // :kr=\EOC: ks=\E[?1h\E=: ku=\EOA: le=^H:mb=\E[5m:md=\E[1m:\
-                    // where
-                    // kd=down-arrow key
-                    // kl=left-arrow key
-                    // kr=right-arrow key
-                    // ku=up-arrow key
-                    // #2=key_shome, "shifted home"
-                    // #4=key_sleft, "shift arrow left"
-                    // %i=key_sright, "shift arrow right"
-                    // *7=key_send, "shifted end"
-                    // k1=F1 function key
 
-                    // Example: Request for ku is "ESC P + q 6 b 7 5 ESC \", where 6b7d=ku in hexadecimal.
-                    // Xterm response in normal cursor mode:
-                    // "<27> P 1 + r 6 b 7 5 = 1 B 5 B 4 1" where 0x1B 0x5B 0x41 = 27 91 65 = ESC [ A
-                    // Xterm response in application cursor mode:
-                    // "<27> P 1 + r 6 b 7 5 = 1 B 5 B 4 1" where 0x1B 0x4F 0x41 = 27 91 65 = ESC 0 A
 
-                    // #4 is "shift arrow left":
-                    // *** Device Control (DCS) for '#4'- 'ESC P + q 23 34 ESC \'
-                    // Response: <27> P 1 + r 2 3 3 4 = 1 B 5 B 3 1 3 B 3 2 4 4 <27> \
-                    // where 0x1B 0x5B 0x31 0x3B 0x32 0x44 = ESC [ 1 ; 2 D
-                    // which we find in: TermKeyListener.java: KEY_MAP.put(KEYMOD_SHIFT | KEYCODE_DPAD_LEFT, "\033[1;2D");
 
-                    // See http://h30097.www3.hp.com/docs/base_doc/DOCUMENTATION/V40G_HTML/MAN/MAN4/0178____.HTM for what to
-                    // respond, as well as http://www.freebsd.org/cgi/man.cgi?query=termcap&sektion=5#CAPABILITIES for
-                    // the meaning of e.g. "ku", "kd", "kr", "kl"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                     for (String part : dcs.substring(2).split(";")) {
                         if (part.length() % 2 == 0) {
@@ -1103,7 +1103,7 @@ public final class TerminalEmulator {
                             switch (trans) {
                                 case "Co":
                                 case "colors":
-                                    responseValue = "256"; // Number of colors.
+                                    responseValue = "256";
                                     break;
                                 case "TN":
                                 case "name":
@@ -1116,13 +1116,13 @@ public final class TerminalEmulator {
                             }
                             if (responseValue == null) {
                                 switch (trans) {
-                                    case "%1": // Help key - ignore
-                                    case "&8": // Undo key - ignore.
+                                    case "%1":
+                                    case "&8":
                                         break;
                                     default:
                                         Logger.logWarn(mClient, LOG_TAG, "Unhandled termcap/terminfo name: '" + trans + "'");
                                 }
-                                // Respond with invalid request:
+
                                 mSession.write("\033P0+r" + part + "\033\\");
                             } else {
                                 StringBuilder hexEncoded = new StringBuilder();
@@ -1144,7 +1144,7 @@ public final class TerminalEmulator {
             break;
             default:
                 if (mOSCOrDeviceControlArgs.length() > MAX_OSC_STRING_LENGTH) {
-                    // Too long.
+
                     mOSCOrDeviceControlArgs.setLength(0);
                     finishSequence();
                 } else {
@@ -1161,7 +1161,7 @@ public final class TerminalEmulator {
         if (b == 27) {
             continueSequence(ESC_APC_ESCAPE);
         }
-        // Eat APC sequences silently for now.
+
     }
 
     /**
@@ -1169,11 +1169,11 @@ public final class TerminalEmulator {
      */
     private void doApcEscape(int b) {
         if (b == '\\') {
-            // A String Terminator (ST), ending the APC escape sequence.
+
             finishSequence();
         } else {
-            // The Escape character was not the start of a String Terminator (ST),
-            // but instead just data inside of the APC escape sequence.
+
+
             continueSequence(ESC_APC);
         }
     }
@@ -1200,15 +1200,15 @@ public final class TerminalEmulator {
      */
     private void doCsiUnsupportedParameterOrIntermediateByte(int b) {
         if (mEscapeState == ESC_CSI_UNSUPPORTED_PARAMETER_BYTE && b >= 0x30 && b <= 0x3F) {
-            // Supported `0–9:;>?` or unsupported `<=` parameter byte after an
-            // initial unsupported parameter byte in `doCsi()`, or a sequential parameter byte.
+
+
             continueSequence(ESC_CSI_UNSUPPORTED_PARAMETER_BYTE);
         } else if (b >= 0x20 && b <= 0x2F) {
-            // Optional intermediate byte `!"#$%&'()*+,-./` after parameter or intermediate byte.
+
             continueSequence(ESC_CSI_UNSUPPORTED_INTERMEDIATE_BYTE);
         } else if (b >= 0x40 && b <= 0x7E) {
-            // Final byte `@A–Z[\]^_`a–z{|}~` after parameter or intermediate byte.
-            // Calling `unknownSequence()` would log an error with only a final byte, so ignore it for now.
+
+
             finishSequence();
         } else {
             unknownSequence(b);
@@ -1220,8 +1220,8 @@ public final class TerminalEmulator {
      */
     private void doCsiQuestionMark(int b) {
         switch (b) {
-            case 'J': // Selective erase in display (DECSED) - http://www.vt100.net/docs/vt510-rm/DECSED.
-            case 'K': // Selective erase in line (DECSEL) - http://vt100.net/docs/vt510-rm/DECSEL.
+            case 'J':
+            case 'K':
                 mAboutToAutoWrap = false;
                 int fillChar = ' ';
                 int startCol = -1;
@@ -1230,19 +1230,19 @@ public final class TerminalEmulator {
                 int endRow = -1;
                 boolean justRow = (b == 'K');
                 switch (getArg0(0)) {
-                    case 0: // Erase from the active position to the end, inclusive (default).
+                    case 0:
                         startCol = mCursorCol;
                         startRow = mCursorRow;
                         endCol = mColumns;
                         endRow = justRow ? (mCursorRow + 1) : mRows;
                         break;
-                    case 1: // Erase from start to the active position, inclusive.
+                    case 1:
                         startCol = 0;
                         startRow = justRow ? mCursorRow : 0;
                         endCol = mCursorCol + 1;
                         endRow = mCursorRow + 1;
                         break;
-                    case 2: // Erase all of the display/line.
+                    case 2:
                         startCol = 0;
                         startRow = justRow ? mCursorRow : 0;
                         endCol = mColumns;
@@ -1266,10 +1266,10 @@ public final class TerminalEmulator {
                 for (int i = 0; i <= mArgIndex; i++)
                     doDecSetOrReset(b == 'h', mArgs[i]);
                 break;
-            case 'n': // Device Status Report (DSR, DEC-specific).
+            case 'n':
                 switch (getArg0(-1)) {
                     case 6:
-                        // Extended Cursor Position (DECXCPR - http://www.vt100.net/docs/vt510-rm/DECXCPR). Page=1.
+
                         mSession.write(String.format(Locale.US, "\033[?%d;%d;1R", mCursorRow + 1, mCursorCol + 1));
                         break;
                     default:
@@ -1308,42 +1308,42 @@ public final class TerminalEmulator {
             setDecsetinternalBit(internalBit, setting);
         }
         switch (externalBit) {
-            case 1: // Application Cursor Keys (DECCKM).
+            case 1:
                 break;
-            case 3: // Set: 132 column mode (. Reset: 80 column mode. ANSI name: DECCOLM.
-                // We don't actually set/reset 132 cols, but we do want the side effects
-                // (FIXME: Should only do this if the 95 DECSET bit (DECNCSM) is set, and if changing value?):
-                // Sets the left, right, top and bottom scrolling margins to their default positions, which is important for
-                // the "reset" utility to really reset the terminal:
+            case 3:
+
+
+
+
                 mLeftMargin = mTopMargin = 0;
                 mBottomMargin = mRows;
                 mRightMargin = mColumns;
-                // "DECCOLM resets vertical split screen mode (DECLRMM) to unavailable":
+
                 setDecsetinternalBit(DECSET_BIT_LEFTRIGHT_MARGIN_MODE, false);
-                // "Erases all data in page memory":
+
                 blockClear(0, 0, mColumns, mRows);
                 setCursorRowCol(0, 0);
                 break;
-            case 4: // DECSCLM-Scrolling Mode. Ignore.
+            case 4:
                 break;
-            case 5: // Reverse video. No action.
+            case 5:
                 break;
-            case 6: // Set: Origin Mode. Reset: Normal Cursor Mode. Ansi name: DECOM.
+            case 6:
                 if (setting) setCursorPosition(0, 0);
                 break;
-            case 7: // Wrap-around bit, not specific action.
-            case 8: // Auto-repeat Keys (DECARM). Do not implement.
-            case 9: // X10 mouse reporting - outdated. Do not implement.
-            case 12: // Control cursor blinking - ignore.
-            case 25: // Hide/show cursor - no action needed, renderer will check with shouldCursorBeVisible().
+            case 7:
+            case 8:
+            case 9:
+            case 12:
+            case 25:
                 if (mClient != null)
                     mClient.onTerminalCursorStateChange(setting);
                 break;
-            case 40: // Allow 80 => 132 Mode, ignore.
-            case 45: // TODO: Reverse wrap-around. Implement???
-            case 66: // Application keypad (DECNKM).
+            case 40:
+            case 45:
+            case 66:
                 break;
-            case 69: // Left and right margin mode (DECLRMM).
+            case 69:
                 if (!setting) {
                     mLeftMargin = 0;
                     mRightMargin = mColumns;
@@ -1354,12 +1354,12 @@ public final class TerminalEmulator {
             case 1002:
             case 1003:
             case 1004:
-            case 1005: // UTF-8 mouse mode, ignore.
-            case 1006: // SGR Mouse Mode
+            case 1005:
+            case 1006:
             case 1015:
-            case 1034: // Interpret "meta" key, sets eighth bit.
+            case 1034:
                 break;
-            case 1048: // Set: Save cursor as in DECSC. Reset: Restore cursor as in DECRC.
+            case 1048:
                 if (setting)
                     saveCursor();
                 else
@@ -1368,8 +1368,8 @@ public final class TerminalEmulator {
             case 47:
             case 1047:
             case 1049: {
-                // Set: Save cursor as in DECSC and use Alternate Screen Buffer, clearing it first.
-                // Reset: Use Normal Screen Buffer and restore cursor as in DECRC.
+
+
                 TerminalBuffer newScreen = setting ? mAltBuffer : mMainBuffer;
                 if (newScreen != mScreen) {
                     boolean resized = !(newScreen.mColumns == mColumns && newScreen.mScreenRows == mRows);
@@ -1380,21 +1380,21 @@ public final class TerminalEmulator {
                         int row = mSavedStateMain.mSavedCursorRow;
                         restoreCursor();
                         if (resized) {
-                            // Restore cursor position _not_ clipped to current screen (let resizeScreen() handle that):
+
                             mCursorCol = col;
                             mCursorRow = row;
                         }
                     }
-                    // Check if buffer size needs to be updated:
+
                     if (resized) resizeScreen();
-                    // Clear new screen if alt buffer:
+
                     if (newScreen == mAltBuffer)
                         newScreen.blockSet(0, 0, mColumns, mRows, ' ', getStyle());
                 }
                 break;
             }
             case 2004:
-                // Bracketed paste mode - setting bit is enough.
+
                 break;
             default:
                 unknownParameter(externalBit);
@@ -1404,76 +1404,76 @@ public final class TerminalEmulator {
 
     private void doCsiBiggerThan(int b) {
         switch (b) {
-            case 'c': // "${CSI}>c" or "${CSI}>c". Secondary Device Attributes (DA2).
-                // Originally this was used for the terminal to respond with "identification code, firmware version level,
-                // and hardware options" (http://vt100.net/docs/vt510-rm/DA2), with the first "41" meaning the VT420
-                // terminal type. This is not used anymore, but the second version level field has been changed by xterm
-                // to mean it's release number ("patch numbers" listed at http://invisible-island.net/xterm/xterm.log.html),
-                // and some applications use it as a feature check:
-                // * tmux used to have a "xterm won't reach version 500 for a while so set that as the upper limit" check,
-                // and then check "xterm_version > 270" if rectangular area operations such as DECCRA could be used.
-                // * vim checks xterm version number >140 for "Request termcap/terminfo string" functionality >276 for SGR
-                // mouse report.
-                // The third number is a keyboard identifier not used nowadays.
+            case 'c':
+
+
+
+
+
+
+
+
+
+
                 mSession.write("\033[>41;320;0c");
                 break;
             case 'm':
-                // https://bugs.launchpad.net/gnome-terminal/+bug/96676/comments/25
-                // Depending on the first number parameter, this can set one of the xterm resources
-                // modifyKeyboard, modifyCursorKeys, modifyFunctionKeys and modifyOtherKeys.
-                // http://invisible-island.net/xterm/manpage/xterm.html#RESOURCES
 
-                // * modifyKeyboard (parameter=1):
-                // Normally xterm makes a special case regarding modifiers (shift, control, etc.) to handle special keyboard
-                // layouts (legacy and vt220). This is done to provide compatible keyboards for DEC VT220 and related
-                // terminals that implement user-defined keys (UDK).
-                // The bits of the resource value selectively enable modification of the given category when these keyboards
-                // are selected. The default is "0":
-                // (0) The legacy/vt220 keyboards interpret only the Control-modifier when constructing numbered
-                // function-keys. Other special keys are not modified.
-                // (1) allows modification of the numeric keypad
-                // (2) allows modification of the editing keypad
-                // (4) allows modification of function-keys, overrides use of Shift-modifier for UDK.
-                // (8) allows modification of other special keys
 
-                // * modifyCursorKeys (parameter=2):
-                // Tells how to handle the special case where Control-, Shift-, Alt- or Meta-modifiers are used to add a
-                // parameter to the escape sequence returned by a cursor-key. The default is "2".
-                // - Set it to -1 to disable it.
-                // - Set it to 0 to use the old/obsolete behavior.
-                // - Set it to 1 to prefix modified sequences with CSI.
-                // - Set it to 2 to force the modifier to be the second parameter if it would otherwise be the first.
-                // - Set it to 3 to mark the sequence with a ">" to hint that it is private.
 
-                // * modifyFunctionKeys (parameter=3):
-                // Tells how to handle the special case where Control-, Shift-, Alt- or Meta-modifiers are used to add a
-                // parameter to the escape sequence returned by a (numbered) function-
-                // key. The default is "2". The resource values are similar to modifyCursorKeys:
-                // Set it to -1 to permit the user to use shift- and control-modifiers to construct function-key strings
-                // using the normal encoding scheme.
-                // - Set it to 0 to use the old/obsolete behavior.
-                // - Set it to 1 to prefix modified sequences with CSI.
-                // - Set it to 2 to force the modifier to be the second parameter if it would otherwise be the first.
-                // - Set it to 3 to mark the sequence with a ">" to hint that it is private.
-                // If modifyFunctionKeys is zero, xterm uses Control- and Shift-modifiers to allow the user to construct
-                // numbered function-keys beyond the set provided by the keyboard:
-                // (Control) adds the value given by the ctrlFKeys resource.
-                // (Shift) adds twice the value given by the ctrlFKeys resource.
-                // (Control/Shift) adds three times the value given by the ctrlFKeys resource.
-                //
-                // As a special case, legacy (when oldFunctionKeys is true) or vt220 (when sunKeyboard is true)
-                // keyboards interpret only the Control-modifier when constructing numbered function-keys.
-                // This is done to provide compatible keyboards for DEC VT220 and related terminals that
-                // implement user-defined keys (UDK).
 
-                // * modifyOtherKeys (parameter=4):
-                // Like modifyCursorKeys, tells xterm to construct an escape sequence for other keys (such as "2") when
-                // modified by Control-, Alt- or Meta-modifiers. This feature does not apply to function keys and
-                // well-defined keys such as ESC or the control keys. The default is "0".
-                // (0) disables this feature.
-                // (1) enables this feature for keys except for those with well-known behavior, e.g., Tab, Backarrow and
-                // some special control character cases, e.g., Control-Space to make a NUL.
-                // (2) enables this feature for keys including the exceptions listed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 Logger.logError(mClient, LOG_TAG, "(ignored) CSI > MODIFY RESOURCE: " + getArg0(-1) + " to " + getArg1(-1));
                 break;
             default:
@@ -1493,7 +1493,7 @@ public final class TerminalEmulator {
         boolean belowScrollingRegion = mCursorRow >= mBottomMargin;
         int newCursorRow = mCursorRow + 1;
         if (belowScrollingRegion) {
-            // Move down (but not scroll) as long as we are above the last row.
+
             if (mCursorRow != mRows - 1) {
                 setCursorRow(newCursorRow);
             }
@@ -1513,7 +1513,7 @@ public final class TerminalEmulator {
 
     private void doEscPound(int b) {
         switch (b) {
-            case '8': // Esc # 8 - DEC screen alignment test - fill screen with E's.
+            case '8':
                 mScreen.blockSet(0, 0, mColumns, mRows, 'E', getStyle());
                 break;
             default:
@@ -1536,7 +1536,7 @@ public final class TerminalEmulator {
             case ')':
                 continueSequence(ESC_SELECT_RIGHT_PAREN);
                 break;
-            case '6': // Back index (http://www.vt100.net/docs/vt510-rm/DECBI). Move left, insert blank column if start.
+            case '6':
                 if (mCursorCol > mLeftMargin) {
                     mCursorCol--;
                 } else {
@@ -1545,13 +1545,13 @@ public final class TerminalEmulator {
                     mScreen.blockSet(mLeftMargin, mTopMargin, 1, rows, ' ', TextStyle.encode(mForeColor, mBackColor, 0));
                 }
                 break;
-            case '7': // DECSC save cursor - http://www.vt100.net/docs/vt510-rm/DECSC
+            case '7':
                 saveCursor();
                 break;
-            case '8': // DECRC restore cursor - http://www.vt100.net/docs/vt510-rm/DECRC
+            case '8':
                 restoreCursor();
                 break;
-            case '9': // Forward Index (http://www.vt100.net/docs/vt510-rm/DECFI). Move right, insert blank column if end.
+            case '9':
                 if (mCursorCol < mRightMargin - 1) {
                     mCursorCol++;
                 } else {
@@ -1560,28 +1560,28 @@ public final class TerminalEmulator {
                     mScreen.blockSet(mRightMargin - 1, mTopMargin, 1, rows, ' ', TextStyle.encode(mForeColor, mBackColor, 0));
                 }
                 break;
-            case 'c': // RIS - Reset to Initial State (http://vt100.net/docs/vt510-rm/RIS).
+            case 'c':
                 reset();
                 mMainBuffer.clearTranscript();
                 blockClear(0, 0, mColumns, mRows);
                 setCursorPosition(0, 0);
                 break;
-            case 'D': // INDEX
+            case 'D':
                 doLinefeed();
                 break;
-            case 'E': // Next line (http://www.vt100.net/docs/vt510-rm/NEL).
+            case 'E':
                 setCursorCol(isDecsetInternalBitSet(DECSET_BIT_ORIGIN_MODE) ? mLeftMargin : 0);
                 doLinefeed();
                 break;
-            case 'F': // Cursor to lower-left corner of screen
+            case 'F':
                 setCursorRowCol(0, mBottomMargin - 1);
                 break;
-            case 'H': // Tab set
+            case 'H':
                 mTabStop[mCursorCol] = true;
                 break;
-            case 'M': // "${ESC}M" - reverse index (RI).
-                // http://www.vt100.net/docs/vt100-ug/chapter3.html: "Move the active position to the same horizontal
-                // position on the preceding line. If the active position is at the top margin, a scroll down is performed".
+            case 'M':
+
+
                 if (mCursorRow <= mTopMargin) {
                     mScreen.blockCopy(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin, mBottomMargin - (mTopMargin + 1), mLeftMargin, mTopMargin + 1);
                     blockClear(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin);
@@ -1589,27 +1589,27 @@ public final class TerminalEmulator {
                     mCursorRow--;
                 }
                 break;
-            case 'N': // SS2, ignore.
-            case '0': // SS3, ignore.
+            case 'N':
+            case '0':
                 break;
-            case 'P': // Device control string
+            case 'P':
                 mOSCOrDeviceControlArgs.setLength(0);
                 continueSequence(ESC_P);
                 break;
             case '[':
                 continueSequence(ESC_CSI);
                 break;
-            case '=': // DECKPAM
+            case '=':
                 setDecsetinternalBit(DECSET_BIT_APPLICATION_KEYPAD, true);
                 break;
-            case ']': // OSC
+            case ']':
                 mOSCOrDeviceControlArgs.setLength(0);
                 continueSequence(ESC_OSC);
                 break;
-            case '>': // DECKPNM
+            case '>':
                 setDecsetinternalBit(DECSET_BIT_APPLICATION_KEYPAD, false);
                 break;
-            case '_': // APC - Application Program Command.
+            case '_':
                 continueSequence(ESC_APC);
                 break;
             default:
@@ -1671,7 +1671,7 @@ public final class TerminalEmulator {
                 continueSequence(ESC_CSI_ARGS_ASTERIX);
                 break;
             case '@': {
-                // "CSI{n}@" - Insert ${n} space characters (ICH) - http://www.vt100.net/docs/vt510-rm/ICH.
+
                 mAboutToAutoWrap = false;
                 int columnsAfterCursor = mColumns - mCursorCol;
                 int spacesToInsert = Math.min(getArg0(1), columnsAfterCursor);
@@ -1680,51 +1680,51 @@ public final class TerminalEmulator {
                 blockClear(mCursorCol, mCursorRow, spacesToInsert);
             }
             break;
-            case 'A': // "CSI${n}A" - Cursor up (CUU) ${n} rows.
+            case 'A':
                 setCursorRow(Math.max(0, mCursorRow - getArg0(1)));
                 break;
-            case 'B': // "CSI${n}B" - Cursor down (CUD) ${n} rows.
+            case 'B':
                 setCursorRow(Math.min(mRows - 1, mCursorRow + getArg0(1)));
                 break;
-            case 'C': // "CSI${n}C" - Cursor forward (CUF).
-            case 'a': // "CSI${n}a" - Horizontal position relative (HPR). From ISO-6428/ECMA-48.
+            case 'C':
+            case 'a':
                 setCursorCol(Math.min(mRightMargin - 1, mCursorCol + getArg0(1)));
                 break;
-            case 'D': // "CSI${n}D" - Cursor backward (CUB) ${n} columns.
+            case 'D':
                 setCursorCol(Math.max(mLeftMargin, mCursorCol - getArg0(1)));
                 break;
-            case 'E': // "CSI{n}E - Cursor Next Line (CNL). From ISO-6428/ECMA-48.
+            case 'E':
                 setCursorPosition(0, mCursorRow + getArg0(1));
                 break;
-            case 'F': // "CSI{n}F - Cursor Previous Line (CPL). From ISO-6428/ECMA-48.
+            case 'F':
                 setCursorPosition(0, mCursorRow - getArg0(1));
                 break;
-            case 'G': // "CSI${n}G" - Cursor horizontal absolute (CHA) to column ${n}.
+            case 'G':
                 setCursorCol(Math.min(Math.max(1, getArg0(1)), mColumns) - 1);
                 break;
-            case 'H': // "${CSI}${ROW};${COLUMN}H" - Cursor position (CUP).
-            case 'f': // "${CSI}${ROW};${COLUMN}f" - Horizontal and Vertical Position (HVP).
+            case 'H':
+            case 'f':
                 setCursorPosition(getArg1(1) - 1, getArg0(1) - 1);
                 break;
-            case 'I': // Cursor Horizontal Forward Tabulation (CHT). Move the active position n tabs forward.
+            case 'I':
                 setCursorCol(nextTabStop(getArg0(1)));
                 break;
-            case 'J': // "${CSI}${0,1,2,3}J" - Erase in Display (ED)
-                // ED ignores the scrolling margins.
+            case 'J':
+
                 switch (getArg0(0)) {
-                    case 0: // Erase from the active position to the end of the screen, inclusive (default).
+                    case 0:
                         blockClear(mCursorCol, mCursorRow, mColumns - mCursorCol);
                         blockClear(0, mCursorRow + 1, mColumns, mRows - (mCursorRow + 1));
                         break;
-                    case 1: // Erase from start of the screen to the active position, inclusive.
+                    case 1:
                         blockClear(0, 0, mColumns, mCursorRow);
                         blockClear(0, mCursorRow, mCursorCol + 1);
                         break;
-                    case 2: // Erase all of the display - all lines are erased, changed to single-width, and the cursor does not
-                        // move..
+                    case 2:
+
                         blockClear(0, 0, mColumns, mRows);
                         break;
-                    case 3: // Delete all lines saved in the scrollback buffer (xterm etc)
+                    case 3:
                         mMainBuffer.clearTranscript();
                         break;
                     default:
@@ -1733,15 +1733,15 @@ public final class TerminalEmulator {
                 }
                 mAboutToAutoWrap = false;
                 break;
-            case 'K': // "CSI{n}K" - Erase in line (EL).
+            case 'K':
                 switch (getArg0(0)) {
-                    case 0: // Erase from the cursor to the end of the line, inclusive (default)
+                    case 0:
                         blockClear(mCursorCol, mCursorRow, mColumns - mCursorCol);
                         break;
-                    case 1: // Erase from the start of the screen to the cursor, inclusive.
+                    case 1:
                         blockClear(0, mCursorRow, mCursorCol + 1);
                         break;
-                    case 2: // Erase all of the line.
+                    case 2:
                         blockClear(0, mCursorRow, mColumns);
                         break;
                     default:
@@ -1750,7 +1750,7 @@ public final class TerminalEmulator {
                 }
                 mAboutToAutoWrap = false;
                 break;
-            case 'L': // "${CSI}{N}L" - insert ${N} lines (IL).
+            case 'L':
             {
                 int linesAfterCursor = mBottomMargin - mCursorRow;
                 int linesToInsert = Math.min(getArg0(1), linesAfterCursor);
@@ -1759,7 +1759,7 @@ public final class TerminalEmulator {
                 blockClear(0, mCursorRow, mColumns, linesToInsert);
             }
             break;
-            case 'M': // "${CSI}${N}M" - delete N lines (DL).
+            case 'M':
             {
                 mAboutToAutoWrap = false;
                 int linesAfterCursor = mBottomMargin - mCursorRow;
@@ -1769,13 +1769,13 @@ public final class TerminalEmulator {
                 blockClear(0, mCursorRow + linesToMove, mColumns, linesToDelete);
             }
             break;
-            case 'P': // "${CSI}{N}P" - delete ${N} characters (DCH).
+            case 'P':
             {
-                // http://www.vt100.net/docs/vt510-rm/DCH: "If ${N} is greater than the number of characters between the
-                // cursor and the right margin, then DCH only deletes the remaining characters.
-                // As characters are deleted, the remaining characters between the cursor and right margin move to the left.
-                // Character attributes move with the characters. The terminal adds blank spaces with no visual character
-                // attributes at the right margin. DCH has no effect outside the scrolling margins."
+
+
+
+
+
                 mAboutToAutoWrap = false;
                 int cellsAfterCursor = mColumns - mCursorCol;
                 int cellsToDelete = Math.min(getArg0(1), cellsAfterCursor);
@@ -1784,7 +1784,7 @@ public final class TerminalEmulator {
                 blockClear(mCursorCol + cellsToMove, mCursorRow, cellsToDelete);
             }
             break;
-            case 'S': { // "${CSI}${N}S" - scroll up ${N} lines (default = 1) (SU).
+            case 'S': {
                 final int linesToScroll = getArg0(1);
                 for (int i = 0; i < linesToScroll; i++)
                     scrollDownOneLine();
@@ -1792,25 +1792,25 @@ public final class TerminalEmulator {
             }
             case 'T':
                 if (mArgIndex == 0) {
-                    // "${CSI}${N}T" - Scroll down N lines (default = 1) (SD).
-                    // http://vt100.net/docs/vt510-rm/SD: "N is the number of lines to move the user window up in page
-                    // memory. N new lines appear at the top of the display. N old lines disappear at the bottom of the
-                    // display. You cannot pan past the top margin of the current page".
+
+
+
+
                     final int linesToScrollArg = getArg0(1);
                     final int linesBetweenTopAndBottomMargins = mBottomMargin - mTopMargin;
                     final int linesToScroll = Math.min(linesBetweenTopAndBottomMargins, linesToScrollArg);
                     mScreen.blockCopy(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin, linesBetweenTopAndBottomMargins - linesToScroll, mLeftMargin, mTopMargin + linesToScroll);
                     blockClear(mLeftMargin, mTopMargin, mRightMargin - mLeftMargin, linesToScroll);
                 } else {
-                    // "${CSI}${func};${startx};${starty};${firstrow};${lastrow}T" - initiate highlight mouse tracking.
+
                     unimplementedSequence(b);
                 }
                 break;
-            case 'X': // "${CSI}${N}X" - Erase ${N:=1} character(s) (ECH). FIXME: Clears character attributes?
+            case 'X':
                 mAboutToAutoWrap = false;
                 mScreen.blockSet(mCursorCol, mCursorRow, Math.min(getArg0(1), mColumns - mCursorCol), 1, ' ', getStyle());
                 break;
-            case 'Z': // Cursor Backward Tabulation (CBT). Move the active position n tabs backward.
+            case 'Z':
                 int numberOfTabs = getArg0(1);
                 int newCol = mLeftMargin;
                 for (int i = mCursorCol - 1; i >= 0; i--)
@@ -1822,38 +1822,38 @@ public final class TerminalEmulator {
                     }
                 mCursorCol = newCol;
                 break;
-            case '?': // Esc [ ? -- start of a private parameter byte
+            case '?':
                 continueSequence(ESC_CSI_QUESTIONMARK);
                 break;
-            case '>': // "Esc [ >" -- start of a private parameter byte
+            case '>':
                 continueSequence(ESC_CSI_BIGGERTHAN);
                 break;
-            case '<': // "Esc [ <" -- start of a private parameter byte
-            case '=': // "Esc [ =" -- start of a private parameter byte
+            case '<':
+            case '=':
                 continueSequence(ESC_CSI_UNSUPPORTED_PARAMETER_BYTE);
                 break;
-            case '`': // Horizontal position absolute (HPA - http://www.vt100.net/docs/vt510-rm/HPA).
+            case '`':
                 setCursorColRespectingOriginMode(getArg0(1) - 1);
                 break;
-            case 'b': // Repeat the preceding graphic character Ps times (REP).
+            case 'b':
                 if (mLastEmittedCodePoint == -1) break;
                 final int numRepeat = getArg0(1);
                 for (int i = 0; i < numRepeat; i++) emitCodePoint(mLastEmittedCodePoint);
                 break;
-            case 'c': // Primary Device Attributes (http://www.vt100.net/docs/vt510-rm/DA1) if argument is missing or zero.
-                // The important part that may still be used by some (tmux stores this value but does not currently use it)
-                // is the first response parameter identifying the terminal service class, where we send 64 for "vt420".
-                // This is followed by a list of attributes which is probably unused by applications. Send like xterm.
+            case 'c':
+
+
+
                 if (getArg0(0) == 0) mSession.write("\033[?64;1;2;6;9;15;18;21;22c");
                 break;
-            case 'd': // ESC [ Pn d - Vert Position Absolute
+            case 'd':
                 setCursorRow(Math.min(Math.max(1, getArg0(1)), mRows) - 1);
                 break;
-            case 'e': // Vertical Position Relative (VPR). From ISO-6429 (ECMA-48).
+            case 'e':
                 setCursorPosition(mCursorCol, mCursorRow + getArg0(1));
                 break;
-            // case 'f': "${CSI}${ROW};${COLUMN}f" - Horizontal and Vertical Position (HVP). Grouped with case 'H'.
-            case 'g': // Clear tab stop
+
+            case 'g':
                 switch (getArg0(0)) {
                     case 0:
                         mTabStop[mCursorCol] = false;
@@ -1864,110 +1864,110 @@ public final class TerminalEmulator {
                         }
                         break;
                     default:
-                        // Specified to have no effect.
+
                         break;
                 }
                 break;
-            case 'h': // Set Mode
+            case 'h':
                 doSetMode(true);
                 break;
-            case 'l': // Reset Mode
+            case 'l':
                 doSetMode(false);
                 break;
-            case 'm': // Esc [ Pn m - character attributes. (can have up to 16 numerical arguments)
+            case 'm':
                 selectGraphicRendition();
                 break;
-            case 'n': // Esc [ Pn n - ECMA-48 Status Report Commands
-                // sendDeviceAttributes()
+            case 'n':
+
                 switch (getArg0(0)) {
-                    case 5: // Device status report (DSR):
-                        // Answer is ESC [ 0 n (Terminal OK).
+                    case 5:
+
                         byte[] dsr = {(byte) 27, (byte) '[', (byte) '0', (byte) 'n'};
                         mSession.write(dsr, 0, dsr.length);
                         break;
-                    case 6: // Cursor position report (CPR):
-                        // Answer is ESC [ y ; x R, where x,y is
-                        // the cursor location.
+                    case 6:
+
+
                         mSession.write(String.format(Locale.US, "\033[%d;%dR", mCursorRow + 1, mCursorCol + 1));
                         break;
                     default:
                         break;
                 }
                 break;
-            case 'r': // "CSI${top};${bottom}r" - set top and bottom Margins (DECSTBM).
+            case 'r':
             {
-                // https://vt100.net/docs/vt510-rm/DECSTBM.html
-                // The top margin defaults to 1, the bottom margin defaults to mRows.
-                // The escape sequence numbers top 1..23, but we number top 0..22.
-                // The escape sequence numbers bottom 2..24, and so do we (because we use a zero based numbering
-                // scheme, but we store the first line below the bottom-most scrolling line.
-                // As a result, we adjust the top line by -1, but we leave the bottom line alone.
-                // Also require that top + 2 <= bottom.
+
+
+
+
+
+
+
                 mTopMargin = Math.max(0, Math.min(getArg0(1) - 1, mRows - 2));
                 mBottomMargin = Math.max(mTopMargin + 2, Math.min(getArg1(mRows), mRows));
 
-                // DECSTBM moves the cursor to column 1, line 1 of the page respecting origin mode.
+
                 setCursorPosition(0, 0);
             }
             break;
             case 's':
                 if (isDecsetInternalBitSet(DECSET_BIT_LEFTRIGHT_MARGIN_MODE)) {
-                    // Set left and right margins (DECSLRM - http://www.vt100.net/docs/vt510-rm/DECSLRM).
+
                     mLeftMargin = Math.min(getArg0(1) - 1, mColumns - 2);
                     mRightMargin = Math.max(mLeftMargin + 1, Math.min(getArg1(mColumns), mColumns));
-                    // DECSLRM moves the cursor to column 1, line 1 of the page.
+
                     setCursorPosition(0, 0);
                 } else {
-                    // Save cursor (ANSI.SYS), available only when DECLRMM is disabled.
+
                     saveCursor();
                 }
                 break;
-            case 't': // Window manipulation (from dtterm, as well as extensions)
+            case 't':
                 switch (getArg0(0)) {
-                    case 11: // Report xterm window state. If the xterm window is open (non-iconified), it returns CSI 1 t .
+                    case 11:
                         mSession.write("\033[1t");
                         break;
-                    case 13: // Report xterm window position. Result is CSI 3 ; x ; y t
+                    case 13:
                         mSession.write("\033[3;0;0t");
                         break;
-                    case 14: // Report xterm window in pixels. Result is CSI 4 ; height ; width t
+                    case 14:
                         mSession.write(String.format(Locale.US, "\033[4;%d;%dt", mRows * mCellHeightPixels, mColumns * mCellWidthPixels));
                         break;
-                    case 16: // Report xterm character cell size in pixels. Result is CSI 6 ; height ; width t
+                    case 16:
                         mSession.write(String.format(Locale.US, "\033[6;%d;%dt", mCellHeightPixels, mCellWidthPixels));
                         break;
-                    case 18: // Report the size of the text area in characters. Result is CSI 8 ; height ; width t
+                    case 18:
                         mSession.write(String.format(Locale.US, "\033[8;%d;%dt", mRows, mColumns));
                         break;
-                    case 19: // Report the size of the screen in characters. Result is CSI 9 ; height ; width t
-                        // We report the same size as the view, since it's the view really isn't resizable from the shell.
+                    case 19:
+
                         mSession.write(String.format(Locale.US, "\033[9;%d;%dt", mRows, mColumns));
                         break;
-                    case 20: // Report xterm windows icon label. Result is OSC L label ST. Disabled due to security concerns:
+                    case 20:
                         mSession.write("\033]LIconLabel\033\\");
                         break;
-                    case 21: // Report xterm windows title. Result is OSC l label ST. Disabled due to security concerns:
+                    case 21:
                         mSession.write("\033]l\033\\");
                         break;
                     case 22:
-                        // 22;0 -> Save xterm icon and window title on stack.
-                        // 22;1 -> Save xterm icon title on stack.
-                        // 22;2 -> Save xterm window title on stack.
+
+
+
                         mTitleStack.push(mTitle);
                         if (mTitleStack.size() > 20) {
-                            // Limit size
+
                             mTitleStack.remove(0);
                         }
                         break;
-                    case 23: // Like 22 above but restore from stack.
+                    case 23:
                         if (!mTitleStack.isEmpty()) setTitle(mTitleStack.pop());
                         break;
                     default:
-                        // Ignore window manipulation.
+
                         break;
                 }
                 break;
-            case 'u': // Restore cursor (ANSI.SYS).
+            case 'u':
                 restoreCursor();
                 break;
             case ' ':
@@ -1985,7 +1985,7 @@ public final class TerminalEmulator {
     private void selectGraphicRendition() {
         if (mArgIndex >= mArgs.length) mArgIndex = mArgs.length - 1;
         for (int i = 0; i <= mArgIndex; i++) {
-            // Skip leading sub parameters:
+
             if ((mArgsSubParamsBitSet & (1 << i)) != 0) {
                 continue;
             }
@@ -1998,7 +1998,7 @@ public final class TerminalEmulator {
                     code = 0;
                 }
             }
-            if (code == 0) { // reset
+            if (code == 0) {
                 mForeColor = TextStyle.COLOR_INDEX_FOREGROUND;
                 mBackColor = TextStyle.COLOR_INDEX_BACKGROUND;
                 mEffect = 0;
@@ -2010,13 +2010,13 @@ public final class TerminalEmulator {
                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_ITALIC;
             } else if (code == 4) {
                 if (i + 1 <= mArgIndex && ((mArgsSubParamsBitSet & (1 << (i + 1))) != 0)) {
-                    // Sub parameter, see https://sw.kovidgoyal.net/kitty/underlines/
+
                     i++;
                     if (mArgs[i] == 0) {
-                        // No underline.
+
                         mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                     } else {
-                        // Different variations of underlines: https://sw.kovidgoyal.net/kitty/underlines/
+
                         mEffect |= TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
                     }
                 } else {
@@ -2031,18 +2031,18 @@ public final class TerminalEmulator {
             } else if (code == 9) {
                 mEffect |= TextStyle.CHARACTER_ATTRIBUTE_STRIKETHROUGH;
             } else if (code == 10) {
-                // Exit alt charset (TERM=linux) - ignore.
+
             } else if (code == 11) {
-                // Enter alt charset (TERM=linux) - ignore.
-            } else if (code == 22) { // Normal color or intensity, neither bright, bold nor faint.
+
+            } else if (code == 22) {
                 mEffect &= ~(TextStyle.CHARACTER_ATTRIBUTE_BOLD | TextStyle.CHARACTER_ATTRIBUTE_DIM);
-            } else if (code == 23) { // not italic, but rarely used as such; clears standout with TERM=screen
+            } else if (code == 23) {
                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_ITALIC;
-            } else if (code == 24) { // underline: none
+            } else if (code == 24) {
                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_UNDERLINE;
-            } else if (code == 25) { // blink: none
+            } else if (code == 25) {
                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_BLINK;
-            } else if (code == 27) { // image: positive
+            } else if (code == 27) {
                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_INVERSE;
             } else if (code == 28) {
                 mEffect &= ~TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE;
@@ -2051,9 +2051,9 @@ public final class TerminalEmulator {
             } else if (code >= 30 && code <= 37) {
                 mForeColor = code - 30;
             } else if (code == 38 || code == 48 || code == 58) {
-                // Extended set foreground(38)/background(48)/underline(58) color.
-                // This is followed by either "2;$R;$G;$B" to set a 24-bit color or
-                // "5;$INDEX" to set an indexed color.
+
+
+
                 if (i + 2 > mArgIndex) continue;
                 int firstArg = mArgs[i + 1];
                 if (firstArg == 2) {
@@ -2080,11 +2080,11 @@ public final class TerminalEmulator {
                                     break;
                             }
                         }
-                        i += 4; // "2;P_r;P_g;P_r"
+                        i += 4;
                     }
                 } else if (firstArg == 5) {
                     int color = getArg(i + 2, 0, false);
-                    i += 2; // "5;P_s"
+                    i += 2;
                     if (color >= 0 && color < TextStyle.NUM_INDEXED_COLORS) {
                         switch (code) {
                             case 38:
@@ -2104,17 +2104,17 @@ public final class TerminalEmulator {
                 } else {
                     finishSequenceAndLogError("Invalid ISO-8613-3 SGR first argument: " + firstArg);
                 }
-            } else if (code == 39) { // Set default foreground color.
+            } else if (code == 39) {
                 mForeColor = TextStyle.COLOR_INDEX_FOREGROUND;
-            } else if (code >= 40 && code <= 47) { // Set background color.
+            } else if (code >= 40 && code <= 47) {
                 mBackColor = code - 40;
-            } else if (code == 49) { // Set default background color.
+            } else if (code == 49) {
                 mBackColor = TextStyle.COLOR_INDEX_BACKGROUND;
-            } else if (code == 59) { // Set default underline color.
+            } else if (code == 59) {
                 mUnderlineColor = TextStyle.COLOR_INDEX_FOREGROUND;
-            } else if (code >= 90 && code <= 97) { // Bright foreground colors (aixterm codes).
+            } else if (code >= 90 && code <= 97) {
                 mForeColor = code - 90 + 8;
-            } else if (code >= 100 && code <= 107) { // Bright background color (aixterm codes).
+            } else if (code >= 100 && code <= 107) {
                 mBackColor = code - 100 + 8;
             } else {
                 if (LOG_ESCAPE_SEQUENCES)
@@ -2125,10 +2125,10 @@ public final class TerminalEmulator {
 
     private void doOsc(int b) {
         switch (b) {
-            case 7: // Bell.
+            case 7:
                 doOscSetTextParameters("\007");
                 break;
-            case 27: // Escape.
+            case 27:
                 continueSequence(ESC_OSC_ESC);
                 break;
             default:
@@ -2143,8 +2143,8 @@ public final class TerminalEmulator {
                 doOscSetTextParameters("\033\\");
                 break;
             default:
-                // The ESC character was not followed by a \, so insert the ESC and
-                // the current character in arg buffer.
+
+
                 collectOSCArgs(27);
                 collectOSCArgs(b);
                 continueSequence(ESC_OSC);
@@ -2158,7 +2158,7 @@ public final class TerminalEmulator {
     private void doOscSetTextParameters(String bellOrStringTerminator) {
         int value = -1;
         String textParameter = "";
-        // Extract initial $value from initial "$value;..." string.
+
         for (int mOSCArgTokenizerIndex = 0; mOSCArgTokenizerIndex < mOSCOrDeviceControlArgs.length(); mOSCArgTokenizerIndex++) {
             char b = mOSCOrDeviceControlArgs.charAt(mOSCArgTokenizerIndex);
             if (b == ';') {
@@ -2173,19 +2173,19 @@ public final class TerminalEmulator {
         }
 
         switch (value) {
-            case 0: // Change icon name and window title to T.
-            case 1: // Change icon name to T.
-            case 2: // Change window title to T.
+            case 0:
+            case 1:
+            case 2:
                 setTitle(textParameter);
                 break;
             case 4:
-                // P s = 4 ; c ; spec → Change Color Number c to the color specified by spec. This can be a name or RGB
-                // specification as per XParseColor. Any number of c name pairs may be given. The color numbers correspond
-                // to the ANSI colors 0-7, their bright versions 8-15, and if supported, the remainder of the 88-color or
-                // 256-color table.
-                // If a "?" is given rather than a name or RGB specification, xterm replies with a control sequence of the
-                // same form which can be used to set the corresponding color. Because more than one pair of color number
-                // and specification can be given in one control sequence, xterm can make more than one reply.
+
+
+
+
+
+
+
                 int colorIndex = -1;
                 int parsingPairStart = -1;
                 for (int i = 0; ; i++) {
@@ -2206,7 +2206,7 @@ public final class TerminalEmulator {
                             }
                         }
                     } else if (parsingPairStart >= 0) {
-                        // We have passed a color index and are now going through color spec.
+
                     } else if (parsingPairStart < 0 && (b >= '0' && b <= '9')) {
                         colorIndex = ((colorIndex < 0) ? 0 : colorIndex * 10) + (b - '0');
                     } else {
@@ -2216,12 +2216,12 @@ public final class TerminalEmulator {
                     if (endOfInput) break;
                 }
                 break;
-            case 7: // OSC 7 Xed-Editor integration
+            case 7:
                 handleOsc7(textParameter);
                 break;
-            case 10: // Set foreground color.
-            case 11: // Set background color.
-            case 12: // Set cursor color.
+            case 10:
+            case 11:
+            case 12:
                 int specialIndex = TextStyle.COLOR_INDEX_FOREGROUND + (value - 10);
                 int lastSemiIndex = 0;
                 for (int charIndex = 0; ; charIndex++) {
@@ -2230,7 +2230,7 @@ public final class TerminalEmulator {
                         try {
                             String colorSpec = textParameter.substring(lastSemiIndex, charIndex);
                             if ("?".equals(colorSpec)) {
-                                // Report current color in the same format xterm and gnome-terminal does.
+
                                 int rgb = mColors.mCurrentColors[specialIndex];
                                 int r = (65535 * ((rgb & 0x00FF0000) >> 16)) / 255;
                                 int g = (65535 * ((rgb & 0x0000FF00) >> 8)) / 255;
@@ -2246,12 +2246,12 @@ public final class TerminalEmulator {
                                 break;
                             lastSemiIndex = charIndex;
                         } catch (NumberFormatException e) {
-                            // Ignore.
+
                         }
                     }
                 }
                 break;
-            case 52: // Manipulate Selection Data. Skip the optional first selection parameter(s).
+            case 52:
                 int startIndex = textParameter.indexOf(";") + 1;
                 try {
                     String clipboardText = new String(Base64.decode(textParameter.substring(startIndex), 0), StandardCharsets.UTF_8);
@@ -2261,10 +2261,10 @@ public final class TerminalEmulator {
                 }
                 break;
             case 104:
-                // "104;$c" → Reset Color Number $c. It is reset to the color specified by the corresponding X
-                // resource. Any number of c parameters may be given. These parameters correspond to the ANSI colors 0-7,
-                // their bright versions 8-15, and if supported, the remainder of the 88-color or 256-color table. If no
-                // parameters are given, the entire table will be reset.
+
+
+
+
                 if (textParameter.isEmpty()) {
                     mColors.reset();
                     mSession.onColorsChanged();
@@ -2281,19 +2281,19 @@ public final class TerminalEmulator {
                                 charIndex++;
                                 lastIndex = charIndex;
                             } catch (NumberFormatException e) {
-                                // Ignore.
+
                             }
                         }
                     }
                 }
                 break;
-            case 110: // Reset foreground color.
-            case 111: // Reset background color.
-            case 112: // Reset cursor color.
+            case 110:
+            case 111:
+            case 112:
                 mColors.reset(TextStyle.COLOR_INDEX_FOREGROUND + (value - 110));
                 mSession.onColorsChanged();
                 break;
-            case 119: // Reset highlight color.
+            case 119:
                 break;
             default:
                 unknownParameter(value);
@@ -2328,7 +2328,7 @@ public final class TerminalEmulator {
     }
 
     private void recordCwd(long absRow, String path) {
-        // Drop markers at or below this row (stale after a clear or a redrawn prompt).
+
         int n = mCwdRows.size();
         while (n > 0 && mCwdRows.get(n - 1) >= absRow) {
             mCwdRows.remove(n - 1);
@@ -2338,7 +2338,7 @@ public final class TerminalEmulator {
         mCwdRows.add(absRow);
         mCwdPaths.add(path);
 
-        // Prune markers that are fully scrolled out of the transcript.
+
         long oldest = mTotalScrolledLines - mMainBuffer.getActiveTranscriptRows();
         while (mCwdRows.size() > 1 && mCwdRows.get(1) <= oldest) {
             mCwdRows.remove(0);
@@ -2355,7 +2355,7 @@ public final class TerminalEmulator {
         if (mScreen != mMainBuffer) return mCwdPaths.get(mCwdPaths.size() - 1);
         long abs = mTotalScrolledLines + externalRow;
         int i = Collections.binarySearch(mCwdRows, abs);
-        int idx = i >= 0 ? i : -i - 2; // last marker with row <= abs
+        int idx = i >= 0 ? i : -i - 2;
         return idx < 0 ? null : mCwdPaths.get(idx);
     }
 
@@ -2377,16 +2377,16 @@ public final class TerminalEmulator {
     private void doSetMode(boolean newValue) {
         int modeBit = getArg0(0);
         switch (modeBit) {
-            case 4: // Set="Insert Mode". Reset="Replace Mode". (IRM).
+            case 4:
                 mInsertMode = newValue;
                 break;
-            case 20: // Normal Linefeed (LNM).
+            case 20:
                 unknownParameter(modeBit);
-                // http://www.vt100.net/docs/vt510-rm/LNM
+
                 break;
             case 34:
-                // Normal cursor visibility - when using TERM=screen, see
-                // http://www.gnu.org/software/screen/manual/html_node/Control-Sequences.html
+
+
                 break;
             default:
                 unknownParameter(modeBit);
@@ -2413,12 +2413,12 @@ public final class TerminalEmulator {
         mScrollCounter++;
         long currentStyle = getStyle();
         if (mLeftMargin != 0 || mRightMargin != mColumns) {
-            // Horizontal margin: Do not put anything into scroll history, just non-margin part of screen up.
+
             mScreen.blockCopy(mLeftMargin, mTopMargin + 1, mRightMargin - mLeftMargin, mBottomMargin - mTopMargin - 1, mLeftMargin, mTopMargin);
-            // .. and blank bottom row between margins:
+
             mScreen.blockSet(mLeftMargin, mBottomMargin - 1, mRightMargin - mLeftMargin, 1, ' ', currentStyle);
         } else {
-            // Only a full-screen scroll of the main buffer pushes a line into history.
+
             if (mScreen == mMainBuffer && mTopMargin == 0 && mBottomMargin == mRows) mTotalScrolledLines++;
             mScreen.scrollDownOneLine(mTopMargin, mBottomMargin, currentStyle);
         }
@@ -2557,106 +2557,106 @@ public final class TerminalEmulator {
     private void emitCodePoint(int codePoint) {
         mLastEmittedCodePoint = codePoint;
         if (mUseLineDrawingUsesG0 ? mUseLineDrawingG0 : mUseLineDrawingG1) {
-            // http://www.vt100.net/docs/vt102-ug/table5-15.html.
+
             switch (codePoint) {
                 case '_':
-                    codePoint = ' '; // Blank.
+                    codePoint = ' ';
                     break;
                 case '`':
-                    codePoint = '◆'; // Diamond.
+                    codePoint = '◆';
                     break;
                 case '0':
-                    codePoint = '█'; // Solid block;
+                    codePoint = '█';
                     break;
                 case 'a':
-                    codePoint = '▒'; // Checker board.
+                    codePoint = '▒';
                     break;
                 case 'b':
-                    codePoint = '␉'; // Horizontal tab.
+                    codePoint = '␉';
                     break;
                 case 'c':
-                    codePoint = '␌'; // Form feed.
+                    codePoint = '␌';
                     break;
                 case 'd':
-                    codePoint = '\r'; // Carriage return.
+                    codePoint = '\r';
                     break;
                 case 'e':
-                    codePoint = '␊'; // Linefeed.
+                    codePoint = '␊';
                     break;
                 case 'f':
-                    codePoint = '°'; // Degree.
+                    codePoint = '°';
                     break;
                 case 'g':
-                    codePoint = '±'; // Plus-minus.
+                    codePoint = '±';
                     break;
                 case 'h':
-                    codePoint = '\n'; // Newline.
+                    codePoint = '\n';
                     break;
                 case 'i':
-                    codePoint = '␋'; // Vertical tab.
+                    codePoint = '␋';
                     break;
                 case 'j':
-                    codePoint = '┘'; // Lower right corner.
+                    codePoint = '┘';
                     break;
                 case 'k':
-                    codePoint = '┐'; // Upper right corner.
+                    codePoint = '┐';
                     break;
                 case 'l':
-                    codePoint = '┌'; // Upper left corner.
+                    codePoint = '┌';
                     break;
                 case 'm':
-                    codePoint = '└'; // Left left corner.
+                    codePoint = '└';
                     break;
                 case 'n':
-                    codePoint = '┼'; // Crossing lines.
+                    codePoint = '┼';
                     break;
                 case 'o':
-                    codePoint = '⎺'; // Horizontal line - scan 1.
+                    codePoint = '⎺';
                     break;
                 case 'p':
-                    codePoint = '⎻'; // Horizontal line - scan 3.
+                    codePoint = '⎻';
                     break;
                 case 'q':
-                    codePoint = '─'; // Horizontal line - scan 5.
+                    codePoint = '─';
                     break;
                 case 'r':
-                    codePoint = '⎼'; // Horizontal line - scan 7.
+                    codePoint = '⎼';
                     break;
                 case 's':
-                    codePoint = '⎽'; // Horizontal line - scan 9.
+                    codePoint = '⎽';
                     break;
                 case 't':
-                    codePoint = '├'; // T facing rightwards.
+                    codePoint = '├';
                     break;
                 case 'u':
-                    codePoint = '┤'; // T facing leftwards.
+                    codePoint = '┤';
                     break;
                 case 'v':
-                    codePoint = '┴'; // T facing upwards.
+                    codePoint = '┴';
                     break;
                 case 'w':
-                    codePoint = '┬'; // T facing downwards.
+                    codePoint = '┬';
                     break;
                 case 'x':
-                    codePoint = '│'; // Vertical line.
+                    codePoint = '│';
                     break;
                 case 'y':
-                    codePoint = '≤'; // Less than or equal to.
+                    codePoint = '≤';
                     break;
                 case 'z':
-                    codePoint = '≥'; // Greater than or equal to.
+                    codePoint = '≥';
                     break;
                 case '{':
-                    codePoint = 'π'; // Pi.
+                    codePoint = 'π';
                     break;
                 case '|':
-                    codePoint = '≠'; // Not equal to.
+                    codePoint = '≠';
                     break;
                 case '}':
-                    codePoint = '£'; // UK pound.
+                    codePoint = '£';
                     break;
                 case '~':
-                    codePoint = '·'; // Centered dot.
+                    codePoint = '·';
                     break;
             }
         }
@@ -2676,13 +2676,13 @@ public final class TerminalEmulator {
                 }
             }
         } else if (cursorInLastColumn && displayWidth == 2) {
-            // The behaviour when a wide character is output with cursor in the last column when
-            // autowrap is disabled is not obvious - it's ignored here.
+
+
             return;
         }
 
         if (mInsertMode && displayWidth > 0) {
-            // Move character to right one space.
+
             int destCol = mCursorCol + displayWidth;
             if (destCol < mRightMargin)
                 mScreen.blockCopy(mCursorCol, mCursorRow, mRightMargin - destCol, 1, destCol, mCursorRow);
@@ -2691,10 +2691,10 @@ public final class TerminalEmulator {
         int offsetDueToCombiningChar = ((displayWidth <= 0 && mCursorCol > 0 && !mAboutToAutoWrap) ? 1 : 0);
         int column = mCursorCol - offsetDueToCombiningChar;
 
-        // Fix TerminalRow.setChar() ArrayIndexOutOfBoundsException index=-1 exception reported
-        // The offsetDueToCombiningChar would never be 1 if mCursorCol was 0 to get column/index=-1,
-        // so was mCursorCol changed after the offsetDueToCombiningChar conditional by another thread?
-        // TODO: Check if there are thread synchronization issues with mCursorCol and mCursorRow, possibly causing others bugs too.
+
+
+
+
         if (column < 0) column = 0;
         mScreen.setChar(column, mCursorRow, codePoint, getStyle());
 
@@ -2770,12 +2770,12 @@ public final class TerminalEmulator {
         mSavedStateMain.mSavedCursorRow = mSavedStateMain.mSavedCursorCol = mSavedStateMain.mSavedEffect = mSavedStateMain.mSavedDecFlags = 0;
         mSavedStateAlt.mSavedCursorRow = mSavedStateAlt.mSavedCursorCol = mSavedStateAlt.mSavedEffect = mSavedStateAlt.mSavedDecFlags = 0;
         mCurrentDecSetFlags = 0;
-        // Initial wrap-around is not accurate but makes terminal more useful, especially on a small screen:
+
         setDecsetinternalBit(DECSET_BIT_AUTOWRAP, true);
         setDecsetinternalBit(DECSET_BIT_CURSOR_ENABLED, true);
         mSavedDecSetFlags = mSavedStateMain.mSavedDecFlags = mSavedStateAlt.mSavedDecFlags = mCurrentDecSetFlags;
 
-        // XXX: Should we set terminal driver back to IUTF8 with termios?
+
         mUtf8Index = mUtf8ToFollow = 0;
 
         mColors.reset();
@@ -2808,12 +2808,12 @@ public final class TerminalEmulator {
      * If DECSET 2004 is set, prefix paste with "\033[200~" and suffix with "\033[201~".
      */
     public void paste(String text) {
-        // First: Always remove escape key and C1 control characters [0x80,0x9F]:
+
         text = text.replaceAll("(\u001B|[\u0080-\u009F])", "");
-        // Second: Replace all newlines (\n) or CRLF (\r\n) with carriage returns (\r).
+
         text = text.replaceAll("\r?\n", "\r");
 
-        // Then: Implement bracketed paste mode if enabled:
+
         boolean bracketed = isDecsetInternalBitSet(DECSET_BIT_BRACKETED_PASTE_MODE);
         if (bracketed) mSession.write("\033[200~");
         mSession.write(text);

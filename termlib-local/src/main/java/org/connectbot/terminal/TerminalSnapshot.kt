@@ -22,9 +22,9 @@ import androidx.compose.ui.graphics.Color
  * Cursor shape types matching libvterm's VTERM_PROP_CURSORSHAPE values.
  */
 internal enum class CursorShape {
-    BLOCK, // VTERM_PROP_CURSORSHAPE_BLOCK = 1
-    UNDERLINE, // VTERM_PROP_CURSORSHAPE_UNDERLINE = 2
-    BAR_LEFT, // VTERM_PROP_CURSORSHAPE_BAR_LEFT = 3
+    BLOCK,
+    UNDERLINE,
+    BAR_LEFT,
 }
 
 /**

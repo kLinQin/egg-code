@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.egg.codeeditor.terminal.EggTerminalScreen
+import com.egg.codeeditor.terminal.EggTerminalEnv
 import com.egg.codeeditor.terminal.TerminalSessionService
 
 @Composable
@@ -43,7 +44,7 @@ internal fun TerminalPanel(
 
     EggTerminalScreen(
         modifier = Modifier,
-        workingDir = vm.rootFolderPath ?: "/",
+        workingDir = if (vm.settings.projectAsPwd && vm.rootFolderPath != null) vm.rootFolderPath!! else EggTerminalEnv.sandboxHomeDir().absolutePath,
         isDarkTheme = com.egg.extension.api.ThemeRegistry.get(vm.settings.themeName)?.dark ?: (vm.settings.themeName == "darcula"),
         onOpenFile = { path -> vm.openTerminalFile(path) },
         terminalFontSize = vm.settings.terminalFontSize,

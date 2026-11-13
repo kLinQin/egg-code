@@ -41,7 +41,7 @@ internal fun SectionStatusBar(
         HorizontalDivider()
 
         Surface(
-            color = MaterialTheme.colorScheme.surface, // ← sama dengan warna header
+            color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxWidth().height(36.dp)
         ) {
             Row(

@@ -83,33 +83,33 @@ internal class ImeInputView(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        // Always hide IME when view is detached to prevent SHOW_FORCED from keeping keyboard
-        // open after the app/activity is destroyed
+
+
         hideIme()
     }
 
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection {
-        // Configure IME options
+
         outAttrs.imeOptions = outAttrs.imeOptions or
             EditorInfo.IME_FLAG_NO_EXTRACT_UI or
             EditorInfo.IME_FLAG_NO_ENTER_ACTION or
             EditorInfo.IME_ACTION_NONE
 
         if (isComposeModeActive) {
-            // Compose mode: allow voice input and IME suggestions.
-            // TYPE_CLASS_TEXT without NO_SUGGESTIONS keeps the suggestion strip (and its
-            // microphone button) visible. fullEditor=true makes BaseInputConnection provide
-            // a real Editable so getExtractedText() returns non-null (required by Gboard
-            // for voice input).
+
+
+
+
+
             outAttrs.inputType = EditorInfo.TYPE_CLASS_TEXT
             outAttrs.initialSelStart = 0
             outAttrs.initialSelEnd = 0
         } else {
-            // Normal terminal mode:
-            // - TYPE_TEXT_VARIATION_PASSWORD: Shows password-style keyboard with number rows
-            // - TYPE_TEXT_VARIATION_VISIBLE_PASSWORD: Keeps text visible (we handle display ourselves)
-            // - TYPE_TEXT_FLAG_NO_SUGGESTIONS: Disables autocomplete/suggestions
-            // - TYPE_NULL: No special input processing
+
+
+
+
+
             outAttrs.inputType = EditorInfo.TYPE_NULL or
                 EditorInfo.TYPE_TEXT_VARIATION_PASSWORD or
                 EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or
@@ -131,14 +131,14 @@ internal class ImeInputView(
      * suggestion context stays in sync with the terminal's stateless text model.
      */
     fun resetImeBuffer() {
-        // Clear both the Editable AND the composing-text tracking so an
-        // in-flight IME composition doesn't resume against stale state.
-        // Without the composition reset, a mid-composition interruption
-        // from an external key path (hardware keyboard, macro key, IME
-        // dismissal) leaves the tracked composingText non-empty, and the
-        // next setComposingText() computes its backspace-count against
-        // that stale length — producing ghost backspaces or duplicated
-        // input on the next IME message.
+
+
+
+
+
+
+
+
         activeConnection?.editable?.clear()
         activeConnection?.resetComposition()
         onUpdateSelection(this, 0, 0, -1, -1)
@@ -175,8 +175,8 @@ internal class ImeInputView(
                 composingText = ""
                 editable?.clear()
                 onUpdateSelection(this@ImeInputView, 0, 0, -1, -1)
-                // Some IMEs replay the just-submitted composition through setComposingText()
-                // after Enter. Ignore that replay so the compose overlay stays cleared.
+
+
                 restartInputSoon()
                 return true
             }
@@ -193,7 +193,7 @@ internal class ImeInputView(
 
             if (newText.isEmpty()) {
                 if (composingText.isNotEmpty()) {
-                    // Composition cleared by IME; remove the projected text from the terminal.
+
                     sendBackspaces(composingText.length)
                 }
                 composingText = ""
@@ -202,19 +202,19 @@ internal class ImeInputView(
 
             when {
                 newText.startsWith(composingText) -> {
-                    // Typical case: IME appends new chars to the composition
+
                     val delta = newText.substring(composingText.length)
                     sendTextInput(delta)
                 }
 
                 composingText.startsWith(newText) -> {
-                    // IME removed characters from the end of the composition
+
                     val deleteCount = composingText.length - newText.length
                     sendBackspaces(deleteCount)
                 }
 
                 else -> {
-                    // IME replaced the composition; rewrite it in the terminal
+
                     sendBackspaces(composingText.length)
                     sendTextInput(newText)
                 }
@@ -229,28 +229,28 @@ internal class ImeInputView(
 
             super.finishComposingText()
             composingText = ""
-            // Clear the internal Editable to prevent unbounded accumulation
+
             editable?.clear()
             return true
         }
 
         override fun deleteSurroundingText(leftLength: Int, rightLength: Int): Boolean {
-            // Handle backspace by sending DEL key events
-            // When IME sends delete, it often sends (0, 0) or (1, 0) for backspace
+
+
             if (rightLength == 0 && leftLength == 0) {
                 return sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
             }
 
-            // Cap the loop: real IMEs send single-digit values here. A misbehaving
-            // or hostile IME asking for ~2^31 deletions would freeze the UI thread
-            // in a DEL-key loop. MAX_DELETE_SURROUNDING is well above anything
-            // legitimate.
+
+
+
+
             val bounded = leftLength.coerceIn(0, MAX_DELETE_SURROUNDING)
             for (i in 0 until bounded) {
                 sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
             }
 
-            // TODO: Implement forward delete if rightLength > 0
+
             if (bounded > 0 && composingText.isNotEmpty()) {
                 val newLength = (composingText.length - bounded).coerceAtLeast(0)
                 composingText = composingText.substring(0, newLength)
@@ -269,9 +269,9 @@ internal class ImeInputView(
                     null
                 }
 
-                // Compose mode (TYPE_CLASS_TEXT): route through dispatchKeyEvent so the
-                // setOnKeyListener chain handles it. Clear the editable buffer afterward so
-                // Gboard does not accumulate terminal input as suggestion candidates.
+
+
+
                 val result = this@ImeInputView.dispatchKeyEvent(event)
                 if (isKeyDown) {
                     awaitingPostEnterCommitReplay = event.keyCode == KeyEvent.KEYCODE_ENTER
@@ -281,14 +281,14 @@ internal class ImeInputView(
                 }
                 return result
             } else {
-                // TYPE_NULL mode: forward the key directly to keyboardHandler.
-                //
-                // Some IMEs (e.g. Gboard) also fire a concurrent raw View.dispatchKeyEvent
-                // for the same key, but since we call keyboardHandler directly here (not via
-                // dispatchKeyEvent), setOnKeyListener is never triggered — no duplication.
-                //
-                // Other IMEs (e.g. Hacker's Keyboard) only use sendKeyEvent and fire no raw
-                // view event, so forwarding here is the only way their keys reach the terminal.
+
+
+
+
+
+
+
+
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     keyboardHandler.onKeyEvent(ComposeKeyEvent(event))
                 }
@@ -300,22 +300,22 @@ internal class ImeInputView(
             val committedText = text?.toString() ?: ""
             if (!fullEditor) {
                 if (committedText.isNotEmpty()) {
-                    // When in TYPE_NULL mode, Gboard sends regular characters (a-z, etc.) via BOTH
-                    // sendKeyEvent AND a raw View.dispatchKeyEvent.
-                    //
-                    // We've modified sendKeyEvent to be a no-op in this mode to avoid doubling
-                    // with the raw View event. However, accented characters (ü, etc.) often
-                    // ONLY arrive via commitText because they have no direct KEYCODE.
-                    //
-                    // Deliver the text directly; this covers accented chars and any regular
-                    // chars sent via commitText rather than the sendKeyEvent/raw-view paths.
+
+
+
+
+
+
+
+
+
                     sendTextInput(committedText)
                 }
                 return true
             }
 
-            // Save composingText before super.commitText() which internally calls
-            // finishComposingText(), clearing composingText before we can use it.
+
+
             val previousComposingText = composingText
             super.commitText(text, newCursorPosition)
 
@@ -328,9 +328,9 @@ internal class ImeInputView(
                 composingText = ""
                 editable?.clear()
                 onUpdateSelection(this@ImeInputView, 0, 0, -1, -1)
-                // Some IMEs replay the just-submitted composition after Enter. Ignore that
-                // replay so the shell text stays committed, then force the IME to drop the
-                // stale composing span that would otherwise keep the green overlay alive.
+
+
+
                 restartInputSoon()
                 return true
             }

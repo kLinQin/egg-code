@@ -120,10 +120,10 @@ public final class TerminalRenderer {
                 final boolean insideFilePath = isInsideRanges(currentCharIndex, filePathRanges);
                 final long style = lineObject.getStyle(column);
 
-                // Check if the measured text width for this code point is not the same as that expected by wcwidth().
-                // This could happen for some fonts which are not truly monospace, or for more exotic characters such as
-                // smileys which android font renders as wide.
-                // If this is detected, we draw this code point scaled to match what wcwidth() expects.
+
+
+
+
                 final float measuredCodePointWidth = (codePoint < asciiMeasures.length) ? asciiMeasures[codePoint] : mTextPaint.measureText(line,
                         currentCharIndex, charsForCodePoint);
                 final boolean fontWidthMismatch = Math.abs(measuredCodePointWidth / mFontWidth - codePointWcWidth) > 0.01;
@@ -151,8 +151,8 @@ public final class TerminalRenderer {
                 column += codePointWcWidth;
                 currentCharIndex += charsForCodePoint;
                 while (currentCharIndex < charsUsedInLine && WcWidth.width(line, currentCharIndex) <= 0) {
-                    // Eat combining chars so that they are treated as part of the last non-combining code point,
-                    // instead of e.g. being considered inside the cursor in the next run.
+
+
                     currentCharIndex += Character.isHighSurrogate(line[currentCharIndex]) ? 2 : 1;
                 }
             }
@@ -207,7 +207,7 @@ public final class TerminalRenderer {
                 0.2f
             );
         } else if ((foreColor & 0xff000000) != 0xff000000) {
-            // Let bold have bright colors if applicable (one of the first 8):
+
             if (bold && foreColor >= 0 && foreColor < 8) foreColor += 8;
             foreColor = palette[foreColor];
         }
@@ -216,7 +216,7 @@ public final class TerminalRenderer {
             backColor = palette[backColor];
         }
 
-        // Reverse video here if _one and only one_ of the reverse flags are set:
+
         final boolean reverseVideoHere = reverseVideo ^ (effect & (TextStyle.CHARACTER_ATTRIBUTE_INVERSE)) != 0;
         if (reverseVideoHere) {
             int tmp = foreColor;
@@ -238,7 +238,7 @@ public final class TerminalRenderer {
         }
 
         if (backColor != palette[TextStyle.COLOR_INDEX_BACKGROUND]) {
-            // Only draw non-default background.
+
             mTextPaint.setColor(backColor);
             canvas.drawRect(left, y - mFontLineSpacingAndAscent + mFontAscent, right, y, mTextPaint);
         }
@@ -257,8 +257,8 @@ public final class TerminalRenderer {
                 int red = (0xFF & (foreColor >> 16));
                 int green = (0xFF & (foreColor >> 8));
                 int blue = (0xFF & foreColor);
-                // Dim color handling used by libvte which in turn took it from xterm
-                // (https://bug735245.bugzilla-attachments.gnome.org/attachment.cgi?id=284267):
+
+
                 red = red * 2 / 3;
                 green = green * 2 / 3;
                 blue = blue * 2 / 3;
@@ -271,7 +271,7 @@ public final class TerminalRenderer {
             mTextPaint.setStrikeThruText(strikeThrough);
             mTextPaint.setColor(foreColor);
 
-            // The text alignment is the default Paint.Align.LEFT.
+
             canvas.drawTextRun(text, startCharIndex, runWidthChars, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, false, mTextPaint);
         }
 

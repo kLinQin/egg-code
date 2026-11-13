@@ -38,7 +38,7 @@ fun SidebarButton(
         )
         Text(
             label,
-            fontSize = 12.sp, // ← naik dari 9.sp ke 12.sp (+3 point)
+            fontSize = 12.sp,
             maxLines = 1,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

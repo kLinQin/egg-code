@@ -21,8 +21,8 @@ public class KeyboardUtils {
 
     public static void setSoftKeyboardVisibility(@NonNull final Runnable showSoftKeyboardRunnable, final Activity activity, final View view, final boolean visible) {
         if (visible) {
-            // A Runnable with a delay is used, otherwise soft keyboard may not automatically open
-            // on some devices, but still may fail
+
+
             view.postDelayed(showSoftKeyboardRunnable, 500);
         } else {
             view.removeCallbacks(showSoftKeyboardRunnable);
@@ -104,10 +104,10 @@ public class KeyboardUtils {
     }
 
     public static void setSoftInputModeAdjustResize(final Activity activity) {
-        // TODO: The flag is deprecated for API 30 and WindowInset API should be used
-        // https://developer.android.com/reference/android/view/WindowManager.LayoutParams#SOFT_INPUT_ADJUST_RESIZE
-        // https://medium.com/androiddevelopers/animating-your-keyboard-fb776a8fb66d
-        // https://stackoverflow.com/a/65194077/14686958
+
+
+
+
         if (activity != null && activity.getWindow() != null)
             activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
@@ -161,7 +161,7 @@ public class KeyboardUtils {
      * @return Returns {@code true} if device has soft keyboard should be disabled, otherwise {@code false}.
      */
     public static boolean shouldSoftKeyboardBeDisabled(final Context context, final boolean isSoftKeyboardEnabled, final boolean isSoftKeyboardEnabledOnlyIfNoHardware) {
-        // If soft keyboard is disabled by user regardless of hardware keyboard
+
         if (!isSoftKeyboardEnabled) {
             return true;
         } else {
@@ -183,7 +183,7 @@ public class KeyboardUtils {
              * But it seems resizing does happen, but keyboard is never opened since its not supposed to.
              * https://github.com/termux/termux-app/issues/1995#issuecomment-837080079
              */
-            // If soft keyboard is disabled by user only if hardware keyboard is connected
+
             if(isSoftKeyboardEnabledOnlyIfNoHardware) {
                 boolean isHardKeyboardConnected = KeyboardUtils.isHardKeyboardConnected(context);
                 android.util.Log.v(LOG_TAG, "Hardware keyboard connected=" + isHardKeyboardConnected);

@@ -113,12 +113,12 @@ internal data class TerminalLine(
      *                       OSC 8 segment is present. Defaults to false.
      */
     fun getHyperlinkUrlAt(col: Int, autoDetectUrls: Boolean = false): String? {
-        // OSC 8 segments take priority
+
         val osc8 = semanticSegments.firstOrNull {
             it.semanticType == SemanticType.HYPERLINK && it.contains(col)
         }?.metadata
         if (osc8 != null) return osc8
-        // Fallback: auto-detected plain-text URLs (only when enabled)
+
         if (!autoDetectUrls) return null
         return autoDetectedUrls.firstOrNull { col >= it.first && col < it.second }?.third
     }
@@ -140,12 +140,12 @@ internal data class TerminalLine(
         val bgColor: Color,
         val bold: Boolean = false,
         val italic: Boolean = false,
-        // 0=none, 1=single, 2=double, 3=curly
+
         val underline: Int = 0,
         val blink: Boolean = false,
         val reverse: Boolean = false,
         val strike: Boolean = false,
-        // 1 for normal, 2 for fullwidth (CJK)
+
         val width: Int = 1,
     )
 
@@ -165,14 +165,14 @@ internal data class TerminalLine(
          * Pure Kotlin regex (no android.util.Patterns dependency) for JUnit testability.
          */
         internal val URL_REGEX = Regex(
-            // Scheme URLs: http(s)://... or ftp://...
+
             """(?:https?://|ftp://)[^\s<>"{}|\\^`\[\]]+""" +
-                // Bare domains with common TLDs, optional :port and /path
+
                 """|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+""" +
                 """(?:com|org|net|edu|gov|io|dev|app|co|uk|de|fr|jp|ru|br|in|au|us|info|biz|me|tv|cc)""" +
                 """(?::\d{1,5})?""" +
                 """(?:/[^\s<>"{}|\\^`\[\]]*)?""" +
-                // IP:port (e.g. 192.168.1.1:8080) — require port to avoid matching version numbers
+
                 """|(?:\d{1,3}\.){3}\d{1,3}:\d{1,5}(?:/[^\s<>"{}|\\^`\[\]]*)?""",
         )
 

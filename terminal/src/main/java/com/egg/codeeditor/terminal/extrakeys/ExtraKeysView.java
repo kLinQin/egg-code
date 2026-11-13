@@ -422,13 +422,13 @@ public final class ExtraKeysView extends GridLayout {
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
                             view.setBackgroundColor(mButtonActiveBackgroundColor);
-                            // Start long press scheduled executors which will be stopped in next MotionEvent
+
                             startScheduledExecutors(view, buttonInfo, button);
                             return true;
 
                         case MotionEvent.ACTION_MOVE:
                             if (buttonInfo.getPopup() != null) {
-                                // Show popup on swipe up
+
                                 if (mPopupWindow == null && event.getY() < 0) {
                                     stopScheduledExecutors();
                                     view.setBackgroundColor(mButtonBackgroundColor);
@@ -449,9 +449,9 @@ public final class ExtraKeysView extends GridLayout {
                         case MotionEvent.ACTION_UP:
                             view.setBackgroundColor(mButtonBackgroundColor);
                             stopScheduledExecutors();
-                            // If ACTION_UP up was not from a repetitive key or was with a key with a popup button
+
                             if (mLongPressCount == 0 || mPopupWindow != null) {
-                                // Trigger popup button click if swipe up complete
+
                                 if (mPopupWindow != null) {
                                     dismissPopup();
                                     if (buttonInfo.getPopup() != null) {
@@ -494,7 +494,7 @@ public final class ExtraKeysView extends GridLayout {
 
     public void performExtraKeyButtonHapticFeedback(View view, ExtraKeyButton buttonInfo, MaterialButton button) {
         if (mExtraKeysViewClient != null) {
-            // If client handled the feedback, then just return
+
             if (mExtraKeysViewClient.performExtraKeyButtonHapticFeedback(view, buttonInfo, button))
                 return;
         }
@@ -505,7 +505,7 @@ public final class ExtraKeysView extends GridLayout {
             if (Build.VERSION.SDK_INT >= 28) {
                 button.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             } else {
-                // Perform haptic feedback only if no total silence mode enabled.
+
                 if (Settings.Global.getInt(getContext().getContentResolver(), "zen_mode", 0) != 2) {
                     button.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 }
@@ -521,7 +521,7 @@ public final class ExtraKeysView extends GridLayout {
             SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
             if (state == null) return;
 
-            // Toggle active state and disable lock state if new state is not active
+
             state.setIsActive(!state.isActive);
             if (!state.isActive)
                 state.setIsLocked(false);
@@ -535,18 +535,18 @@ public final class ExtraKeysView extends GridLayout {
         stopScheduledExecutors();
         mLongPressCount = 0;
         if (mRepetitiveKeys.contains(buttonInfo.getKey())) {
-            // Auto repeat key if long pressed until ACTION_UP stops it by calling stopScheduledExecutors.
-            // Currently, only one (last) repeat key can run at a time. Old ones are stopped.
+
+
             mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
             mScheduledExecutor.scheduleWithFixedDelay(() -> {
                 mLongPressCount++;
                 onExtraKeyButtonClick(view, buttonInfo, button);
             }, mLongPressTimeout, mLongPressRepeatDelay, TimeUnit.MILLISECONDS);
         } else if (isSpecialButton(buttonInfo)) {
-            // Lock the key if long pressed by running mSpecialButtonsLongHoldRunnable after
-            // waiting for mLongPressTimeout milliseconds. If user does not long press, then the
-            // ACTION_UP triggered will cancel the runnable by calling stopScheduledExecutors before
-            // it has a chance to run.
+
+
+
+
             SpecialButtonState state = mSpecialButtons.get(SpecialButton.valueOf(buttonInfo.getKey()));
             if (state == null) return;
             if (mHandler == null)
@@ -576,7 +576,7 @@ public final class ExtraKeysView extends GridLayout {
         }
 
         public void run() {
-            // Toggle active and lock state
+
             mState.setIsLocked(!mState.isActive);
             mState.setIsActive(!mState.isActive);
             mLongPressCount++;
@@ -646,7 +646,7 @@ public final class ExtraKeysView extends GridLayout {
         if (!state.isCreated || !state.isActive)
             return false;
 
-        // Disable active state only if not locked
+
         if (autoSetInActive && !state.isLocked)
             state.setIsActive(false);
 

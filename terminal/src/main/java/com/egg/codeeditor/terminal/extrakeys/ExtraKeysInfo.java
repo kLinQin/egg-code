@@ -133,7 +133,7 @@ public class ExtraKeysInfo {
     private ExtraKeyButton[][] initExtraKeysInfo(@NonNull String propertiesInfo,
                                                  @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyDisplayMap,
                                                  @NonNull ExtraKeysConstants.ExtraKeyDisplayMap extraKeyAliasMap) throws JSONException {
-        // Convert String propertiesInfo to Array of Arrays
+
         JSONArray arr = new JSONArray(propertiesInfo);
         Object[][] matrix = new Object[arr.length()][];
         for (int i = 0; i < arr.length(); i++) {
@@ -144,7 +144,7 @@ public class ExtraKeysInfo {
             }
         }
 
-        // convert matrix to buttons
+
         ExtraKeyButton[][] buttons = new ExtraKeyButton[matrix.length][];
         for (int i = 0; i < matrix.length; i++) {
             buttons[i] = new ExtraKeyButton[matrix[i].length];
@@ -156,10 +156,10 @@ public class ExtraKeysInfo {
                 ExtraKeyButton button;
 
                 if (!jobject.has(ExtraKeyButton.KEY_POPUP)) {
-                    // no popup
+
                     button = new ExtraKeyButton(jobject, extraKeyDisplayMap, extraKeyAliasMap);
                 } else {
-                    // a popup
+
                     JSONObject popupJobject = normalizeKeyConfig(jobject.get(ExtraKeyButton.KEY_POPUP));
                     ExtraKeyButton popup = new ExtraKeyButton(popupJobject, extraKeyDisplayMap, extraKeyAliasMap);
                     button = new ExtraKeyButton(jobject, popup, extraKeyDisplayMap, extraKeyAliasMap);

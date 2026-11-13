@@ -49,31 +49,31 @@ internal fun LiveOutputRegion(
 ) {
     val snapshot = screenState.snapshot
 
-    // Track the last announced content to detect changes
+
     var lastAnnouncedText by remember { mutableStateOf("") }
     var pendingText by remember { mutableStateOf("") }
 
-    // Debounced announcement effect
+
     LaunchedEffect(snapshot.lines, enabled) {
         if (!enabled) return@LaunchedEffect
 
-        // Get the last N lines
+
         val recentLines = snapshot.lines.takeLast(linesToMonitor)
         val currentText = recentLines.joinToString("\n") { it.text }
 
         if (currentText != lastAnnouncedText) {
-            // New content detected - set pending
+
             pendingText = currentText
 
-            // Wait for debounce period
+
             delay(debounceMs)
 
-            // Announce the accumulated changes
+
             lastAnnouncedText = pendingText
         }
     }
 
-    // Invisible box with live region semantics
+
     Box(
         modifier = modifier.semantics {
             liveRegion = LiveRegionMode.Polite

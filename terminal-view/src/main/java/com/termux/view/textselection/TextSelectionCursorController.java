@@ -57,9 +57,9 @@ public class TextSelectionCursorController implements CursorController {
     public boolean hide() {
         if (!isActive()) return false;
 
-        // prevent hide calls right after a show call, like long pressing the down key
-        // 300ms seems long enough that it wouldn't cause hide problems if action button
-        // is quickly clicked after the show, otherwise decrease it
+
+
+
         if (System.currentTimeMillis() - mShowStartTime < 300) {
             return false;
         }
@@ -68,7 +68,7 @@ public class TextSelectionCursorController implements CursorController {
         mEndHandle.hide();
 
         if (mActionMode != null) {
-            // This will hide the TextSelectionCursorController
+
             mActionMode.finish();
         }
 
@@ -97,7 +97,7 @@ public class TextSelectionCursorController implements CursorController {
 
         TerminalBuffer screen = terminalView.mEmulator.getScreen();
         if (!" ".equals(screen.getSelectedText(mSelX1, mSelY1, mSelX1, mSelY1))) {
-            // Selecting something other than whitespace. Expand to word.
+
             while (mSelX1 > 0 && !"".equals(screen.getSelectedText(mSelX1 - 1, mSelY1, mSelX1 - 1, mSelY1))) {
                 mSelX1--;
             }
@@ -106,7 +106,7 @@ public class TextSelectionCursorController implements CursorController {
             }
         }
     }
-    
+
     public void setActionModeCallBacks() {
         final ActionMode.Callback callback = new ActionMode.Callback() {
             @Override
@@ -128,7 +128,7 @@ public class TextSelectionCursorController implements CursorController {
             @Override
             public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
                 if (!isActive()) {
-                    // Fix issue where the dialog is pressed while being dismissed.
+
                     return true;
                 }
 
@@ -143,12 +143,12 @@ public class TextSelectionCursorController implements CursorController {
                         terminalView.mTermSession.onPasteTextFromClipboard();
                         break;
                     case ACTION_MORE:
-                        // We first store the selected text in case TerminalViewClient needs the
-                        // selected text before MORE button was pressed since we are going to
-                        // stop selection mode
+
+
+
                         mStoredSelectedText = getSelectedText();
-                        // The text selection needs to be stopped before showing context menu,
-                        // otherwise handles will show above popup
+
+
                         terminalView.stopTextSelectionMode();
                         terminalView.showContextMenu();
                         break;
@@ -168,7 +168,7 @@ public class TextSelectionCursorController implements CursorController {
             return;
         }
 
-        //noinspection NewApi
+
         mActionMode = terminalView.startActionMode(new ActionMode.Callback2() {
             @Override
             public boolean onCreateActionMode(ActionMode mode, Menu menu) {
@@ -187,7 +187,7 @@ public class TextSelectionCursorController implements CursorController {
 
             @Override
             public void onDestroyActionMode(ActionMode mode) {
-                // Ignore.
+
             }
 
             @Override

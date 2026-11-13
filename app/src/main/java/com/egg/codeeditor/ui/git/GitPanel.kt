@@ -213,7 +213,7 @@ private fun GitFileRow(
             fontFamily = FontFamily.Monospace,
             color = if (marker != null) gitMarkerColorGit(marker) else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).let { m -> if (onLabelClick != null) m.clickable { onLabelClick() } else m })
-        
+
         IconButton(onClick = onPrimary, enabled = !busy, modifier = Modifier.size(28.dp)) {
             Icon(primaryIcon, primaryDesc, Modifier.size(16.dp))
         }

@@ -38,18 +38,18 @@ public final class TerminalColors {
         try {
             int skipInitial, skipBetween;
             if (c.charAt(0) == '#') {
-                // #RGB, #RRGGBB, #RRRGGGBBB or #RRRRGGGGBBBB. Most significant bits.
+
                 skipInitial = 1;
                 skipBetween = 0;
             } else if (c.startsWith("rgb:")) {
-                // rgb:<red>/<green>/<blue> where <red>, <green>, <blue> := h | hh | hhh | hhhh. Scaled.
+
                 skipInitial = 4;
                 skipBetween = 1;
             } else {
                 return 0;
             }
             int charsForColors = c.length() - skipInitial - 2 * skipBetween;
-            if (charsForColors % 3 != 0) return 0; // Unequal lengths.
+            if (charsForColors % 3 != 0) return 0;
             int componentLength = charsForColors / 3;
             double mult = 255 / (Math.pow(2, componentLength * 4) - 1);
 

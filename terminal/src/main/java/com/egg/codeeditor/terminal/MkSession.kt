@@ -10,12 +10,14 @@ object MkSession {
         context: Context,
         sessionClient: TerminalSessionClient,
         sessionId: String,
+        workingDir: String? = null,
     ): Pair<TerminalSession, SessionPwd> {
+        val actualWorkingDir = workingDir ?: EggTerminalEnv.sandboxHomeDir(context).absolutePath
         val env = mutableListOf(
             "PROOT=${context.applicationInfo.nativeLibraryDir}/libproot.so",
             "PROOT_LOADER=${context.applicationInfo.nativeLibraryDir}/libloader.so",
             "PROOT_TMP_DIR=${EggTerminalEnv.getTempDir(context).absolutePath}/terminal/$sessionId",
-            "WKDIR=${EggTerminalEnv.sandboxHomeDir(context).absolutePath}",
+            "WKDIR=$actualWorkingDir",
             "PUBLIC_HOME=${context.getExternalFilesDir(null)?.absolutePath}",
             "COLORTERM=truecolor",
             "TERM=xterm-256color",
@@ -29,7 +31,6 @@ object MkSession {
             "TMP_DIR=${EggTerminalEnv.getTempDir(context).absolutePath}",
             "TMPDIR=${EggTerminalEnv.getTempDir(context).absolutePath}",
             "TZ=UTC",
-            "PROMPT_COMMAND=__p=\${PWD//\\%/%25}; printf '\\e]7;file://%s%s\\a' \"\$HOSTNAME\" \"\${__p// /%20}\"",
         )
 
         val loader32 = "${context.applicationInfo.nativeLibraryDir}/libloader32.so"
@@ -44,19 +45,17 @@ object MkSession {
 
         val sandboxSH = File(EggTerminalEnv.localBinDir(context), "sandbox")
         val shell = "/system/bin/sh"
-        val args = arrayOf("-c", sandboxSH.absolutePath)
-
-        val workingDir = EggTerminalEnv.sandboxHomeDir(context).absolutePath
+        val args = if (sandboxSH.exists()) arrayOf("-c", sandboxSH.absolutePath) else arrayOf("-i")
 
         val session = TerminalSession(
             shell,
-            EggTerminalEnv.localDir(context).absolutePath,
+            actualWorkingDir,
             args,
             env.toTypedArray(),
             2000,
             sessionClient,
         )
 
-        return session to workingDir
+        return session to actualWorkingDir
     }
 }

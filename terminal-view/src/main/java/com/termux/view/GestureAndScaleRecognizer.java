@@ -97,8 +97,8 @@ final class GestureAndScaleRecognizer {
                 break;
             case MotionEvent.ACTION_UP:
                 if (!isAfterLongPress) {
-                    // This behaviour is desired when in e.g. vim with mouse events, where we do not
-                    // want to move the cursor when lifting finger after a long press.
+
+
                     mListener.onUp(event);
                 }
                 break;

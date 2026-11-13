@@ -125,13 +125,13 @@ internal class KeyboardHandler(
         val alt = modifierState.alt
         val stripAltGr = modifierState.stripAltGr
 
-        // If compose mode is active, intercept all input
+
         val compose = composeMode
         if (compose != null && compose.isActive) {
             when (key) {
                 Key.Enter -> {
-                    // Flush any IME-composed text, then dispatch a real Enter so the shell
-                    // sees a newline. Compose mode stays active (sticky toggle).
+
+
                     val text = compose.commit()
                     text?.codePoints()?.forEach { codepoint ->
                         terminalEmulator.dispatchCharacter(0, codepoint)
@@ -143,9 +143,9 @@ internal class KeyboardHandler(
                 }
 
                 Key.Escape -> {
-                    // If a composition is in progress, Esc just cancels it (vim-like). With
-                    // an empty buffer, Esc passes through to the shell. Compose mode stays
-                    // active either way.
+
+
+
                     if (compose.buffer.isNotEmpty()) {
                         compose.cancel()
                     } else {
@@ -157,9 +157,9 @@ internal class KeyboardHandler(
                 }
 
                 Key.Backspace -> {
-                    // With a composition in progress, Backspace edits the buffer. With an
-                    // empty buffer it passes through so users can still delete characters
-                    // that were typed into the shell before entering compose mode.
+
+
+
                     if (compose.buffer.isNotEmpty()) {
                         compose.deleteLastChar()
                     } else {
@@ -193,7 +193,7 @@ internal class KeyboardHandler(
             return true
         }
 
-        // If selection is active, intercept arrow keys for selection movement
+
         val selection = selectionController
         if (selection != null && selection.isSelectionActive) {
             when (key) {
@@ -218,27 +218,27 @@ internal class KeyboardHandler(
                 }
 
                 Key.Enter -> {
-                    // Finish selection (stop extending, but keep selected for copying)
+
                     selection.finishSelection()
                     return true
                 }
 
                 Key.Escape -> {
-                    // Cancel selection
+
                     selection.clearSelection()
                     return true
                 }
 
-                // Any other key clears selection and goes to terminal
+
                 else -> {
                     selection.clearSelection()
-                    // Fall through to normal key handling
+
                 }
             }
         }
 
-        // When DelKeyMode.Backspace is active, swap the byte sequences:
-        // Backspace → ^H (0x08), Delete → DEL (0x7f).
+
+
         if (delKeyMode is DelKeyMode.Backspace) {
             when (key) {
                 Key.Backspace -> {
@@ -263,7 +263,7 @@ internal class KeyboardHandler(
             }
         }
 
-        // Check if this is a special key that libvterm handles
+
         val vtermKey = mapToVTermKey(key)
         if (vtermKey != null) {
             val modifiers = buildModifierMask(ctrl, alt, shift)
@@ -274,7 +274,7 @@ internal class KeyboardHandler(
             return true
         }
 
-        // Handle regular printable characters
+
         val stickyShift = modifierManager?.isShiftActive() == true
         val codepoint = getCodePointFromKeyEvent(event, extraShift = stickyShift, stripAlt = stripAltGr)
         if (codepoint != null) {
@@ -418,9 +418,9 @@ internal class KeyboardHandler(
     fun getModifierMask(): Int {
         return modifierManager?.let {
             var mask = 0
-            if (it.isShiftActive() == true) mask = mask or 1 // Bit 0: Shift
-            if (it.isAltActive() == true) mask = mask or 2 // Bit 1: Alt
-            if (it.isCtrlActive() == true) mask = mask or 4 // Bit 2: Ctrl
+            if (it.isShiftActive() == true) mask = mask or 1
+            if (it.isAltActive() == true) mask = mask or 2
+            if (it.isCtrlActive() == true) mask = mask or 4
             return mask
         } ?: 0
     }
@@ -452,8 +452,8 @@ internal class KeyboardHandler(
         stripAlt: Boolean = false,
     ): Long? {
         val nativeEvent = event.nativeKeyEvent
-        // Always strip left-alt and the shared ALT_ON bit; only strip right-alt when it is
-        // acting as Meta rather than a character selector.
+
+
         val rightAltMask = if (stripAlt) AndroidKeyEvent.META_ALT_RIGHT_ON else 0
         val stripMask = (
             AndroidKeyEvent.META_CTRL_MASK or
@@ -477,7 +477,7 @@ internal class KeyboardHandler(
                 pendingDeadChar = base
                 return 0L
             }
-            // No need to handle the double-combining accent here; KCM.getDeadChar does it.
+
         } else {
             base = raw
         }
@@ -488,8 +488,8 @@ internal class KeyboardHandler(
             val composed = KeyCharacterMap.getDeadChar(dead, base)
             if (composed != 0) return composed.toLong()
 
-            // Combination not possible: the caller will emit `dead` first, then we return `raw`.
-            // Use bit 63 as a flag for multiple codepoints.
+
+
             return (1L shl 63) or (dead.toLong() shl 32) or base.toLong()
         }
 
@@ -510,7 +510,7 @@ internal class KeyboardHandler(
     private fun dispatchCodePoint(codepoint: Long, dispatch: (Int) -> Unit) {
         if (codepoint == 0L) return
         if (codepoint < 0) {
-            // Failed dead-key combination: dispatch both characters.
+
             val accent = ((codepoint ushr 32) and 0x7FFFFFFFL).toInt()
             val base = (codepoint and 0xFFFFFFFFL).toInt()
             dispatch(accent)
@@ -525,7 +525,7 @@ internal class KeyboardHandler(
      * Returns null if not a special key.
      */
     private fun mapToVTermKey(key: Key): Int? = when (key) {
-        // Function keys
+
         Key.F1 -> VTermKey.FUNCTION_1
 
         Key.F2 -> VTermKey.FUNCTION_2
@@ -550,7 +550,7 @@ internal class KeyboardHandler(
 
         Key.F12 -> VTermKey.FUNCTION_12
 
-        // Arrow keys
+
         Key.DirectionUp -> VTermKey.UP
 
         Key.DirectionDown -> VTermKey.DOWN
@@ -559,7 +559,7 @@ internal class KeyboardHandler(
 
         Key.DirectionRight -> VTermKey.RIGHT
 
-        // Editing keys
+
         Key.Insert -> VTermKey.INS
 
         Key.Delete -> VTermKey.DEL
@@ -572,7 +572,7 @@ internal class KeyboardHandler(
 
         Key.PageDown -> VTermKey.PAGEDOWN
 
-        // Special keys
+
         Key.Enter -> VTermKey.ENTER
 
         Key.Tab -> VTermKey.TAB
@@ -581,7 +581,7 @@ internal class KeyboardHandler(
 
         Key.Escape -> VTermKey.ESCAPE
 
-        // KP (Keypad) keys
+
         Key.NumPad0 -> VTermKey.KP_0
 
         Key.NumPad1 -> VTermKey.KP_1
@@ -650,7 +650,7 @@ object VTermKey {
     const val PAGEUP = 13
     const val PAGEDOWN = 14
 
-    // In vterm_keycodes.h enum VTERM_KEY_FUNCTION_0 = 256
+
     const val FUNCTION_0 = 256
     const val FUNCTION_1 = 257
     const val FUNCTION_2 = 258
@@ -665,7 +665,7 @@ object VTermKey {
     const val FUNCTION_11 = 267
     const val FUNCTION_12 = 268
 
-    // Keypad keys (start after FUNCTION_MAX which is 256 + 255 = 511)
+
     const val KP_0 = 512
     const val KP_1 = 513
     const val KP_2 = 514

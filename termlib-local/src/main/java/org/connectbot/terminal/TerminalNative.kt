@@ -201,11 +201,11 @@ internal class TerminalNative(callbacks: TerminalCallbacks) : AutoCloseable {
 
     @Suppress("unused")
     protected fun finalize() {
-        // Failsafe cleanup
+
         close()
     }
 
-    // Native method declarations
+
     private external fun nativeInit(callbacks: TerminalCallbacks): Long
     private external fun nativeDestroy(ptr: Long): Int
     private external fun nativeWriteInputBuffer(ptr: Long, buffer: ByteBuffer, length: Int): Int

@@ -36,13 +36,13 @@ enum class ProgressState {
  * iTerm2 extensions (OSC 1337), hyperlinks (OSC 8), and progress reporting (OSC 9;4).
  */
 internal class OscParser {
-    // Track current prompt ID for grouping command blocks
+
     private var currentPromptId = 0
 
-    // Track the column where the current semantic segment starts
+
     private var currentSegmentStartCol = 0
 
-    // Track active hyperlink state
+
     private var activeHyperlinkUrl: String? = null
     private var activeHyperlinkId: String? = null
     private var hyperlinkStartRow: Int = 0
@@ -121,27 +121,27 @@ internal class OscParser {
      * falling back to using the raw data if decoding fails.
      */
     private fun handleOsc52(payload: String): List<Action> {
-        // Payload format: "selection;data" (data may be base64-encoded or pre-decoded)
+
         val separatorIndex = payload.indexOf(';')
         if (separatorIndex < 0) return emptyList()
 
         val selection = payload.substring(0, separatorIndex)
         val data = payload.substring(separatorIndex + 1)
 
-        // Do not support clipboard read requests (security concern)
+
         if (data == "?") return emptyList()
 
-        // Empty data is allowed (means empty clipboard copy)
+
         if (data.isEmpty()) {
             return listOf(Action.ClipboardCopy(selection, ""))
         }
 
-        // Try to decode as base64 first. If it fails, the data is likely
-        // already decoded (coming from libvterm's selection callback).
+
+
         val decodedData = try {
             Base64.Default.decode(data).toString(Charsets.UTF_8)
         } catch (e: IllegalArgumentException) {
-            // Not valid base64 - assume data is already decoded
+
             data
         }
 
@@ -159,7 +159,7 @@ internal class OscParser {
      * report progress status for display in the tab header or taskbar.
      */
     private fun handleOsc9(payload: String): List<Action> {
-        // Payload format: "4;<state>;<progress>"
+
         if (!payload.startsWith("4;")) return emptyList()
 
         val parts = payload.substring(2).split(";")
@@ -200,7 +200,7 @@ internal class OscParser {
     private fun handleOsc8(payload: String, cursorRow: Int, cursorCol: Int): List<Action> {
         val actions = mutableListOf<Action>()
 
-        // Payload format: "params;URL"
+
         val separatorIndex = payload.indexOf(';')
         if (separatorIndex < 0) return emptyList()
 
@@ -208,10 +208,10 @@ internal class OscParser {
         val url = payload.substring(separatorIndex + 1)
 
         if (url.isEmpty()) {
-            // End hyperlink - create segment if we have an active hyperlink
+
             val activeUrl = activeHyperlinkUrl
             if (activeUrl != null) {
-                // Handle single-line hyperlink
+
                 if (hyperlinkStartRow == cursorRow && hyperlinkStartCol < cursorCol) {
                     actions.add(
                         Action.AddSegment(
@@ -224,13 +224,13 @@ internal class OscParser {
                         ),
                     )
                 }
-                // Clear active hyperlink state
+
                 activeHyperlinkUrl = null
                 activeHyperlinkId = null
             }
         } else {
-            // Start new hyperlink
-            // If we have an active hyperlink, close it first (shouldn't happen normally)
+
+
             val activeUrl = activeHyperlinkUrl
             if (activeUrl != null && hyperlinkStartRow == cursorRow && hyperlinkStartCol < cursorCol) {
                 actions.add(
@@ -245,7 +245,7 @@ internal class OscParser {
                 )
             }
 
-            // Parse optional id from params
+
             activeHyperlinkId = parseHyperlinkId(params)
             activeHyperlinkUrl = url
             hyperlinkStartRow = cursorRow
@@ -277,13 +277,13 @@ internal class OscParser {
 
         when {
             payload == "A" -> {
-                // Prompt start
+
                 currentPromptId++
                 currentSegmentStartCol = cursorCol
             }
 
             payload == "B" -> {
-                // Command input start (end of prompt)
+
                 val promptEndCol = cursorCol
                 if (currentSegmentStartCol < promptEndCol) {
                     actions.add(
@@ -296,16 +296,16 @@ internal class OscParser {
                         ),
                     )
                 }
-                // Create COMMAND_INPUT marker immediately on the prompt line.
-                // This must happen at B time (not C time) because after the user
-                // presses Enter, scrolling shifts content but the screen-relative
-                // cursor row stays the same. By placing COMMAND_INPUT now, it will
-                // be correctly shifted by pushScrollbackLine along with the text.
+
+
+
+
+
                 actions.add(
                     Action.AddSegment(
                         row = cursorRow,
                         startCol = cursorCol,
-                        endCol = cursorCol, // Zero-width marker, updated by C if possible
+                        endCol = cursorCol,
                         type = SemanticType.COMMAND_INPUT,
                         promptId = currentPromptId,
                     ),
@@ -314,20 +314,20 @@ internal class OscParser {
             }
 
             payload == "C" -> {
-                // Command output start (end of input)
-                // If C is on the same row as B and cursor advanced, we could
-                // update the COMMAND_INPUT endCol, but the marker from B is
-                // sufficient for getLastCommandOutput() to work.
+
+
+
+
             }
 
             payload.startsWith("D") -> {
-                // Command finished
+
                 val exitCode = if (payload.length > 2) payload.substring(2) else "0"
                 actions.add(
                     Action.AddSegment(
                         row = cursorRow,
                         startCol = cursorCol,
-                        endCol = cursorCol, // Zero-width marker
+                        endCol = cursorCol,
                         type = SemanticType.COMMAND_FINISHED,
                         metadata = exitCode,
                         promptId = currentPromptId,

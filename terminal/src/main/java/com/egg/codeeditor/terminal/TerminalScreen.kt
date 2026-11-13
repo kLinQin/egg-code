@@ -57,7 +57,7 @@ fun EggTerminalScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // update flag ctrl/alt ke backend
+
     SideEffect {
         backend.ctrl = ctrlDown
         backend.alt = altDown
@@ -67,21 +67,14 @@ fun EggTerminalScreen(
     fun newSession() {
         if (serviceBinder != null) {
             val id = "session_${System.currentTimeMillis()}"
-            serviceBinder.createSession(id, backend)
+            serviceBinder.createSession(id, backend, workingDir)
             serviceBinder.getService().currentSession.value = id
-        } else {
-            val session = TerminalSession(
-                "/system/bin/sh",
-                workingDir,
-                arrayOf("-i"),
-                null,
-                terminalScrollback,
-                backend
-            )
         }
     }
 
-    LaunchedEffect(serviceBinder) { if (sessionList.isEmpty()) newSession() }
+
+
+    LaunchedEffect(serviceBinder) { if (serviceBinder != null && sessionList.isEmpty()) newSession() }
 
     DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
 
@@ -131,11 +124,7 @@ fun EggTerminalScreen(
                             setBackgroundColor(bgArgb)
                             applyTerminalColors(surfaceArgb, onSurfaceArgb, terminalColors)
                             attachSession(session)
-                            backend.cursorStyle = when (terminalCursorStyle) {
-                                "bar" -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR
-                                "underline" -> TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE
-                                else -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
-                            }
+                            backend.terminalCursorStyleName = terminalCursorStyle
                             terminalViewRef = java.lang.ref.WeakReference(this)
                             isFocusableInTouchMode = true
                             isFocusable = true
@@ -149,6 +138,9 @@ fun EggTerminalScreen(
                     update = { view ->
                         if (view.currentSession !== session) view.attachSession(session)
                         view.applyTerminalColors(surfaceArgb, onSurfaceArgb, terminalColors)
+                        view.setTextSize(terminalFontSize * 2)
+                        backend.terminalCursorStyleName = terminalCursorStyle
+                        view.currentSession?.emulator?.setCursorStyle()
                     }
                 )
             } else {
@@ -157,7 +149,7 @@ fun EggTerminalScreen(
                 }
             }
 
-            // Extra keys: CTRL toggle + ALT toggle + tombol escape sequences
+
             Surface(color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth().height(44.dp)) {
                 Row(
@@ -247,11 +239,12 @@ class Backend : TerminalSessionClient, TerminalViewClient {
     @Volatile var alt: Boolean = false
     @Volatile var currentCwd: String = ""
 
-    // ===== TerminalSessionClient =====
+
     override fun onTextChanged(session: TerminalSession) {
         terminalViewRef.get()?.onScreenUpdated()
     }
     var onOpenFile: ((String) -> Unit)? = null
+
 
     override fun getFilePathRanges(text: String, row: Int): List<IntArray> = emptyList()
 
@@ -287,8 +280,12 @@ class Backend : TerminalSessionClient, TerminalViewClient {
     override fun onColorsChanged(session: TerminalSession) {}
     override fun onTerminalCursorStateChange(state: Boolean) {}
     override fun setTerminalShellPid(session: TerminalSession, pid: Int) {}
-    var cursorStyle: Int = TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
-    override fun getTerminalCursorStyle(): Int = cursorStyle
+    var terminalCursorStyleName: String = "block"
+    override fun getTerminalCursorStyle(): Int = when (terminalCursorStyleName) {
+        "bar" -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR
+        "underline" -> TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE
+        else -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
+    }
     override fun logError(tag: String?, message: String?) { android.util.Log.e(tag ?: "terminal", message ?: "") }
     override fun logWarn(tag: String?, message: String?) {}
     override fun logInfo(tag: String?, message: String?) {}
@@ -297,7 +294,7 @@ class Backend : TerminalSessionClient, TerminalViewClient {
     override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) {}
     override fun logStackTrace(tag: String?, e: Exception?) {}
 
-    // ===== TerminalViewClient =====
+
     override fun onScale(scale: Float): Float = scale.coerceIn(11f, 45f)
     override fun onSingleTapUp(e: MotionEvent) {
         val tv = terminalViewRef.get()

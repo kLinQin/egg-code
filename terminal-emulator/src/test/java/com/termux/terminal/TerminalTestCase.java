@@ -109,7 +109,7 @@ public abstract class TerminalTestCase extends TestCase {
     }
 
     protected TerminalTestCase withTerminalSized(int columns, int rows) {
-        // The tests aren't currently using the client, so a null client will suffice, a dummy client should be implemented if needed
+
         mTerminal = new TerminalEmulator(mOutput, columns, rows, INITIAL_CELL_WIDTH_PIXELS, INITIAL_CELL_HEIGHT_PIXELS, rows * 2, null);
         return this;
     }
@@ -224,7 +224,7 @@ public abstract class TerminalTestCase extends TestCase {
     }
 
     protected TerminalTestCase placeCursorAndAssert(int row, int col) {
-        // +1 due to escape sequence being one based.
+
         enterString("\033[" + (row + 1) + ";" + (col + 1) + "H");
         assertCursorAt(row, col);
         return this;

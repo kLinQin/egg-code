@@ -13,17 +13,17 @@ public class ResizeTest extends TerminalTestCase {
 		final int rows = 3, cols = 3;
 		withTerminalSized(cols, rows).enterString("a\r\ndef$").assertLinesAre("a  ", "def", "$  ").assertCursorAt(2, 1);
 
-		// Resize and back again while in main buffer:
+
 		resize(cols, 5).assertLinesAre("a  ", "def", "$  ", "   ", "   ").assertCursorAt(2, 1);
 		resize(cols, rows).assertLinesAre("a  ", "def", "$  ").assertCursorAt(2, 1);
 
-		// Switch to alt buffer:
+
 		enterString("\033[?1049h").assertLinesAre("   ", "   ", "   ").assertCursorAt(2, 1);
 		enterString("h").assertLinesAre("   ", "   ", " h ").assertCursorAt(2, 2);
 
 		resize(cols, 5).resize(cols, rows);
 
-		// Switch from alt buffer:
+
 		enterString("\033[?1049l").assertLinesAre("a  ", "def", "$  ").assertCursorAt(2, 1);
 	}
 
@@ -42,15 +42,15 @@ public class ResizeTest extends TerminalTestCase {
 		enterString("a\r\nb\r\nc\r\nd\r\ne\r\nf\r\n").assertLinesAre("e  ", "f  ", "   ").assertCursorAt(2, 0);
 		assertLineWraps(false, false, false);
 
-		// Switch to alt buffer:
+
 		enterString("\033[?1049h").assertLinesAre("   ", "   ", "   ").assertCursorAt(2, 0);
 		enterString("h").assertLinesAre("   ", "   ", "h  ").assertCursorAt(2, 1);
 
-		// Grow by two rows:
+
 		resize(cols, 5).assertLinesAre("   ", "   ", "h  ", "   ", "   ").assertCursorAt(2, 1);
 		resize(cols, rows).assertLinesAre("   ", "   ", "h  ").assertCursorAt(2, 1);
 
-		// Switch from alt buffer:
+
 		enterString("\033[?1049l").assertLinesAre("e  ", "f  ", "   ").assertCursorAt(2, 0);
 	}
 
@@ -85,11 +85,11 @@ public class ResizeTest extends TerminalTestCase {
 		final int cols = 3;
 
 		withTerminalSized(cols, rows);
-		// Foreground color to 119:
+
 		enterString("\033[38;5;119m");
-		// Background color to 129:
+
 		enterString("\033[48;5;129m");
-		// Clear with ED, Erase in Display:
+
 		enterString("\033[2J");
 		for (int r = 0; r < rows; r++) {
 			for (int c = 0; c < cols; c++) {
@@ -102,7 +102,7 @@ public class ResizeTest extends TerminalTestCase {
 		assertLinesAre("11 ", "22 ", "   ", "   ", "   ").assertLineWraps(false, false, false, false, false);
 		resize(cols, rows - 2).assertLinesAre("11 ", "22 ", "   ");
 
-		// After resize, screen should still be same color:
+
 		for (int r = 0; r < rows - 2; r++) {
 			for (int c = 0; c < cols; c++) {
 				long style = getStyleAt(r, c);
@@ -111,7 +111,7 @@ public class ResizeTest extends TerminalTestCase {
 			}
 		}
 
-		// Background color to 200 and grow back size (which should be cleared to the new background color):
+
 		enterString("\033[48;5;200m");
 		resize(cols, rows);
 		for (int r = 0; r < rows; r++) {
@@ -128,10 +128,10 @@ public class ResizeTest extends TerminalTestCase {
 		final int cols = 5;
 
 		withTerminalSized(cols, rows);
-		// Background color to 129:
-		// enterString("\033[48;5;129m").assertLinesAre(" ", " ", " ", " ", " ");
+
+
 		enterString("1111\r\n2222\r\n3333\r\n4444\r\n5555").assertCursorAt(4, 4);
-		// assertEquals(129, TextStyle.decodeBackColor(getStyleAt(2, 2)));
+
 		assertLinesAre("1111 ", "2222 ", "3333 ", "4444 ", "5555 ").assertLineWraps(false, false, false, false, false);
 		resize(cols + 2, rows).assertLinesAre("1111   ", "2222   ", "3333   ", "4444   ", "5555   ").assertCursorAt(4, 4);
 		assertLineWraps(false, false, false, false, false);
@@ -141,7 +141,7 @@ public class ResizeTest extends TerminalTestCase {
 		assertLineWraps(false, false, false, true, false);
 		resize(cols - 2, rows).assertLinesAre("3  ", "444", "4  ", "555", "5  ").assertCursorAt(4, 1);
 		assertLineWraps(false, true, false, true, false);
-		// Back to original size:
+
 		resize(cols, rows).assertLinesAre("1111 ", "2222 ", "3333 ", "4444 ", "5555 ").assertCursorAt(4, 4);
 		assertLineWraps(false, false, false, false, false);
 	}
@@ -174,7 +174,7 @@ public class ResizeTest extends TerminalTestCase {
 		withTerminalSized(3, 3).enterString("ABC\u0302DEF").assertLinesAre("ABC\u0302", "DEF", "   ");
 		resize(4, 3).assertLinesAre("ABC\u0302D", "EF  ", "    ");
 
-		// Same as above but with colors:
+
 		withTerminalSized(3, 3).enterString("\033[37mA\033[35mB\033[33mC\u0302\033[32mD\033[31mE\033[34mF").assertLinesAre("ABC\u0302",
 				"DEF", "   ");
 		resize(4, 3).assertLinesAre("ABC\u0302D", "EF  ", "    ");

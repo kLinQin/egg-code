@@ -23,33 +23,33 @@ package org.connectbot.terminal
  * This class is reusable - call reset() before each getCellRun() call.
  */
 internal class CellRun {
-    // Foreground color (RGB)
+
     var fgRed: Int = 0
     var fgGreen: Int = 0
     var fgBlue: Int = 0
 
-    // Background color (RGB)
+
     var bgRed: Int = 0
     var bgGreen: Int = 0
     var bgBlue: Int = 0
 
-    // Text attributes
+
     var bold: Boolean = false
-    var underline: Int = 0 // 0=none, 1=single, 2=double, 3=curly
+    var underline: Int = 0
     var italic: Boolean = false
     var blink: Boolean = false
     var reverse: Boolean = false
     var strike: Boolean = false
     var font: Int = 0
 
-    // Line attributes
-    var dwl: Boolean = false // Double-width line
-    var dhl: Int = 0 // Double-height line (0=none, 1=top, 2=bottom)
 
-    // Characters in this run (UTF-16, may include surrogate pairs)
+    var dwl: Boolean = false
+    var dhl: Int = 0
+
+
     var chars: CharArray = CharArray(256)
 
-    // Number of cells this run covers (not necessarily chars.size due to wide chars)
+
     var runLength: Int = 0
 
     /**

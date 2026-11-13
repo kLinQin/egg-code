@@ -168,10 +168,10 @@ internal data class ScreenCell(
     val bgBlue: Int,
     val bold: Boolean = false,
     val italic: Boolean = false,
-    // 0=none, 1=single, 2=double
+
     val underline: Int = 0,
     val reverse: Boolean = false,
     val strike: Boolean = false,
-    // 1 for normal, 2 for fullwidth (CJK)
+
     val width: Int = 1,
 )

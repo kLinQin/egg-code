@@ -77,53 +77,53 @@ public class ExtraKeysConstants {
          * Keys are displayed in a natural looking way, like "→" for "RIGHT"
          */
         public static final ExtraKeyDisplayMap CLASSIC_ARROWS_DISPLAY = new ExtraKeyDisplayMap() {{
-            // classic arrow keys (for ◀ ▶ ▲ ▼ @see arrowVariationDisplay)
-            put("LEFT", "←"); // U+2190 ← LEFTWARDS ARROW
-            put("RIGHT", "→"); // U+2192 → RIGHTWARDS ARROW
-            put("UP", "↑"); // U+2191 ↑ UPWARDS ARROW
-            put("DOWN", "↓"); // U+2193 ↓ DOWNWARDS ARROW
+
+            put("LEFT", "←");
+            put("RIGHT", "→");
+            put("UP", "↑");
+            put("DOWN", "↓");
         }};
 
         public static final ExtraKeyDisplayMap WELL_KNOWN_CHARACTERS_DISPLAY = new ExtraKeyDisplayMap() {{
-            // well known characters // https://en.wikipedia.org/wiki/{Enter_key, Tab_key, Delete_key}
-            put("ENTER", "↲"); // U+21B2 ↲ DOWNWARDS ARROW WITH TIP LEFTWARDS
-            put("TAB", "↹"); // U+21B9 ↹ LEFTWARDS ARROW TO BAR OVER RIGHTWARDS ARROW TO BAR
-            put("BKSP", "⌫"); // U+232B ⌫ ERASE TO THE LEFT sometimes seen and easy to understand
-            put("DEL", "⌦"); // U+2326 ⌦ ERASE TO THE RIGHT not well known but easy to understand
-            put("DRAWER", "☰"); // U+2630 ☰ TRIGRAM FOR HEAVEN not well known but easy to understand
-            put("KEYBOARD", "⌨"); // U+2328 ⌨ KEYBOARD not well known but easy to understand
-            put("PASTE", "⎘"); // U+2398
-            put("SCROLL", "⇳"); // U+21F3
+
+            put("ENTER", "↲");
+            put("TAB", "↹");
+            put("BKSP", "⌫");
+            put("DEL", "⌦");
+            put("DRAWER", "☰");
+            put("KEYBOARD", "⌨");
+            put("PASTE", "⎘");
+            put("SCROLL", "⇳");
         }};
 
         public static final ExtraKeyDisplayMap LESS_KNOWN_CHARACTERS_DISPLAY = new ExtraKeyDisplayMap() {{
-            // https://en.wikipedia.org/wiki/{Home_key, End_key, Page_Up_and_Page_Down_keys}
-            // home key can mean "goto the beginning of line" or "goto first page" depending on context, hence the diagonal
-            put("HOME", "⇱"); // from IEC 9995 // U+21F1 ⇱ NORTH WEST ARROW TO CORNER
-            put("END", "⇲"); // from IEC 9995 // ⇲ // U+21F2 ⇲ SOUTH EAST ARROW TO CORNER
-            put("PGUP", "⇑"); // no ISO character exists, U+21D1 ⇑ UPWARDS DOUBLE ARROW will do the trick
-            put("PGDN", "⇓"); // no ISO character exists, U+21D3 ⇓ DOWNWARDS DOUBLE ARROW will do the trick
+
+
+            put("HOME", "⇱");
+            put("END", "⇲");
+            put("PGUP", "⇑");
+            put("PGDN", "⇓");
         }};
 
         public static final ExtraKeyDisplayMap ARROW_TRIANGLE_VARIATION_DISPLAY = new ExtraKeyDisplayMap() {{
-            // alternative to classic arrow keys
-            put("LEFT", "◀"); // U+25C0 ◀ BLACK LEFT-POINTING TRIANGLE
-            put("RIGHT", "▶"); // U+25B6 ▶ BLACK RIGHT-POINTING TRIANGLE
-            put("UP", "▲"); // U+25B2 ▲ BLACK UP-POINTING TRIANGLE
-            put("DOWN", "▼"); // U+25BC ▼ BLACK DOWN-POINTING TRIANGLE
+
+            put("LEFT", "◀");
+            put("RIGHT", "▶");
+            put("UP", "▲");
+            put("DOWN", "▼");
         }};
 
         public static final ExtraKeyDisplayMap NOT_KNOWN_ISO_CHARACTERS = new ExtraKeyDisplayMap() {{
-            // Control chars that are more clear as text // https://en.wikipedia.org/wiki/{Function_key, Alt_key, Control_key, Esc_key}
-            // put("FN", "FN"); // no ISO character exists
-            put("CTRL", "⎈"); // ISO character "U+2388 ⎈ HELM SYMBOL" is unknown to people and never printed on computers, however "U+25C7 ◇ WHITE DIAMOND" is a nice presentation, and "^" for terminal app and mac is often used
-            put("ALT", "⎇"); // ISO character "U+2387 ⎇ ALTERNATIVE KEY SYMBOL'" is unknown to people and only printed as the Option key "⌥" on Mac computer
-            put("ESC", "⎋"); // ISO character "U+238B ⎋ BROKEN CIRCLE WITH NORTHWEST ARROW" is unknown to people and not often printed on computers
+
+
+            put("CTRL", "⎈");
+            put("ALT", "⎇");
+            put("ESC", "⎋");
         }};
 
         public static final ExtraKeyDisplayMap NICER_LOOKING_DISPLAY = new ExtraKeyDisplayMap() {{
-            // nicer looking for most cases
-            put("-", "―"); // U+2015 ― HORIZONTAL BAR
+
+            put("-", "―");
         }};
 
         /**
@@ -132,9 +132,9 @@ public class ExtraKeysConstants {
         public static final ExtraKeyDisplayMap FULL_ISO_CHAR_DISPLAY = new ExtraKeyDisplayMap() {{
             putAll(CLASSIC_ARROWS_DISPLAY);
             putAll(WELL_KNOWN_CHARACTERS_DISPLAY);
-            putAll(LESS_KNOWN_CHARACTERS_DISPLAY); // NEW
+            putAll(LESS_KNOWN_CHARACTERS_DISPLAY);
             putAll(NICER_LOOKING_DISPLAY);
-            putAll(NOT_KNOWN_ISO_CHARACTERS); // NEW
+            putAll(NOT_KNOWN_ISO_CHARACTERS);
         }};
 
         /**
@@ -142,8 +142,8 @@ public class ExtraKeysConstants {
          */
         public static final ExtraKeyDisplayMap ARROWS_ONLY_CHAR_DISPLAY = new ExtraKeyDisplayMap() {{
             putAll(CLASSIC_ARROWS_DISPLAY);
-            // putAll(wellKnownCharactersDisplay); // REMOVED
-            // putAll(lessKnownCharactersDisplay); // REMOVED
+
+
             putAll(NICER_LOOKING_DISPLAY);
         }};
 
@@ -153,7 +153,7 @@ public class ExtraKeysConstants {
         public static final ExtraKeyDisplayMap LOTS_OF_ARROWS_CHAR_DISPLAY = new ExtraKeyDisplayMap() {{
             putAll(CLASSIC_ARROWS_DISPLAY);
             putAll(WELL_KNOWN_CHARACTERS_DISPLAY);
-            putAll(LESS_KNOWN_CHARACTERS_DISPLAY); // NEW
+            putAll(LESS_KNOWN_CHARACTERS_DISPLAY);
             putAll(NICER_LOOKING_DISPLAY);
         }};
 
@@ -164,7 +164,7 @@ public class ExtraKeysConstants {
             putAll(CLASSIC_ARROWS_DISPLAY);
             putAll(WELL_KNOWN_CHARACTERS_DISPLAY);
             putAll(NICER_LOOKING_DISPLAY);
-            // all other characters are displayed as themselves
+
         }};
 
     }
@@ -178,23 +178,23 @@ public class ExtraKeysConstants {
         put("ESCAPE", "ESC");
         put("CONTROL", "CTRL");
         put("SHFT", "SHIFT");
-        put("RETURN", "ENTER"); // Technically different keys, but most applications won't see the difference
+        put("RETURN", "ENTER");
         put("FUNCTION", "FN");
-        // no alias for ALT
 
-        // Directions are sometimes written as first and last letter for brevety
+
+
         put("LT", "LEFT");
         put("RT", "RIGHT");
         put("DN", "DOWN");
-        // put("UP", "UP"); well, "UP" is already two letters
+
 
         put("PAGEUP", "PGUP");
         put("PAGE_UP", "PGUP");
         put("PAGE UP", "PGUP");
         put("PAGE-UP", "PGUP");
 
-        // no alias for HOME
-        // no alias for END
+
+
 
         put("PAGEDOWN", "PGDN");
         put("PAGE_DOWN", "PGDN");
@@ -203,7 +203,7 @@ public class ExtraKeysConstants {
         put("DELETE", "DEL");
         put("BACKSPACE", "BKSP");
 
-        // easier for writing in termux.properties
+
         put("BACKSLASH", "\\");
         put("QUOTE", "\"");
         put("APOSTROPHE", "'");

@@ -18,7 +18,7 @@ class EggDocumentsProvider : DocumentsProvider() {
     companion object {
         const val AUTHORITY = "com.egg.codeeditor.documents"
         private const val ROOT_REPOS = "repos"
-        
+
         private val DEFAULT_ROOT_PROJECTION = arrayOf(
             Root.COLUMN_ROOT_ID,
             Root.COLUMN_MIME_TYPES,

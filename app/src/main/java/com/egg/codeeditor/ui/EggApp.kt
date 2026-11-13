@@ -56,9 +56,6 @@ import com.egg.codeeditor.ui.components.SplashOverlay
 import com.egg.codeeditor.ui.editor.SoraCodeEditor
 import com.egg.codeeditor.ui.editor.applyColorScheme
 import com.egg.codeeditor.ui.git.GitPanel
-import com.egg.codeeditor.ui.terminal.ACTION_CLOSE_TERMINAL
-import com.egg.codeeditor.ui.terminal.cancelTerminalNotification
-import com.egg.codeeditor.ui.terminal.postTerminalNotification
 import com.egg.codeeditor.ui.theme.EggSystemBarStyle
 import com.egg.codeeditor.ui.theme.EggTheme
 import com.egg.codeeditor.util.SupabaseClient
@@ -141,23 +138,6 @@ fun EggApp() {
         contract = ActivityResultContracts.RequestPermission()
     ) { /* permission result does not need processing */ }
 
-    val closeTerminalReceiver = remember {
-        object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == ACTION_CLOSE_TERMINAL) {
-                    vm.terminalVisible = false
-                }
-            }
-        }
-    }
-    DisposableEffect(Unit) {
-        val filter = IntentFilter(ACTION_CLOSE_TERMINAL)
-        ContextCompat.registerReceiver(context, closeTerminalReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        onDispose {
-            runCatching { context.unregisterReceiver(closeTerminalReceiver) }
-        }
-    }
-
     LaunchedEffect(vm.terminalVisible, vm.rootFolderPath) {
         if (vm.terminalVisible) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -165,9 +145,7 @@ fun EggApp() {
             ) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-            postTerminalNotification(context, vm.rootFolderPath)
         } else {
-            cancelTerminalNotification(context)
         }
     }
 

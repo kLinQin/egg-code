@@ -73,21 +73,21 @@ internal fun AccessibilityOverlay(
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
 
-    // State for live region announcements (replaces deprecated announceForAccessibility)
+
     val announcementText = remember { mutableStateOf("") }
     val announcementCounter = remember { mutableIntStateOf(0) }
 
-    // Include both scrollback and visible lines in the list
+
     val allLines by remember(screenState) {
         derivedStateOf { screenState.snapshot.scrollback + screenState.snapshot.lines }
     }
 
-    // Sync LazyColumn scroll with terminal scrollback position
+
     LaunchedEffect(screenState.scrollbackPosition) {
         if (!lazyListState.isScrollInProgress) {
-            // Convert scrollbackPosition to LazyColumn index
-            // scrollbackPosition = 0 means bottom (index = scrollback.size)
-            // scrollbackPosition = scrollback.size means top (index = 0)
+
+
+
             val targetIndex = screenState.snapshot.scrollback.size - screenState.scrollbackPosition
             if (targetIndex >= 0 && targetIndex < allLines.size) {
                 lazyListState.scrollToItem(targetIndex)
@@ -95,9 +95,9 @@ internal fun AccessibilityOverlay(
         }
     }
 
-    // Hidden live region for TalkBack announcements.
-    // When announcementCounter changes, TalkBack reads the updated contentDescription.
-    // This replaces the deprecated View.announceForAccessibility().
+
+
+
     val counter = announcementCounter.intValue
     if (counter > 0) {
         Box(
@@ -121,39 +121,39 @@ internal fun AccessibilityOverlay(
         ) { index ->
             val line = allLines[index]
 
-            // Get the first visible item to highlight current focus in Review Mode
+
             val isCurrentlyFocused = isReviewMode &&
                 lazyListState.firstVisibleItemIndex == index
 
-            // Transparent box with semantic annotations and optional highlight
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(with(density) { charHeight.toDp() })
                     .then(
                         if (isCurrentlyFocused) {
-                            // Subtle highlight for focused line in Review Mode
+
                             Modifier.background(Color(0x1A4CAF50))
                         } else {
                             Modifier
                         },
                     )
                     .semantics {
-                        // Use text property for granular navigation (words/characters)
-                        // Only use contentDescription for semantic segments
+
+
                         if (line.semanticSegments.isEmpty() ||
                             line.semanticSegments.all { it.semanticType == SemanticType.DEFAULT }
                         ) {
-                            // Plain text - use text property for granular navigation
+
                             text = AnnotatedString(line.text)
                         } else {
-                            // Has semantic segments - build annotated string with semantic info
+
                             text = buildSemanticAnnotatedString(line)
                         }
 
-                        // Custom accessibility actions
+
                         customActions = buildList {
-                            // Copy Line
+
                             add(
                                 CustomAccessibilityAction("Copy Line") {
                                     clipboardManager.setText(buildAnnotatedString { append(line.text) })
@@ -161,7 +161,7 @@ internal fun AccessibilityOverlay(
                                 },
                             )
 
-                            // Read Last Output
+
                             add(
                                 CustomAccessibilityAction("Read Last Output") {
                                     val outputText = getLastCommandOutput(allLines)
@@ -175,14 +175,14 @@ internal fun AccessibilityOverlay(
                                 },
                             )
 
-                            // Toggle Review Mode
-                            // TODO(Terminal): Figure out how to make Review Mode work better
-//                            add(CustomAccessibilityAction("Toggle Review Mode") {
-//                                onToggleReviewMode()
-//                                true
-//                            })
 
-                            // Jump to Next Prompt
+
+
+
+
+
+
+
                             add(
                                 CustomAccessibilityAction("Jump to Next Prompt") {
                                     coroutineScope.launch {
@@ -200,7 +200,7 @@ internal fun AccessibilityOverlay(
                                 },
                             )
 
-                            // Jump to Previous Prompt
+
                             add(
                                 CustomAccessibilityAction("Jump to Previous Prompt") {
                                     coroutineScope.launch {
@@ -218,7 +218,7 @@ internal fun AccessibilityOverlay(
                                 },
                             )
 
-                            // Jump to Next Command Output (if applicable)
+
                             if (line.getSegmentsOfType(SemanticType.COMMAND_OUTPUT).isNotEmpty()) {
                                 add(
                                     CustomAccessibilityAction("Jump to Next Output") {
@@ -255,7 +255,7 @@ private fun buildSemanticAnnotatedString(line: TerminalLine): AnnotatedString = 
     var lastEndCol = 0
 
     for (segment in line.semanticSegments.sortedBy { it.startCol }) {
-        // Add any gap text before this segment
+
         if (segment.startCol > lastEndCol) {
             val gapText = line.text.substring(
                 lastEndCol,
@@ -264,13 +264,13 @@ private fun buildSemanticAnnotatedString(line: TerminalLine): AnnotatedString = 
             append(gapText)
         }
 
-        // Get text for this segment
+
         val segmentText = line.text.substring(
             segment.startCol.coerceAtMost(line.text.length),
             segment.endCol.coerceAtMost(line.text.length),
         )
 
-        // Append text with semantic annotation
+
         when (segment.semanticType) {
             SemanticType.PROMPT -> {
                 append("Prompt: ")
@@ -321,7 +321,7 @@ private fun buildSemanticAnnotatedString(line: TerminalLine): AnnotatedString = 
         lastEndCol = segment.endCol
     }
 
-    // Add any remaining text after last segment
+
     if (lastEndCol < line.text.length) {
         val remainingText = line.text.substring(lastEndCol)
         append(remainingText)
@@ -343,17 +343,17 @@ private fun buildSemanticDescription(line: TerminalLine): String {
         return line.text
     }
 
-    // Check if all segments are DEFAULT
+
     if (line.semanticSegments.all { it.semanticType == SemanticType.DEFAULT }) {
         return line.text
     }
 
-    // Build description with segment annotations
+
     return buildString {
         var lastEndCol = 0
 
         for (segment in line.semanticSegments.sortedBy { it.startCol }) {
-            // Add any gap text before this segment (shouldn't happen normally)
+
             if (segment.startCol > lastEndCol) {
                 val gapText = line.text.substring(
                     lastEndCol,
@@ -364,13 +364,13 @@ private fun buildSemanticDescription(line: TerminalLine): String {
                 }
             }
 
-            // Get text for this segment
+
             val segmentText = line.text.substring(
                 segment.startCol.coerceAtMost(line.text.length),
                 segment.endCol.coerceAtMost(line.text.length),
             )
 
-            // Add semantic prefix for non-DEFAULT segments
+
             when (segment.semanticType) {
                 SemanticType.PROMPT -> append("Prompt: ")
 
@@ -396,13 +396,13 @@ private fun buildSemanticDescription(line: TerminalLine): String {
 
             append(segmentText)
 
-            // For hyperlinks, also append the URL for accessibility
+
             if (segment.semanticType == SemanticType.HYPERLINK && segment.metadata != null) {
                 append(", URL: ")
                 append(segment.metadata)
             }
 
-            // Add space between segments
+
             if (isNotEmpty() && !endsWith(' ')) {
                 append(' ')
             }
@@ -410,7 +410,7 @@ private fun buildSemanticDescription(line: TerminalLine): String {
             lastEndCol = segment.endCol
         }
 
-        // Add any remaining text after last segment
+
         if (lastEndCol < line.text.length) {
             val remainingText = line.text.substring(lastEndCol)
             if (remainingText.isNotBlank()) {
@@ -433,7 +433,7 @@ private fun buildSemanticDescription(line: TerminalLine): String {
  * @return The command output text, or null if no completed command is found
  */
 internal fun getLastCommandOutput(lines: List<TerminalLine>): String? {
-    // Find the most recent COMMAND_FINISHED marker
+
     var finishedIndex = -1
     var finishedPromptId = -1
     for (i in lines.indices.reversed()) {
@@ -446,7 +446,7 @@ internal fun getLastCommandOutput(lines: List<TerminalLine>): String? {
     }
     if (finishedIndex < 0) return null
 
-    // Find the COMMAND_INPUT line with the same promptId
+
     var inputIndex = -1
     for (i in (0 until finishedIndex).reversed()) {
         val segments = lines[i].getSegmentsOfType(SemanticType.COMMAND_INPUT)
@@ -457,7 +457,7 @@ internal fun getLastCommandOutput(lines: List<TerminalLine>): String? {
     }
     if (inputIndex < 0) return null
 
-    // Output is between the command input line (exclusive) and the finished marker line (exclusive)
+
     val outputStart = inputIndex + 1
     val outputEnd = finishedIndex - 1
     if (outputStart > outputEnd) return null

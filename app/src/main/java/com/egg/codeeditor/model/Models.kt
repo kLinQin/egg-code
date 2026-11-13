@@ -48,17 +48,17 @@ data class EditorTab(
 )
 
 data class EditorSettings(
-    val themeName: String = "github-light", // "github-light" | "darcula"
+    val themeName: String = "github-light",
     val fontSizeSp: Int = 14,
     val showLineNumbers: Boolean = true,
     val wordWrap: Boolean = true,
     val tabWidth: Int = 4,
     val showBottomBar: Boolean = true,
-    val fontFamily: String = "monospace", // "monospace" | "sans" | "serif" | "custom"
-    val customFontPath: String? = null,   // path to uploaded font (deprecated)
-    val appFontFamily: String = "sans", // "sans" | "serif" | "monospace" | "custom"
+    val fontFamily: String = "monospace",
+    val customFontPath: String? = null,
+    val appFontFamily: String = "sans",
     val appCustomFontPath: String? = null,
-    val editorFontList: List<String> = emptyList(), // list of absolute paths
+    val editorFontList: List<String> = emptyList(),
     val appFontList: List<String> = emptyList(),
     val appFontScale: Float = 1.0f,
     val confirmExit: Boolean = true,

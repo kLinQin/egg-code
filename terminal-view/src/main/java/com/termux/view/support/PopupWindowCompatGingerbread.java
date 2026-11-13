@@ -38,7 +38,7 @@ public class PopupWindowCompatGingerbread {
                     "setWindowLayoutType", int.class);
                 sSetWindowLayoutTypeMethod.setAccessible(true);
             } catch (Exception e) {
-                // Reflection method fetch failed. Oh well.
+
             }
             sSetWindowLayoutTypeMethodAttempted = true;
         }
@@ -46,7 +46,7 @@ public class PopupWindowCompatGingerbread {
             try {
                 sSetWindowLayoutTypeMethod.invoke(popupWindow, layoutType);
             } catch (Exception e) {
-                // Reflection call failed. Oh well.
+
             }
         }
     }
@@ -58,7 +58,7 @@ public class PopupWindowCompatGingerbread {
                     "getWindowLayoutType");
                 sGetWindowLayoutTypeMethod.setAccessible(true);
             } catch (Exception e) {
-                // Reflection method fetch failed. Oh well.
+
             }
             sGetWindowLayoutTypeMethodAttempted = true;
         }
@@ -66,7 +66,7 @@ public class PopupWindowCompatGingerbread {
             try {
                 return (Integer) sGetWindowLayoutTypeMethod.invoke(popupWindow);
             } catch (Exception e) {
-                // Reflection call failed. Oh well.
+
             }
         }
         return 0;

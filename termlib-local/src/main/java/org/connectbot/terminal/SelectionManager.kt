@@ -182,11 +182,11 @@ internal class SelectionManager {
     fun moveSelectionUp(maxRow: Int) {
         val range = selectionRange ?: return
         if (isSelecting) {
-            // During selection, move the end point up
+
             val newRow = (range.endRow - 1).coerceAtLeast(0)
             selectionRange = range.copy(endRow = newRow)
         } else {
-            // After selection is finished, move both start and end up
+
             val newStartRow = (range.startRow - 1).coerceAtLeast(0)
             val newEndRow = (range.endRow - 1).coerceAtLeast(0)
             selectionRange = range.copy(startRow = newStartRow, endRow = newEndRow)
@@ -196,11 +196,11 @@ internal class SelectionManager {
     fun moveSelectionDown(maxRow: Int) {
         val range = selectionRange ?: return
         if (isSelecting) {
-            // During selection, move the end point down
+
             val newRow = (range.endRow + 1).coerceAtMost(maxRow - 1)
             selectionRange = range.copy(endRow = newRow)
         } else {
-            // After selection is finished, move both start and end down
+
             val newStartRow = (range.startRow + 1).coerceAtMost(maxRow - 1)
             val newEndRow = (range.endRow + 1).coerceAtMost(maxRow - 1)
             selectionRange = range.copy(startRow = newStartRow, endRow = newEndRow)
@@ -210,11 +210,11 @@ internal class SelectionManager {
     fun moveSelectionLeft(maxCol: Int) {
         val range = selectionRange ?: return
         if (isSelecting) {
-            // During selection, move the end point left
+
             val newCol = (range.endCol - 1).coerceAtLeast(0)
             selectionRange = range.copy(endCol = newCol)
         } else {
-            // After selection is finished, move both start and end left
+
             val newStartCol = (range.startCol - 1).coerceAtLeast(0)
             val newEndCol = (range.endCol - 1).coerceAtLeast(0)
             selectionRange = range.copy(startCol = newStartCol, endCol = newEndCol)
@@ -224,11 +224,11 @@ internal class SelectionManager {
     fun moveSelectionRight(maxCol: Int) {
         val range = selectionRange ?: return
         if (isSelecting) {
-            // During selection, move the end point right
+
             val newCol = (range.endCol + 1).coerceAtMost(maxCol - 1)
             selectionRange = range.copy(endCol = newCol)
         } else {
-            // After selection is finished, move both start and end right
+
             val newStartCol = (range.startCol + 1).coerceAtMost(maxCol - 1)
             val newEndCol = (range.endCol + 1).coerceAtMost(maxCol - 1)
             selectionRange = range.copy(startCol = newStartCol, endCol = newEndCol)
@@ -314,7 +314,7 @@ internal class SelectionManager {
             }
 
             SelectionMode.CHARACTER, SelectionMode.NONE -> {
-                // No adjustment needed
+
             }
         }
     }
@@ -333,7 +333,7 @@ internal class SelectionManager {
         if (cells.isEmpty()) return Pair(0, 0)
         val safeCol = col.coerceIn(0, cells.lastIndex)
 
-        // If the touch is in trailing whitespace with no word to the right, snap to the last word.
+
         if (!isWordChar(cells[safeCol].char)) {
             val lastWordEnd = cells.indices.lastOrNull { isWordChar(cells[it].char) }
             if (lastWordEnd != null && lastWordEnd < safeCol) {
@@ -375,13 +375,13 @@ internal class SelectionManager {
 
         return buildString {
             for (row in minRow..maxRow) {
-                // Get line from the appropriate source based on scrollback position
+
                 val line = if (scrollbackPosition > 0) {
-                    // Viewing scrollback: get from scrollback (stored newest-first, so reverse index)
+
                     val scrollbackIndex = snapshot.scrollback.size - scrollbackPosition + row
                     snapshot.scrollback.getOrNull(scrollbackIndex)
                 } else {
-                    // Viewing current screen: get from visible lines
+
                     snapshot.lines.getOrNull(row)
                 }
 
@@ -389,7 +389,7 @@ internal class SelectionManager {
 
                 when (mode) {
                     SelectionMode.LINE -> {
-                        // Build line text and trim trailing whitespace.
+
                         val lineText = buildString {
                             line.cells.forEach { cell ->
                                 append(cell.char)
@@ -410,7 +410,7 @@ internal class SelectionManager {
                             else -> line.cells.size - 1
                         }
 
-                        // Build line text and trim trailing whitespace
+
                         val lineText = buildString {
                             for (col in startCol..minOf(endCol, line.cells.lastIndex)) {
                                 val cell = line.cells[col]
