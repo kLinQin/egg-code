@@ -488,6 +488,13 @@ class EggViewModel(private val context: Context) {
         return nodes
     }
 
+    private fun displayNoteName(title: String, id: Long): String {
+        val base = title.ifBlank { "Untitled" }
+        val lower = base.lowercase()
+        if (lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".txt")) return base
+        return "$base.md"
+    }
+
     fun buildSupabaseFileNodes(): List<FileNode> {
         val result = mutableListOf<FileNode>()
         val mains = supabaseNotes.groupBy { it.mainCategory.ifBlank { "general" } }
@@ -503,7 +510,7 @@ class EggViewModel(private val context: Context) {
                 result.add(subNode)
                 if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
                 for (n in catNotes.sortedByDescending { it.updatedAt }) {
-                    result.add(FileNode(n.title.ifBlank { "Untitled" }, false, Uri.parse("supabase://note/${n.id}"), 2))
+                    result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 2))
                 }
             }
         }
@@ -577,7 +584,8 @@ class EggViewModel(private val context: Context) {
             val content = SupabaseClient.getNoteContent(id)
             if (content == null) { notify("Failed to load note"); return@launch }
             val uri = Uri.parse("supabase://note/$id")
-            val name = supabaseNotes.firstOrNull { it.id == id }?.title?.ifBlank { "Untitled" } ?: "Note $id"
+            val baseTitle = supabaseNotes.firstOrNull { it.id == id }?.title ?: "Note $id"
+            val name = displayNoteName(baseTitle, id)
             val exists = tabs.indexOfFirst { it.uri == uri }
             if (exists >= 0) {
                 activeTabId = tabs[exists].id
