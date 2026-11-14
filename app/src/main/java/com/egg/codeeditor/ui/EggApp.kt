@@ -224,10 +224,10 @@ fun EggApp() {
 
     fun captureActiveTabContent() {
         val i = vm.activeTabIndex()
-        if (i >= 0 && vm.tabs[i].diffNew == null) {
-            val text = editorState.editor?.text?.toString() ?: ""
-            if (vm.tabs[i].content != text) vm.tabs[i] = vm.tabs[i].copy(content = text)
-        }
+        if (i < 0 || vm.tabs[i].diffNew != null) return
+        val ed = editorState.editor ?: return
+        val text = ed.text?.toString() ?: return
+        if (vm.tabs[i].content != text) vm.tabs[i] = vm.tabs[i].copy(content = text)
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -449,7 +449,7 @@ fun EggApp() {
             if (node.isDirectory) vm.toggleExpand(node.uri.toString())
             else if (node.uri.scheme == "supabase") {
                 val id = SupabaseClient.noteIdFromUri(node.uri)
-                if (id != null) vm.openSupabaseNote(id)
+                if (id != null) { captureActiveTabContent(); vm.openSupabaseNote(id) }
             }
             scope.launch { drawerState.close() }
         }

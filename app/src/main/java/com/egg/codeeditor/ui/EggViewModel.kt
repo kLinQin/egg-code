@@ -320,7 +320,7 @@ class EggViewModel(private val context: Context) {
     var showLoginDialog by mutableStateOf(false)
     var supabaseLoading by mutableStateOf(false)
     private val supabaseExpandedPaths = mutableStateOf<Set<String>>(emptySet())
-    val isSupabaseMode: Boolean get() = supabaseUser != null
+    val isSupabaseMode: Boolean get() = supabaseUser != null && supabaseProjectActive
     var supabaseProjectActive by mutableStateOf(false)
 
     var showNewFileDialog by mutableStateOf(false)
@@ -445,7 +445,7 @@ class EggViewModel(private val context: Context) {
                     }
                 }.getOrDefault(false)
                 if (!ok) continue
-                val content = runCatching { readFileContent(appContext, uri) }.getOrDefault("")
+                val content = runCatching { readFileContent(appContext, uri) }.getOrNull() ?: continue
                 restored.add(EditorTab(nextTabId++, name, uri, content))
             }
             if (restored.isNotEmpty()) {
@@ -516,7 +516,11 @@ class EggViewModel(private val context: Context) {
             .onFailure { notify(it.message ?: "Failed to load notes") }
         supabaseExpandedPaths.value = emptySet()
         supabaseProjectActive = true
-        availableSections = listOf("File Manager")
+        val sections = mutableListOf("File Manager")
+        if (rootFolderPath != null && runCatching { org.eclipse.jgit.api.Git.open(File(rootFolderPath!!)).use { true } }.getOrDefault(false)) {
+            sections.add("Git")
+        }
+        availableSections = sections
         currentSection = "File Manager"
         visibleNodes = buildSupabaseFileNodes()
     }
@@ -562,6 +566,7 @@ class EggViewModel(private val context: Context) {
             supabaseNotes = emptyList()
             supabaseExpandedPaths.value = emptySet()
             availableSections = buildAvailableSections(rootFolderPath)
+            supabaseProjectActive = false
             rebuildVisibleNodes()
         }
     }
@@ -614,6 +619,7 @@ class EggViewModel(private val context: Context) {
 
     fun openSingleFile(uri: Uri) {
         scope.launch {
+            supabaseProjectActive = false
             try {
                 runCatching {
                     appContext.contentResolver.takePersistableUriPermission(
@@ -635,6 +641,7 @@ class EggViewModel(private val context: Context) {
                 }
                 persistTabs()
             } catch (e: Exception) {
+                notify("Failed to open file: ${e.message ?: "unknown error"}")
             }
         }
     }
@@ -718,6 +725,7 @@ class EggViewModel(private val context: Context) {
         showAppStorageDialog = false
         val dir = File(path)
         if (!dir.isDirectory) { notify("Folder not found: $path"); return }
+        supabaseProjectActive = false
         rootFolderUri = null
         rootFolderPath = path
         rootIsPrivate = true
@@ -737,6 +745,7 @@ class EggViewModel(private val context: Context) {
 
     fun openFolder(uri: Uri) {
         scope.launch {
+            supabaseProjectActive = false
             rootFolderUri = uri
             appContext.contentResolver.takePersistableUriPermission(
                 uri,
@@ -823,8 +832,9 @@ class EggViewModel(private val context: Context) {
         scope.launch {
             withContext(Dispatchers.IO) {
                 val pr = privateRoot()
-                if (pr != null) {
-                    val dir = targetParentNode?.uri?.path?.let { File(it) } ?: pr
+                val tgt = targetParentNode
+                if (pr != null && (tgt == null || tgt.uri.scheme == "file")) {
+                    val dir = tgt?.uri?.path?.let { File(it) } ?: pr
                     runCatching { File(dir, name).createNewFile() }
                 } else parentDoc()?.createFile(mimeFor(name), name)
             }
@@ -838,8 +848,9 @@ class EggViewModel(private val context: Context) {
         scope.launch {
             withContext(Dispatchers.IO) {
                 val pr = privateRoot()
-                if (pr != null) {
-                    val dir = targetParentNode?.uri?.path?.let { File(it) } ?: pr
+                val tgt = targetParentNode
+                if (pr != null && (tgt == null || tgt.uri.scheme == "file")) {
+                    val dir = tgt?.uri?.path?.let { File(it) } ?: pr
                     runCatching { File(dir, name).mkdirs() }
                 } else parentDoc()?.createDirectory(name)
             }
@@ -1088,6 +1099,7 @@ class EggViewModel(private val context: Context) {
 
     fun deleteTabFromStorage(tab: EditorTab) {
         scope.launch {
+            var deletedNoteId: Long? = null
             withContext(Dispatchers.IO) {
                 tab.uri?.let { u ->
                     when (u.scheme) {
@@ -1096,13 +1108,14 @@ class EggViewModel(private val context: Context) {
                             val nid = SupabaseClient.noteIdFromUri(u)
                             if (nid != null) {
                                 SupabaseClient.deleteNote(nid)
-                                supabaseNotes = supabaseNotes.filterNot { it.id == nid }
+                                deletedNoteId = nid
                             }
                         }
                         else -> runCatching { DocumentFile.fromSingleUri(appContext, u)?.delete() }
                     }
                 }
             }
+            deletedNoteId?.let { nid -> supabaseNotes = supabaseNotes.filterNot { it.id == nid } }
             val idx = tabs.indexOfFirst { it.id == tab.id }
             tabs.removeAll { it.id == tab.id }
             if (activeTabId == tab.id) switchAfterRemoval(idx)
@@ -1197,7 +1210,9 @@ class EggViewModel(private val context: Context) {
                     tabs.add(t)
                 }
                 activeTabId = tabs.first().id
-            } catch (_: Exception) {
+                notify("Restore succeeded")
+            } catch (e: Exception) {
+                notify("Restore failed: ${e.message ?: "unknown error"}")
             }
         }
     }
@@ -1296,6 +1311,7 @@ class EggViewModel(private val context: Context) {
                 gitRemoteUrl = getGitRemoteUrl(cloned)
                 gitUser = user; gitToken = token
                 saveGitCredentials(appContext, user, token)
+                supabaseProjectActive = false
                 rootFolderUri = null
                 rootFolderPath = dest.absolutePath
                 rootIsPrivate = true

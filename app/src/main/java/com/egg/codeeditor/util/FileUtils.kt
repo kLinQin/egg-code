@@ -60,15 +60,18 @@ fun getGitRemoteUrl(git: Git): String? {
 
 suspend fun readFileContent(context: Context, uri: Uri): String {
     return withContext(Dispatchers.IO) {
-        try {
-            if (uri.scheme == "file") {
-                uri.path?.let { java.io.File(it).readText() } ?: ""
-            } else {
-                context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() } ?: ""
-            }
-        } catch (e: Exception) { "Error: ${e.message}" }
+        if (uri.scheme == "file") {
+            val f = uri.path?.let { java.io.File(it) } ?: throw java.io.IOException("Invalid file uri")
+            f.readText()
+        } else {
+            context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                ?: throw java.io.IOException("Cannot open stream for $uri")
+        }
     }
 }
+
+suspend fun readFileContentOrNull(context: Context, uri: Uri): String? =
+    runCatching { readFileContent(context, uri) }.getOrNull()
 
 suspend fun writeFileContent(context: Context, uri: Uri, content: String): Boolean {
     return withContext(Dispatchers.IO) {
