@@ -516,6 +516,7 @@ class EggViewModel(private val context: Context) {
             .onFailure { notify(it.message ?: "Failed to load notes") }
         supabaseExpandedPaths.value = emptySet()
         supabaseProjectActive = true
+        availableSections = listOf("File Manager")
         currentSection = "File Manager"
         visibleNodes = buildSupabaseFileNodes()
     }
@@ -560,6 +561,7 @@ class EggViewModel(private val context: Context) {
             supabaseUser = null
             supabaseNotes = emptyList()
             supabaseExpandedPaths.value = emptySet()
+            availableSections = buildAvailableSections(rootFolderPath)
             rebuildVisibleNodes()
         }
     }
@@ -601,7 +603,7 @@ class EggViewModel(private val context: Context) {
     }
 
     fun toggleExpand(uri: String) {
-        if (isSupabaseMode) {
+        if (uri.startsWith("supabase://")) {
             supabaseExpandedPaths.value = if (supabaseExpandedPaths.value.contains(uri)) supabaseExpandedPaths.value - uri else supabaseExpandedPaths.value + uri
             visibleNodes = buildSupabaseFileNodes()
             return
