@@ -6,4 +6,6 @@ interface FileType {
     val iconName: String?
     val iconOverride: Map<String, String>? get() = null
     val title: String
+    val textmateScope: String? get() = null
+    val markdownNames: List<String> get() = emptyList()
 }

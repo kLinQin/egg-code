@@ -61,19 +61,7 @@ private fun scopeForName(fileName: String): String? {
     if (ext.isNotEmpty()) {
         com.egg.extension.api.GrammarRegistry.scopeForExtension(ext)?.let { return it }
     }
-    return builtinScope(fileName)
-}
-
-private fun builtinScope(fileName: String): String? = when {
-    fileName.endsWith(".kt") -> "source.kotlin"
-    fileName.endsWith(".java") -> "source.java"
-    fileName.endsWith(".js") -> "source.js"
-    fileName.endsWith(".json") -> "source.json"
-    fileName.endsWith(".html") || fileName.endsWith(".htm") -> "text.html.basic"
-    fileName.endsWith(".css") -> "source.css"
-    fileName.endsWith(".py") -> "source.python"
-    fileName.endsWith(".md") -> "text.html.markdown"
-    else -> null
+    return com.egg.codeeditor.ui.components.FileTypeManager.fromFileName(fileName).textmateScope
 }
 
 internal fun applyColorScheme(editor: CodeEditor, themeName: String) {

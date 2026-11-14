@@ -16,8 +16,9 @@ import io.github.rosemoe.sora.langs.textmate.registry.provider.AssetsFileResolve
 import org.eclipse.tm4e.core.registry.IThemeSource
 
 private val ALL_SCOPES = listOf(
-    "source.kotlin", "source.java", "source.js", "source.json",
-    "text.html.basic", "source.css", "source.python", "text.html.markdown"
+    "source.kotlin", "source.java", "source.js", "source.ts", "source.json",
+    "text.html.basic", "source.css", "source.python", "text.html.markdown",
+    "text.xml", "source.yaml"
 )
 
 private fun initTextMate(context: Context, darkTheme: Boolean) {

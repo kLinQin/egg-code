@@ -1,9 +1,39 @@
 {
   "languages": [
     {
-      "grammar": "textmate/kotlin/Kotlin.tmLanguage",
-      "name": "kotlin",
-      "scopeName": "source.kotlin",
+      "grammar": "textmate/dart/Dart.tmLanguage.json",
+      "name": "Dart",
+      "scopeName": "source.dart",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/asm/asm.tmLanguage.json",
+      "name": "Assembly",
+      "scopeName": "source.asm",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/cmake/cmake.tmLanguage.json",
+      "name": "CMake",
+      "scopeName": "source.cmake",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/pascal/Pascal.tmLanguage.json",
+      "name": "Pascal",
+      "scopeName": "source.pascal",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/toml/toml.tmLanguage.json",
+      "name": "toml",
+      "scopeName": "source.toml",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/zig/Zig.tmLanguage.json",
+      "name": "Zig",
+      "scopeName": "source.zig",
       "languageConfiguration": ""
     },
     {
@@ -13,15 +43,87 @@
       "languageConfiguration": ""
     },
     {
-      "grammar": "textmate/javascript/JavaScript.tmLanguage.json",
-      "name": "javascript",
-      "scopeName": "source.js",
+      "grammar": "textmate/text/text.tmLanguage.json",
+      "name": "text",
+      "scopeName": "text.plain",
       "languageConfiguration": ""
     },
     {
-      "grammar": "textmate/json/JSON.tmLanguage.json",
-      "name": "json",
-      "scopeName": "source.json",
+      "grammar": "textmate/kotlin/kotlin.tmLanguage.json",
+      "name": "kotlin",
+      "scopeName": "source.kotlin",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/latex/latex.tmLanguage.json",
+      "name": "LaTeX",
+      "scopeName": "text.tex.latex",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/nim/Nim.tmLanguage",
+      "name": "nim",
+      "scopeName": "source.nim",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/coq/coq.tmLanguage.json",
+      "name": "Coq",
+      "scopeName": "source.coq",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/lua/lua.tmLanguage.json",
+      "name": "lua",
+      "scopeName": "source.lua",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/smali/smali.tmLanguage.json",
+      "name": "Smali",
+      "scopeName": "source.smali",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/python/python.tmLanguage.json",
+      "name": "python",
+      "scopeName": "source.python",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/r/r.tmLanguage.json",
+      "name": "R",
+      "scopeName": "source.r",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/ruby/ruby.tmLanguage.json",
+      "name": "ruby",
+      "scopeName": "source.ruby",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/swift/swift.tmLanguage.json",
+      "name": "swift",
+      "scopeName": "source.swift",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/powershell/powershell.tmLanguage.json",
+      "name": "powershell",
+      "scopeName": "source.powershell",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/log/log.tmLanguage.json",
+      "name": "log",
+      "scopeName": "text.log",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/xml/xml.tmLanguage.json",
+      "name": "xml",
+      "scopeName": "text.xml",
       "languageConfiguration": ""
     },
     {
@@ -31,21 +133,171 @@
       "languageConfiguration": ""
     },
     {
+      "grammar": "textmate/htmx/htmx.tmLanguage.json",
+      "name": "HTMX",
+      "scopeName": "text.html.htmx",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/typescript/typescript.tmLanguage.json",
+      "name": "typescript",
+      "scopeName": "source.ts",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/typescript/TypeScriptReact.tmLanguage.json",
+      "name": "TSX",
+      "scopeName": "source.tsx",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/php/html.tmLanguage.json",
+      "name": "PHP",
+      "scopeName": "text.html.php",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/php/php.tmLanguage.json",
+      "name": "php",
+      "scopeName": "source.php",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/javascript/JavaScript.tmLanguage.json",
+      "name": "javascript",
+      "scopeName": "source.js",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/javascript/JavaScriptReact.tmLanguage.json",
+      "name": "JSX",
+      "scopeName": "source.js.jsx",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/cpp/cpp.tmLanguage.json",
+      "name": "cpp",
+      "scopeName": "source.cpp",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/cpp/c.tmLanguage.json",
+      "name": "c",
+      "scopeName": "source.c",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/json/JSON.tmLanguage.json",
+      "name": "json",
+      "scopeName": "source.json",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/ini/ini.tmLanguage.json",
+      "name": "ini",
+      "scopeName": "source.ini",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/properties/properties.tmLanguage.json",
+      "name": "properties",
+      "scopeName": "source.properties",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/ignore/ignore.tmLanguage.json",
+      "name": "ignore",
+      "scopeName": "source.ignore",
+      "languageConfiguration": ""
+    },
+    {
       "grammar": "textmate/css/css.tmLanguage.json",
       "name": "css",
       "scopeName": "source.css",
       "languageConfiguration": ""
     },
     {
-      "grammar": "textmate/python/MagicPython.tmLanguage.json",
-      "name": "python",
-      "scopeName": "source.python",
+      "grammar": "textmate/scss/scss.tmLanguage.json",
+      "name": "scss",
+      "scopeName": "source.css.scss",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/less/less.tmLanguage.json",
+      "name": "less",
+      "scopeName": "source.css.less",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/csharp/csharp.tmLanguage.json",
+      "name": "C#",
+      "scopeName": "source.cs",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/diff/diff.tmLanguage.json",
+      "name": "diff",
+      "scopeName": "source.diff",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/go/go.tmLanguage.json",
+      "name": "go",
+      "scopeName": "source.go",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/yaml/yaml.tmLanguage.json",
+      "name": "yaml",
+      "scopeName": "source.yaml",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/shellscript/shell-unix-bash.tmLanguage.json",
+      "name": "shellscript",
+      "scopeName": "source.shell",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/rust/rust.tmLanguage.json",
+      "name": "rust",
+      "scopeName": "source.rust",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/groovy/groovy.tmLanguage.json",
+      "name": "groovy",
+      "scopeName": "source.groovy",
       "languageConfiguration": ""
     },
     {
       "grammar": "textmate/markdown/markdown.tmLanguage.json",
       "name": "markdown",
       "scopeName": "text.html.markdown",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/bat/batchfile.tmLanguage.json",
+      "name": "bat",
+      "scopeName": "source.batchfile",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/lisp/lisp.tmLanguage.json",
+      "name": "lisp",
+      "scopeName": "source.lisp",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/sql/sql.tmLanguage.json",
+      "name": "sql",
+      "scopeName": "source.sql",
+      "languageConfiguration": ""
+    },
+    {
+      "grammar": "textmate/nix/nix.tmLanguage.json",
+      "name": "nix",
+      "scopeName": "source.nix",
       "languageConfiguration": ""
     }
   ]
