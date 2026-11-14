@@ -4,17 +4,20 @@
 
 <h1 align="center">Egg — Android Code Editor</h1>
 
-A lightweight, offline-first code editor for Android built with Jetpack Compose and
-[Sora Editor](https://github.com/Rosemoe/sora-editor). Includes a built-in Alpine
-Linux terminal (via proot), Git integration (JGit), an extension system with
-plugin store, custom Markdown preview, and Discord Rich Presence.
+A lightweight, multi-storage code editor for Android built with Jetpack Compose
+and [Sora Editor](https://github.com/Rosemoe/sora-editor). Edit files from local
+storage, Git repositories, or Supabase cloud notes. Includes a built-in
+Ubuntu 24.04 terminal (via proot), Git integration (JGit), an extension system
+with plugin store, custom Markdown preview, and Discord Rich Presence.
 
 ## Features
 
 ### Code editing
 - [Sora Editor](https://github.com/Rosemoe/sora-editor) with TextMate grammars
-- Syntax highlighting: Kotlin, Java, JavaScript, JSON, HTML, CSS, Python, Markdown
-  (more via grammar plugins)
+- Syntax highlighting: 50 built-in languages (Kotlin, Java, JS/TS/JSX/TSX, Python,
+  C/C++, C#, Go, Rust, Swift, Ruby, PHP, Lua, Dart, Shell, PowerShell,
+  SQL, HTML/CSS/SCSS/LESS, JSON/YAML/TOML/INI, XML, Markdown, LaTeX, and more)
+- More via grammar plugins (drop a `.tmLanguage.json` in an `.egg` plugin)
 - Multi-tab with dirty-state tracking, save, save-as, close-others, per-tab delete
 - Inline find bar (VS Code-style), project-wide search
 - Line numbers, word wrap, tab width, auto-indent, autocomplete, indent guides,
@@ -28,6 +31,18 @@ plugin store, custom Markdown preview, and Discord Rich Presence.
 - Colored file icons per language (light / dark aware, override via icon pack plugin)
 - Private mode root: `filesDir/repos` (Git clones)
 
+### Supabase (cloud notes)
+- Login / sign-up with email + password (session persisted)
+- Note tree grouped by `main_category` (nested folders via path `A/B/C`) + `category`
+- CRUD: create / rename / delete notes and folders
+- Per-note public / private at creation (checkbox in New File dialog);
+  public notes get a globe marker in the file list
+- Cascade delete: removing a folder also removes child folders and their notes
+- Markdown content stored in Supabase `notes` table; schema:
+  `id, title, content, category, main_category, user_id, owner_name,
+  is_public, is_pinned, color, created_at, updated_at`
+- Folders table: `id, name, user_id, storage_type, created_at`
+
 ### Git
 - Powered by [JGit](https://www.eclipse.org/jgit/)
 - Init, clone, add remote, fetch, pull, push, commit, status, log
@@ -36,11 +51,12 @@ plugin store, custom Markdown preview, and Discord Rich Presence.
 - HTTPS with optional username / token credentials
 
 ### Terminal
-- Embedded Alpine Linux via [pdn-engine](https://github.com/termux/termux-app) (proot)
+- Embedded Ubuntu 24.04 (via proot + [termux termlib](https://github.com/termux/termux-app))
 - Persistent PTY session, resize handling
 - Shortcut bar (bind `/mnt/sdcard`, `/mnt/appdata`)
 - Notification with "Close Session" action
 - Claude-flavored ANSI palette when dark mode is active
+- Working directory: project root (optional) or `~` sandbox home
 
 ### Markdown preview
 WebView-based, with custom syntax (in addition to standard Markdown):
@@ -80,7 +96,7 @@ WebView-based, with custom syntax (in addition to standard Markdown):
 
 ### Themes
 - **Built-in:** Light (Claude web palette) and Dark (Claude web palette)
-- **Plugin themes:** Nord, Dracula, Tokyo Night, Ocean, Neon (from store)
+- **Plugin themes:** installable from the plugin store (community-maintained)
 - Plugin theme applies to: Compose UI, Sora syntax highlight, editor background
 
 ### Settings
@@ -101,9 +117,9 @@ Egg-cracking intro on cold start.
 | UI | Jetpack Compose (BOM 2024.09.00), Material 3 |
 | Editor | [Sora Editor](https://github.com/Rosemoe/sora-editor) 0.24.4 + TextMate |
 | Git | [JGit](https://www.eclipse.org/jgit/) 7.1.0 |
-| Terminal | [termux/termux-app termlib](https://github.com/termux/termux-app) + `pdn-engine` 0.6.18 |
+| Terminal | [termux/termux-app termlib](https://github.com/termux/termux-app) + Ubuntu 24.04 rootfs (proot) |
 | File access | AndroidX DocumentFile (SAF) |
-| Network | OkHttp 4.12 (plugin store) |
+| Network | OkHttp 4.12 (plugin store + Supabase REST) |
 | JSON | kotlinx.serialization + org.json |
 | Language | Kotlin (JVM 17), AGP with Compose plugin |
 
@@ -112,8 +128,8 @@ Egg-cracking intro on cold start.
 - Android Studio (latest stable)
 - JDK 17
 - Android SDK: `compileSdk 37`, `minSdk 28`, `targetSdk 37`
-- ARM64 device or emulator (native `libpdn.so`, `libproot-loader.so`, `libptyjni.so`
-  are shipped for `arm64-v8a` only)
+- ARM64 device required for the built-in terminal (`libpdn.so`, `libproot-loader.so`
+  shipped for `arm64-v8a` only). Non-terminal features may run on other ABIs.
 
 ## Build
 
@@ -123,8 +139,8 @@ Egg-cracking intro on cold start.
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-> Uses `isCoreLibraryDesugaringEnabled = true` and `useLegacyPackaging = true`
-> for JNI libs — both required by `pdn-engine`.
+> Uses `isCoreLibraryDesugaringEnabled = true` (JGit/termux desugaring) and
+> `useLegacyPackaging = true` (native `.so` loading from `jniLibs`).
 
 ## Project Structure
 
@@ -150,9 +166,9 @@ Egg/
 │   │   │   ├── git/              # Git panel + remote dialog
 │   │   │   ├── terminal/         # Terminal notifications
 │   │   │   └── theme/            # Color, Theme, Type
-│   │   └── util/                 # FileUtils, LineDiff, SettingsStorage
-│   ├── src/main/assets/          # TextMate grammars, themes, JS libs
-│   ├── src/main/jniLibs/         # Native libs (pdn, proot-loader, ptyjni)
+│   │   └── util/                 # FileUtils, LineDiff, SettingsStorage, SupabaseClient
+│   ├── src/main/assets/          # TextMate grammars (50 languages), themes, JS libs
+│   ├── src/main/jniLibs/         # Native libs (libpdn, libproot-loader, arm64-v8a)
 │   └── libs/pdn-engine-0.6.18.aar
 ├── extension-api/                # Plugin SDK (Kotlin, publishable)
 │   └── src/main/java/com/egg/extension/api/
@@ -169,6 +185,11 @@ Egg/
 │   ├── theme/neon-icons/
 │   └── grammar/typescript/
 ├── termlib-local/                # Terminal widget (termux termlib fork)
+├── terminal/                     # Terminal UI + Ubuntu 24.04 rootfs runner
+├── terminal-emulator/            # VT100/xterm emulator core
+├── terminal-view/                # Compose terminal view
+├── proot/                        # proot (C) — user-space chroot for Android
+├── link2symlink/                 # proot helper (D + C)
 └── build.gradle.kts, settings.gradle.kts
 ```
 
@@ -203,14 +224,14 @@ See `plugins/theme/neon-icons/` and `plugins/grammar/typescript/`.
 Hosted at [kLinQin/egg-plugin-store](https://github.com/kLinQin/egg-plugin-store)
 (GitHub raw index). Built-in store UI in **Settings → Extensions → Store**.
 
-Currently available: 5 themes, 3 grammars, 1 icon pack.
+Currently available: themes, grammars, and icon packs (see store for the live list).
 
 ## Third-party Notices
 
 - **Sora Editor** — LGPL-2.1
 - **JGit** — EPL-2.0
 - **termux termlib** — Apache-2.0
-- **pdn-engine** — bundled AAR (see `app/libs/`)
+- **pdn-engine** — bundled AAR (see `app/libs/`), legacy terminal runtime
 - **OkHttp** — Apache-2.0
 - **marked.js, highlight.js** — MIT / BSD (bundled in assets)
 
