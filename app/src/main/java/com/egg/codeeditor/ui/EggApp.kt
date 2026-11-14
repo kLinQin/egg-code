@@ -541,7 +541,7 @@ Android code editor built on **Sora Editor** + **TextMate grammar**.
 ## Features
 
 - Syntax highlight (Kotlin, Java, JS, JSON, HTML, CSS, Python, Markdown)
-- Integrated terminal (pdn-engine)
+- Integrated terminal (Ubuntu 24.04 via proot)
 - Git integration (JGit)
 - Markdown preview with custom syntax
 - Discord Rich Presence

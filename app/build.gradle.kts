@@ -66,7 +66,6 @@ dependencies {
     implementation("io.github.rosemoe:language-textmate")
 
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r")
-    implementation(files("libs/pdn-engine-0.6.18.aar"))
 
     implementation(project(":termlib-local"))
     implementation(project(":terminal"))

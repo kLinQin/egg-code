@@ -177,22 +177,3 @@ private fun ActionPillVertical(onClick: () -> Unit, icon: Any, label: String, en
         Text(label, fontSize = 11.sp, maxLines = 1, color = tint)
     }
 }
-
-@Composable
-private fun GitActionPill(
-    onClick: () -> Unit,
-    enabled: Boolean,
-    icon: ImageVector,
-    label: String
-) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RectangleShape,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
-    ) {
-        Icon(icon, null, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.width(4.dp))
-        Text(label, fontSize = 12.sp)
-    }
-}

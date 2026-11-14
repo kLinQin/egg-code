@@ -8,18 +8,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.toArgb
-import org.connectbot.terminal.TerminalEmulator
-import org.connectbot.terminal.TerminalEmulatorFactory
-import id.or.oo.pr.engine.PdnTerminalSession
-import id.or.oo.pr.engine.PdnTerminal
-import id.or.oo.pr.engine.PdnRuntime
-import id.or.oo.pr.engine.PdnOperations
-import id.or.oo.pr.engine.PdnConfiguration
-import id.or.oo.pr.engine.PdnBind
-import id.or.oo.pr.engine.PdnListener
-import id.or.oo.pr.engine.PdnEvent
-import id.or.oo.pr.engine.PdnTerminalListener
-import id.or.oo.pr.engine.ProotHost
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
 import com.egg.codeeditor.model.EditorSettings
@@ -162,149 +150,8 @@ class EggViewModel(private val context: Context) {
     var terminalVisible by mutableStateOf(false)
 
     var headerVisible by mutableStateOf(true)
-    var terminalEmulator by mutableStateOf<TerminalEmulator?>(null)
-        private set
-    private var terminalSession: PdnTerminalSession? = null
-    private var terminalReaderJob: kotlinx.coroutines.Job? = null
-    @Volatile private var terminalStarting = false
 
-    fun writeTerminal(data: ByteArray) {
-        val s = terminalSession ?: return
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching { s.write(data) }
-        }
-    }
 
-    var terminalBg by mutableStateOf(androidx.compose.ui.graphics.Color(0xFF141413))
-        private set
-    var terminalFg by mutableStateOf(androidx.compose.ui.graphics.Color(0xFFE8E6DC))
-        private set
-
-    fun setTerminalColors(bg: androidx.compose.ui.graphics.Color, fg: androidx.compose.ui.graphics.Color) {
-        if (bg == terminalBg && fg == terminalFg) return
-        terminalBg = bg
-        terminalFg = fg
-        val emu = terminalEmulator ?: return
-        val surface = blend(bg, fg, 0.08f)
-        val brightBlack = blend(bg, fg, 0.18f)
-        val palette = intArrayOf(
-            surface.toArgb(),
-            0xFFD97066.toInt(),
-            0xFF8BA173.toInt(),
-            0xFFD9A05B.toInt(),
-            0xFF6A9BCC.toInt(),
-            0xFFB08AB0.toInt(),
-            0xFF79B8B3.toInt(),
-            fg.toArgb(),
-            brightBlack.toArgb(),
-            0xFFE08A7D.toInt(),
-            0xFFAAB892.toInt(),
-            0xFFE8BD82.toInt(),
-            0xFF8CB4DF.toInt(),
-            0xFFC9A6C9.toInt(),
-            0xFF97CCC7.toInt(),
-            fg.toArgb()
-        )
-        emu.applyColorScheme(palette, fg.toArgb(), bg.toArgb())
-    }
-
-    private fun blend(a: androidx.compose.ui.graphics.Color, b: androidx.compose.ui.graphics.Color, t: Float) = androidx.compose.ui.graphics.Color(
-        red = a.red + (b.red - a.red) * t,
-        green = a.green + (b.green - a.green) * t,
-        blue = a.blue + (b.blue - a.blue) * t,
-        alpha = 1f
-    )
-
-    fun resizeTerminal(rows: Int, cols: Int) {
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching { terminalSession?.resize(rows, cols) }
-        }
-    }
-
-    fun ensureTerminalStarted() {
-        if (terminalSession != null || terminalStarting) return
-        terminalStarting = true
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val ctx = appContext
-                val host = object : ProotHost {
-                    override val nativeLibDir: File get() = File(ctx.applicationInfo.nativeLibraryDir)
-                    override val prefixDir: File get() = File(ctx.filesDir, "pdn")
-                    override val homeDir: File get() = File(ctx.filesDir, "home")
-                    override val packageName: String get() = ctx.packageName
-                    override val cacheDir: File get() = ctx.cacheDir
-                }
-                val runtime = PdnRuntime(host)
-                val ops = PdnOperations(runtime)
-                val term = PdnTerminal(runtime)
-
-                val emu = TerminalEmulatorFactory.create(
-                    defaultBackground = terminalBg,
-                    defaultForeground = terminalFg,
-                    onKeyboardInput = { data -> writeTerminal(data) },
-                    onResize = { dims -> resizeTerminal(dims.rows, dims.columns) }
-                )
-                terminalEmulator = emu
-
-                fun printToScreen(msg: String) {
-                    val b = msg.toByteArray(Charsets.UTF_8)
-                    emu.writeInput(b, 0, b.size)
-                }
-
-                val alpineDir = File(ctx.filesDir, "pdn/var/lib/pdn/rootfs/alpine")
-                if (!alpineDir.exists()) {
-                    printToScreen("Installing Alpine (automatic)...\r\n")
-                    val listener = object : PdnListener { override fun onEvent(event: PdnEvent) {} }
-                    runCatching { ops.run(runtime.install("alpine"), listener) }
-                        .onFailure { printToScreen("Install failed: ${it.message}\r\n") }
-                }
-
-                printToScreen("Starting Alpine shell...\r\n")
-                val cfg = PdnConfiguration(
-                    "root", "/workspace",
-                    listOf(
-                        PdnBind(File("/storage/emulated/0"), "/mnt/sdcard"),
-                        PdnBind(ctx.filesDir, "/mnt/appdata")
-                    ),
-                    emptyMap()
-                )
-                val loginPb = runtime.login("alpine", cfg)
-                val listener = object : PdnTerminalListener {}
-                val session = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    term.start(loginPb, 80, 24, listener)
-                }
-                terminalSession = session
-                runCatching { session.resize(emu.dimensions.rows, emu.dimensions.columns) }
-
-                terminalReaderJob = scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                    val buf = ByteArray(4096)
-                    try {
-                        while (!session.isClosed) {
-                            val n = session.read(buf)
-                            if (n > 0) emu.writeInput(buf, 0, n) else if (n < 0) break
-                        }
-                    } catch (e: Exception) {
-                        val msg = "\r\n[Terminal closed: ${e.message}]\r\n".toByteArray(Charsets.UTF_8)
-                        emu.writeInput(msg, 0, msg.size)
-                    }
-                }
-            } catch (e: Exception) {
-                val emu = terminalEmulator
-                val msg = "Failed to start shell: ${e.message}\r\n".toByteArray(Charsets.UTF_8)
-                emu?.writeInput(msg, 0, msg.size)
-            } finally {
-                terminalStarting = false
-            }
-        }
-    }
-
-    fun closeTerminal() {
-        runCatching { terminalReaderJob?.cancel() }
-        terminalReaderJob = null
-        runCatching { terminalSession?.close() }
-        terminalSession = null
-        terminalEmulator = null
-    }
 
     var currentSection by mutableStateOf("File Manager")
 
@@ -371,7 +218,6 @@ class EggViewModel(private val context: Context) {
     var showMarkdownPreview by mutableStateOf(false)
     var discordToken by mutableStateOf("")
     var discordEnabled by mutableStateOf(false)
-    private var discordScope: kotlinx.coroutines.CoroutineScope? = null
     private var appScope: kotlinx.coroutines.CoroutineScope? = null
 
     fun setDiscordScope(scope: kotlinx.coroutines.CoroutineScope) {
@@ -1111,11 +957,6 @@ class EggViewModel(private val context: Context) {
             ?: rootFolderUri?.let { DocumentFile.fromTreeUri(appContext, it) }
 
     fun activeTabIndex(): Int = tabs.indexOfFirst { it.id == activeTabId }
-
-    fun syncActiveTabContent(text: String) {
-        val i = activeTabIndex()
-        if (i >= 0 && tabs[i].content != text) tabs[i] = tabs[i].copy(content = text)
-    }
 
     private fun switchAfterRemoval(removedIdx: Int) {
         if (tabs.isEmpty()) {

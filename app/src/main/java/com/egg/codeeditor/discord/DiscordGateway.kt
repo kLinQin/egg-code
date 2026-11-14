@@ -35,7 +35,6 @@ class DiscordGateway(
     private var heartbeatJob: Job? = null
     private var sequence: Int? = null
     private var sessionId: String? = null
-    private val appStartedAt = System.currentTimeMillis()
 
     fun connect() {
         val req = Request.Builder().url(DiscordProtocol.GATEWAY_URL).build()
