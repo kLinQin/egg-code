@@ -54,7 +54,7 @@ internal fun EggDialogs(
     if (vm.showNewFolderDialog) {
         InputDialog(
             title = "New Folder Name",
-            onDismiss = { vm.showNewFolderDialog = false },
+            onDismiss = { vm.showNewFolderDialog = false; vm.createTargetParent = null },
             extraContent = if (vm.isSupabaseMode) {{
                 androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     androidx.compose.material3.Checkbox(
@@ -66,8 +66,11 @@ internal fun EggDialogs(
             }} else null,
             onConfirm = { name ->
                 vm.showNewFolderDialog = false
-                if (vm.isSupabaseMode) vm.createSupabaseFolder(name, vm.newFolderIsPublic)
-                else vm.createFolder(name)
+                if (vm.isSupabaseMode) {
+                    val parent = vm.createTargetParent
+                    vm.createTargetParent = null
+                    vm.createSupabaseFolder(name, vm.newFolderIsPublic, parent)
+                } else vm.createFolder(name)
             }
         )
     }

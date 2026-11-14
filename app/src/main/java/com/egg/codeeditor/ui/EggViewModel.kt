@@ -322,6 +322,7 @@ class EggViewModel(private val context: Context) {
     var showCreateNoteDialog by mutableStateOf(false)
     var showCreateFolderDialog by mutableStateOf(false)
     var createTargetFolder by mutableStateOf<String?>(null)
+    var createTargetParent by mutableStateOf<String?>(null)
     var newNoteIsPublic by mutableStateOf(false)
     var newFolderIsPublic by mutableStateOf(false)
     var showLoginDialog by mutableStateOf(false)
@@ -504,32 +505,78 @@ class EggViewModel(private val context: Context) {
 
     fun buildSupabaseFileNodes(): List<FileNode> {
         val result = mutableListOf<FileNode>()
-        val folderNames = supabaseFolders.map { it.name }.toSet()
-        val notesByFolder = supabaseNotes.groupBy { it.mainCategory.ifBlank { "Unfiled" } }
-        val allFolderNames = LinkedHashSet<String>()
-        allFolderNames.addAll(supabaseFolders.map { it.name })
-        notesByFolder.keys.filter { it.isNotBlank() && it !in folderNames }.forEach { allFolderNames.add(it) }
-        if (allFolderNames.isEmpty() && supabaseNotes.isEmpty()) return emptyList()
+        val allFolderPaths = LinkedHashSet<String>()
+        supabaseFolders.forEach { allFolderPaths.add(it.name) }
+        supabaseNotes.forEach { n ->
+            val mc = n.mainCategory.ifBlank { "Unfiled" }
+            if (mc.isNotBlank()) allFolderPaths.add(mc)
+        }
+        if (allFolderPaths.isEmpty() && supabaseNotes.isEmpty()) return emptyList()
 
-        for (folderName in allFolderNames) {
-            val folderUri = Uri.parse("supabase://folder/" + Uri.encode(folderName))
-            val folderNode = FileNode(folderName, true, folderUri, 0)
-            result.add(folderNode)
-            if (!supabaseExpandedPaths.value.contains(folderUri.toString())) continue
-            val folderNotes = notesByFolder[folderName].orEmpty()
-            val subs = folderNotes.groupBy { it.category.ifBlank { "" } }
-            for ((cat, catNotes) in subs) {
-                if (cat.isBlank()) {
-                    for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
-                        result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 1))
+        // Normalisasi: untuk path "A/B", pastikan "A" ada sebagai folder juga
+        val expanded = LinkedHashSet<String>()
+        allFolderPaths.forEach { p ->
+            val parts = p.split("/")
+            var acc = ""
+            parts.forEachIndexed { i, part ->
+                acc = if (acc.isEmpty()) part else "$acc/$part"
+                expanded.add(acc)
+            }
+        }
+        // map: parentPath -> list of child folder names
+        val childrenByParent = mutableMapOf<String, MutableList<String>>()
+        expanded.forEach { p ->
+            val idx = p.lastIndexOf("/")
+            val parent = if (idx > 0) p.substring(0, idx) else ""
+            val name = if (idx >= 0) p.substring(idx + 1) else p
+            childrenByParent.getOrPut(parent) { mutableListOf() }.add(name)
+        }
+        // map: folderPath -> notes with main_category == path
+        val notesByFolder = supabaseNotes.groupBy { it.mainCategory.ifBlank { "Unfiled" } }
+
+        fun walk(parent: String, depth: Int) {
+            val children = childrenByParent[parent].orEmpty().sorted()
+            for (name in children) {
+                val fullPath = if (parent.isEmpty()) name else "$parent/$name"
+                val folderUri = Uri.parse("supabase://folder/" + Uri.encode(fullPath))
+                val folderNode = FileNode(name, true, folderUri, depth)
+                result.add(folderNode)
+                if (!supabaseExpandedPaths.value.contains(folderUri.toString())) continue
+
+                // Sub-folders
+                walk(fullPath, depth + 1)
+
+                // Notes langsung di folder ini
+                val folderNotes = notesByFolder[fullPath].orEmpty()
+                val subs = folderNotes.groupBy { it.category.ifBlank { "" } }
+                for ((cat, catNotes) in subs) {
+                    if (cat.isBlank()) {
+                        for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
+                            result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), depth + 1, n.isPublic))
+                        }
+                    } else {
+                        val subUri = Uri.parse("supabase://folder/" + Uri.encode(fullPath) + "/" + Uri.encode(cat))
+                        val subNode = FileNode(cat, true, subUri, depth + 1)
+                        result.add(subNode)
+                        if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
+                        for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
+                            result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), depth + 2, n.isPublic))
+                        }
                     }
-                } else {
-                    val subUri = Uri.parse("supabase://folder/" + Uri.encode(folderName) + "/" + Uri.encode(cat))
-                    val subNode = FileNode(cat, true, subUri, 1)
-                    result.add(subNode)
-                    if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
-                    for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
-                        result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 2))
+                }
+            }
+        }
+        walk("", 0)
+
+        // Notes di folder "Unfiled" jika belum ada child folder "Unfiled" eksplisit
+        if (!expanded.contains("Unfiled")) {
+            val unfiled = notesByFolder["Unfiled"].orEmpty().filter { it.mainCategory.isBlank() }
+            if (unfiled.isNotEmpty()) {
+                val uf = FileNode("Unfiled", true, Uri.parse("supabase://folder/" + Uri.encode("Unfiled")), 0)
+                result.add(uf)
+                if (supabaseExpandedPaths.value.contains(uf.uri.toString())) {
+                    for (n in unfiled.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
+                        result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 1, n.isPublic))
                     }
                 }
             }
@@ -1144,11 +1191,13 @@ class EggViewModel(private val context: Context) {
         }
     }
 
-    fun createSupabaseFolder(name: String, isPublic: Boolean) {
+    fun createSupabaseFolder(name: String, isPublic: Boolean, parentPath: String? = null) {
         if (name.isBlank()) { notify("Name required"); return }
+        val cleanName = name.trim().replace("/", "-")
+        val fullPath = if (parentPath.isNullOrBlank()) cleanName else "$parentPath/$cleanName"
         scope.launch {
             supabaseLoading = true
-            SupabaseClient.createFolder(name.trim(), "supabase", isPublic)
+            SupabaseClient.createFolder(fullPath, "supabase", isPublic)
                 .onSuccess { folder ->
                     supabaseFolders = supabaseFolders + folder
                     if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
@@ -1198,12 +1247,37 @@ class EggViewModel(private val context: Context) {
     }
 
     fun renameSupabaseFolder(id: Long, newName: String) {
-        if (newName.isBlank()) return
+        val trimmed = newName.trim()
+        if (trimmed.isBlank() || trimmed.contains("/")) { notify("Invalid name"); return }
+        val oldFolder = supabaseFolders.firstOrNull { it.id == id } ?: return
+        val oldPath = oldFolder.name
+        val idx = oldPath.lastIndexOf("/")
+        val parentPath = if (idx > 0) oldPath.substring(0, idx) else ""
+        val newPath = if (parentPath.isEmpty()) trimmed else "$parentPath/$trimmed"
+        if (newPath == oldPath) return
         scope.launch {
             supabaseLoading = true
-            val ok = SupabaseClient.renameFolder(id, newName.trim())
+            val ok = SupabaseClient.renameFolder(id, newPath)
             if (ok) {
-                supabaseFolders = supabaseFolders.map { if (it.id == id) it.copy(name = newName.trim()) else it }
+                supabaseFolders = supabaseFolders.map {
+                    when {
+                        it.id == id -> it.copy(name = newPath)
+                        it.name.startsWith(oldPath + "/") -> it.copy(name = newPath + it.name.substring(oldPath.length))
+                        else -> it
+                    }
+                }
+                // Update semua note dengan main_category berprefix oldPath
+                val affected = supabaseNotes.filter { it.mainCategory == oldPath || it.mainCategory.startsWith(oldPath + "/") }
+                val updates = mutableListOf<SupabaseNote>()
+                for (n in affected) {
+                    val newMc = if (n.mainCategory == oldPath) newPath else newPath + n.mainCategory.substring(oldPath.length)
+                    val upOk = SupabaseClient.updateNote(n.id, null, null, null, newMc)
+                    if (upOk) updates.add(n.copy(mainCategory = newMc))
+                }
+                if (updates.isNotEmpty()) {
+                    val map = updates.associateBy { it.id }
+                    supabaseNotes = supabaseNotes.map { map[it.id] ?: it }
+                }
                 if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
                 notify("Folder renamed")
             } else notify("Rename failed")
@@ -1212,11 +1286,37 @@ class EggViewModel(private val context: Context) {
     }
 
     fun deleteSupabaseFolder(id: Long, name: String) {
+        val oldFolder = supabaseFolders.firstOrNull { it.id == id }
+        val oldPath = oldFolder?.name ?: name
         scope.launch {
             supabaseLoading = true
+            // Hapus note dulu (yang prefix-nya match)
+            val affectedNotes = supabaseNotes.filter { it.mainCategory == oldPath || it.mainCategory.startsWith(oldPath + "/") }
+            val deletedIds = mutableListOf<Long>()
+            for (n in affectedNotes) {
+                if (SupabaseClient.deleteNote(n.id)) deletedIds.add(n.id)
+            }
+            if (deletedIds.isNotEmpty()) {
+                supabaseNotes = supabaseNotes.filterNot { it.id in deletedIds }
+                // Tutup tab-tab supabase note yang terhapus
+                val toClose = tabs.filter { t ->
+                    val s = t.uri?.toString() ?: return@filter false
+                    s.startsWith("supabase://note/") && s.substringAfterLast("/").toLongOrNull() in deletedIds
+                }
+                if (toClose.isNotEmpty()) {
+                    val activeRemoved = toClose.any { it.id == activeTabId }
+                    val firstIdx = tabs.indexOfFirst { t -> toClose.any { it.id == t.id } }
+                    tabs.removeAll { t -> toClose.any { it.id == t.id } }
+                    if (activeRemoved) switchAfterRemoval(firstIdx.coerceAtLeast(0))
+                    persistTabs()
+                }
+            }
+            // Hapus child folders (yang prefix-nya match)
+            val childFolderIds = supabaseFolders.filter { it.id != id && it.name.startsWith(oldPath + "/") }.map { it.id }
+            for (cid in childFolderIds) SupabaseClient.deleteFolder(cid)
             val ok = SupabaseClient.deleteFolder(id)
             if (ok) {
-                supabaseFolders = supabaseFolders.filterNot { it.id == id }
+                supabaseFolders = supabaseFolders.filterNot { it.id == id || it.id in childFolderIds }
                 if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
                 notify("Folder deleted")
             } else notify("Delete folder failed")

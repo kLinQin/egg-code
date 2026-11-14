@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -137,6 +138,15 @@ internal fun FileManagerPanel(
                     }
 
                     Spacer(Modifier.width(8.dp))
+                    if (node.isPublic == true) {
+                        Icon(
+                            Icons.Default.Public,
+                            "Public",
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                        Spacer(Modifier.width(4.dp))
+                    }
                     val marker = vm.gitMarkerFor(node)
                     if (marker != null) {
                         val markerColor = when (marker) {
@@ -198,12 +208,15 @@ internal fun FileManagerPanel(
                                 }
                                 if (node.isDirectory) {
                                     if (vm.isSupabaseMode) {
-                                        if (node.depth == 0) {
-                                            MenuTextAction("New File Here") {
-                                                vm.createTargetFolder = node.name
-                                                vm.showNewFileDialog = true
-                                                showContextMenu = false
-                                            }
+                                        MenuTextAction("New File Here") {
+                                            vm.createTargetFolder = node.uri.path?.removePrefix("/")?.let { java.net.URLDecoder.decode(it, "UTF-8") }.orEmpty()
+                                            vm.showNewFileDialog = true
+                                            showContextMenu = false
+                                        }
+                                        MenuTextAction("New Folder Here") {
+                                            vm.createTargetParent = node.uri.path?.removePrefix("/")?.let { java.net.URLDecoder.decode(it, "UTF-8") }.orEmpty()
+                                            vm.showNewFolderDialog = true
+                                            showContextMenu = false
                                         }
                                     } else {
                                         MenuTextAction("New File Here") {

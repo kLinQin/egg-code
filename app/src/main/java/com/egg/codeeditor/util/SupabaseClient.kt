@@ -242,11 +242,12 @@ object SupabaseClient {
         }
     }
 
-    suspend fun updateNote(id: Long, title: String?, content: String?, isPublic: Boolean?): Boolean = withContext(Dispatchers.IO) {
+    suspend fun updateNote(id: Long, title: String?, content: String?, isPublic: Boolean?, mainCategory: String? = null): Boolean = withContext(Dispatchers.IO) {
         val body = JSONObject()
         if (title != null) body.put("title", title)
         if (content != null) body.put("content", content)
         if (isPublic != null) body.put("is_public", isPublic)
+        if (mainCategory != null) body.put("main_category", mainCategory)
         if (body.length() == 0) return@withContext true
         val req = requestBuilder("/rest/v1/notes?id=eq.$id", "PATCH", jsonBody(body), auth = true)
             .header("Prefer", "return=minimal")

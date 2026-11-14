@@ -24,7 +24,8 @@ data class FileNode(
     val name: String,
     val isDirectory: Boolean,
     val uri: Uri,
-    val depth: Int
+    val depth: Int,
+    val isPublic: Boolean? = null
 )
 
 data class GitStatusInfo(
