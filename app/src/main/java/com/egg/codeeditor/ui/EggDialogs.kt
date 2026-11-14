@@ -30,10 +30,23 @@ internal fun EggDialogs(
     if (vm.showNewFileDialog) {
         InputDialog(
             title = "New File Name",
-            onDismiss = { vm.showNewFileDialog = false },
+            onDismiss = { vm.showNewFileDialog = false; vm.createTargetFolder = null },
+            extraContent = if (vm.isSupabaseMode) {{
+                androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = vm.newNoteIsPublic,
+                        onCheckedChange = { vm.newNoteIsPublic = it }
+                    )
+                    Text("Public", fontSize = 13.sp)
+                }
+            }} else null,
             onConfirm = { name ->
                 vm.showNewFileDialog = false
-                vm.createFile(name)
+                if (vm.isSupabaseMode) {
+                    val folder = vm.createTargetFolder.orEmpty()
+                    vm.createTargetFolder = null
+                    vm.createSupabaseNote(name, "", folder, vm.newNoteIsPublic)
+                } else vm.createFile(name)
             }
         )
     }
@@ -42,9 +55,19 @@ internal fun EggDialogs(
         InputDialog(
             title = "New Folder Name",
             onDismiss = { vm.showNewFolderDialog = false },
+            extraContent = if (vm.isSupabaseMode) {{
+                androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = vm.newFolderIsPublic,
+                        onCheckedChange = { vm.newFolderIsPublic = it }
+                    )
+                    Text("Public", fontSize = 13.sp)
+                }
+            }} else null,
             onConfirm = { name ->
                 vm.showNewFolderDialog = false
-                vm.createFolder(name)
+                if (vm.isSupabaseMode) vm.createSupabaseFolder(name, vm.newFolderIsPublic)
+                else vm.createFolder(name)
             }
         )
     }
@@ -56,7 +79,15 @@ internal fun EggDialogs(
             onDismiss = { vm.showRenameDialog = false },
             onConfirm = { newName ->
                 vm.showRenameDialog = false
-                vm.rename(newName)
+                val node = vm.selectedNode
+                if (vm.isSupabaseMode && node != null) {
+                    val idStr = node.uri.path?.substringAfterLast('/')
+                    val id = idStr?.toLongOrNull()
+                    if (id != null) {
+                        if (node.isDirectory) vm.renameSupabaseFolder(id, newName)
+                        else vm.renameSupabaseNote(id, newName)
+                    }
+                } else vm.rename(newName)
             }
         )
     }
@@ -68,8 +99,15 @@ internal fun EggDialogs(
             text = { Text("Are you sure you want to delete '${vm.selectedNode!!.name}'?") },
             confirmButton = {
                 TextButton(onClick = {
+                    val node = vm.selectedNode
                     vm.showDeleteDialog = false
-                    vm.deleteSelected()
+                    if (vm.isSupabaseMode && node != null) {
+                        val id = node.uri.path?.substringAfterLast('/')?.toLongOrNull()
+                        if (id != null) {
+                            if (node.isDirectory) vm.deleteSupabaseFolder(id, node.name)
+                            else vm.deleteSupabaseNote(id)
+                        }
+                    } else vm.deleteSelected()
                 }) { Text("Delete") }
             },
             dismissButton = {

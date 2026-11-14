@@ -59,9 +59,10 @@ fun FileManagerActionBar(
     onRefresh: () -> Unit,
     onToggleCollapse: () -> Unit,
     onCloseProject: () -> Unit,
-    actionDisabled: Boolean = false
+    actionDisabled: Boolean = false,
+    isSupabaseMode: Boolean = false
 ) {
-    val hasFolder = rootFolderUri != null || rootFolderPath != null
+    val hasFolder = rootFolderUri != null || rootFolderPath != null || isSupabaseMode
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,

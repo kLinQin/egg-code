@@ -70,6 +70,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 import com.egg.codeeditor.util.SupabaseClient
+import com.egg.codeeditor.util.SupabaseFolder
 import com.egg.codeeditor.util.SupabaseNote
 import com.egg.codeeditor.util.SupabaseUser
 
@@ -317,6 +318,12 @@ class EggViewModel(private val context: Context) {
 
     var supabaseUser by mutableStateOf<SupabaseUser?>(null)
     var supabaseNotes by mutableStateOf<List<SupabaseNote>>(emptyList())
+    var supabaseFolders by mutableStateOf<List<SupabaseFolder>>(emptyList())
+    var showCreateNoteDialog by mutableStateOf(false)
+    var showCreateFolderDialog by mutableStateOf(false)
+    var createTargetFolder by mutableStateOf<String?>(null)
+    var newNoteIsPublic by mutableStateOf(false)
+    var newFolderIsPublic by mutableStateOf(false)
     var showLoginDialog by mutableStateOf(false)
     var supabaseLoading by mutableStateOf(false)
     private val supabaseExpandedPaths = mutableStateOf<Set<String>>(emptySet())
@@ -497,20 +504,33 @@ class EggViewModel(private val context: Context) {
 
     fun buildSupabaseFileNodes(): List<FileNode> {
         val result = mutableListOf<FileNode>()
-        val mains = supabaseNotes.groupBy { it.mainCategory.ifBlank { "general" } }
-        for ((mainCat, notes) in mains) {
-            val mainUri = Uri.parse("supabase://folder/" + Uri.encode(mainCat))
-            val mainNode = FileNode(mainCat, true, mainUri, 0)
-            result.add(mainNode)
-            if (!supabaseExpandedPaths.value.contains(mainUri.toString())) continue
-            val subs = notes.groupBy { it.category.ifBlank { "general" } }
+        val folderNames = supabaseFolders.map { it.name }.toSet()
+        val notesByFolder = supabaseNotes.groupBy { it.mainCategory.ifBlank { "Unfiled" } }
+        val allFolderNames = LinkedHashSet<String>()
+        allFolderNames.addAll(supabaseFolders.map { it.name })
+        notesByFolder.keys.filter { it.isNotBlank() && it !in folderNames }.forEach { allFolderNames.add(it) }
+        if (allFolderNames.isEmpty() && supabaseNotes.isEmpty()) return emptyList()
+
+        for (folderName in allFolderNames) {
+            val folderUri = Uri.parse("supabase://folder/" + Uri.encode(folderName))
+            val folderNode = FileNode(folderName, true, folderUri, 0)
+            result.add(folderNode)
+            if (!supabaseExpandedPaths.value.contains(folderUri.toString())) continue
+            val folderNotes = notesByFolder[folderName].orEmpty()
+            val subs = folderNotes.groupBy { it.category.ifBlank { "" } }
             for ((cat, catNotes) in subs) {
-                val subUri = Uri.parse("supabase://folder/" + Uri.encode(mainCat) + "/" + Uri.encode(cat))
-                val subNode = FileNode(cat, true, subUri, 1)
-                result.add(subNode)
-                if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
-                for (n in catNotes.sortedByDescending { it.updatedAt }) {
-                    result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 2))
+                if (cat.isBlank()) {
+                    for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
+                        result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 1))
+                    }
+                } else {
+                    val subUri = Uri.parse("supabase://folder/" + Uri.encode(folderName) + "/" + Uri.encode(cat))
+                    val subNode = FileNode(cat, true, subUri, 1)
+                    result.add(subNode)
+                    if (!supabaseExpandedPaths.value.contains(subUri.toString())) continue
+                    for (n in catNotes.sortedWith(compareByDescending<SupabaseNote> { it.isPinned }.thenByDescending { it.updatedAt })) {
+                        result.add(FileNode(displayNoteName(n.title, n.id), false, Uri.parse("supabase://note/${n.id}"), 2))
+                    }
                 }
             }
         }
@@ -521,6 +541,9 @@ class EggViewModel(private val context: Context) {
         val r = SupabaseClient.listNotes()
         r.onSuccess { supabaseNotes = it }
             .onFailure { notify(it.message ?: "Failed to load notes") }
+        SupabaseClient.listFolders()
+            .onSuccess { supabaseFolders = it }
+            .onFailure { /* optional */ }
         supabaseExpandedPaths.value = emptySet()
         supabaseProjectActive = true
         val sections = mutableListOf("File Manager")
@@ -571,6 +594,7 @@ class EggViewModel(private val context: Context) {
             SupabaseClient.signOut()
             supabaseUser = null
             supabaseNotes = emptyList()
+            supabaseFolders = emptyList()
             supabaseExpandedPaths.value = emptySet()
             availableSections = buildAvailableSections(rootFolderPath)
             supabaseProjectActive = false
@@ -1103,6 +1127,101 @@ class EggViewModel(private val context: Context) {
         val t = EditorTab(nextTabId++, "Untitled $count", null, "")
         tabs.add(t)
         activeTabId = t.id
+    }
+
+    fun createSupabaseNote(title: String, category: String, mainCategory: String, isPublic: Boolean) {
+        if (title.isBlank()) { notify("Title required"); return }
+        scope.launch {
+            supabaseLoading = true
+            SupabaseClient.createNote(title.trim(), category.trim(), mainCategory.trim(), "", isPublic)
+                .onSuccess { note ->
+                    supabaseNotes = listOf(note) + supabaseNotes
+                    if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                    notify("Note created")
+                }
+                .onFailure { notify(it.message ?: "Create note failed") }
+            supabaseLoading = false
+        }
+    }
+
+    fun createSupabaseFolder(name: String, isPublic: Boolean) {
+        if (name.isBlank()) { notify("Name required"); return }
+        scope.launch {
+            supabaseLoading = true
+            SupabaseClient.createFolder(name.trim(), "supabase", isPublic)
+                .onSuccess { folder ->
+                    supabaseFolders = supabaseFolders + folder
+                    if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                    notify("Folder created")
+                }
+                .onFailure { notify(it.message ?: "Create folder failed") }
+            supabaseLoading = false
+        }
+    }
+
+    fun renameSupabaseNote(id: Long, newTitle: String) {
+        if (newTitle.isBlank()) return
+        scope.launch {
+            supabaseLoading = true
+            SupabaseClient.updateNote(id, newTitle.trim(), null, null)
+                .let { ok ->
+                    if (ok) {
+                        supabaseNotes = supabaseNotes.map { if (it.id == id) it.copy(title = newTitle.trim()) else it }
+                        tabs.replaceAll { t -> if (t.uri?.toString() == "supabase://note/$id") t.copy(name = displayNoteName(newTitle.trim(), id)) else t }
+                        if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                        notify("Renamed")
+                    } else notify("Rename failed")
+                }
+            supabaseLoading = false
+        }
+    }
+
+    fun deleteSupabaseNote(id: Long) {
+        scope.launch {
+            supabaseLoading = true
+            val ok = SupabaseClient.deleteNote(id)
+            if (ok) {
+                supabaseNotes = supabaseNotes.filterNot { it.id == id }
+                val uri = "supabase://note/$id"
+                val idx = tabs.indexOfFirst { it.uri?.toString() == uri }
+                if (idx >= 0) {
+                    val wasActive = tabs[idx].id == activeTabId
+                    tabs.removeAt(idx)
+                    if (wasActive) switchAfterRemoval(idx)
+                    persistTabs()
+                }
+                if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                notify("Note deleted")
+            } else notify("Delete failed")
+            supabaseLoading = false
+        }
+    }
+
+    fun renameSupabaseFolder(id: Long, newName: String) {
+        if (newName.isBlank()) return
+        scope.launch {
+            supabaseLoading = true
+            val ok = SupabaseClient.renameFolder(id, newName.trim())
+            if (ok) {
+                supabaseFolders = supabaseFolders.map { if (it.id == id) it.copy(name = newName.trim()) else it }
+                if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                notify("Folder renamed")
+            } else notify("Rename failed")
+            supabaseLoading = false
+        }
+    }
+
+    fun deleteSupabaseFolder(id: Long, name: String) {
+        scope.launch {
+            supabaseLoading = true
+            val ok = SupabaseClient.deleteFolder(id)
+            if (ok) {
+                supabaseFolders = supabaseFolders.filterNot { it.id == id }
+                if (isSupabaseMode) visibleNodes = buildSupabaseFileNodes()
+                notify("Folder deleted")
+            } else notify("Delete folder failed")
+            supabaseLoading = false
+        }
     }
 
     fun deleteTabFromStorage(tab: EditorTab) {

@@ -28,7 +28,15 @@ data class SupabaseNote(
     val mainCategory: String,
     val updatedAt: String,
     val color: String?,
-    val isPublic: Boolean
+    val isPublic: Boolean,
+    val isPinned: Boolean = false,
+    val ownerName: String? = null
+)
+
+data class SupabaseFolder(
+    val id: Long,
+    val name: String,
+    val storageType: String
 )
 
 object SupabaseClient {
@@ -156,7 +164,7 @@ object SupabaseClient {
     }
 
     suspend fun listNotes(): Result<List<SupabaseNote>> = withContext(Dispatchers.IO) {
-        val sel = "id,title,category,main_category,updated_at,color,is_public"
+        val sel = "id,title,category,main_category,updated_at,color,is_public,is_pinned,owner_name"
         val url = "/rest/v1/notes?select=$sel&order=is_pinned.desc,created_at.desc&limit=100"
         val req = requestBuilder(url, "GET", null, auth = currentUser != null)
         runCatching {
@@ -173,7 +181,9 @@ object SupabaseClient {
                         o.optString("main_category"),
                         o.optString("updated_at"),
                         o.optString("color").ifBlank { null },
-                        o.optBoolean("is_public")
+                        o.optBoolean("is_public"),
+                        o.optBoolean("is_pinned"),
+                        o.optString("owner_name").ifBlank { null }
                     )
                 }
             }
@@ -204,6 +214,94 @@ object SupabaseClient {
         val req = requestBuilder(url, "DELETE", null, auth = true).build()
         runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
     }
+    suspend fun createNote(title: String, category: String, mainCategory: String, content: String, isPublic: Boolean): Result<SupabaseNote> = withContext(Dispatchers.IO) {
+        val uid = currentUser?.id ?: return@withContext Result.failure(IOException("Not logged in"))
+        val body = JSONObject()
+            .put("title", title)
+            .put("category", category)
+            .put("main_category", mainCategory)
+            .put("content", content)
+            .put("user_id", uid)
+            .put("is_public", isPublic)
+        val req = requestBuilder("/rest/v1/notes", "POST", jsonBody(body), auth = true)
+            .header("Prefer", "return=representation")
+            .build()
+        runCatching {
+            client.newCall(req).execute().use { resp ->
+                val raw = resp.body?.string() ?: ""
+                if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: ${raw.take(200)}")
+                val arr = JSONArray(raw)
+                val o = arr.getJSONObject(0)
+                SupabaseNote(
+                    o.optLong("id"), o.optString("title"), o.optString("category"),
+                    o.optString("main_category"), o.optString("updated_at"),
+                    o.optString("color").ifBlank { null }, o.optBoolean("is_public"),
+                    o.optBoolean("is_pinned"), o.optString("owner_name").ifBlank { null }
+                )
+            }
+        }
+    }
+
+    suspend fun updateNote(id: Long, title: String?, content: String?, isPublic: Boolean?): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        if (title != null) body.put("title", title)
+        if (content != null) body.put("content", content)
+        if (isPublic != null) body.put("is_public", isPublic)
+        if (body.length() == 0) return@withContext true
+        val req = requestBuilder("/rest/v1/notes?id=eq.$id", "PATCH", jsonBody(body), auth = true)
+            .header("Prefer", "return=minimal")
+            .build()
+        runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
+    }
+
+    suspend fun listFolders(): Result<List<SupabaseFolder>> = withContext(Dispatchers.IO) {
+        val req = requestBuilder("/rest/v1/folders?select=id,name,storage_type&order=name.asc", "GET", null, auth = true)
+        runCatching {
+            client.newCall(req.build()).execute().use { resp ->
+                val raw = resp.body?.string() ?: "[]"
+                if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
+                val arr = JSONArray(raw)
+                (0 until arr.length()).map { i ->
+                    val o = arr.getJSONObject(i)
+                    SupabaseFolder(o.optLong("id"), o.optString("name"), o.optString("storage_type"))
+                }
+            }
+        }
+    }
+
+    suspend fun createFolder(name: String, storageType: String = "supabase", isPublic: Boolean = false): Result<SupabaseFolder> = withContext(Dispatchers.IO) {
+        val uid = currentUser?.id ?: return@withContext Result.failure(IOException("Not logged in"))
+        val body = JSONObject()
+            .put("name", name)
+            .put("user_id", uid)
+            .put("storage_type", storageType)
+        val req = requestBuilder("/rest/v1/folders", "POST", jsonBody(body), auth = true)
+            .header("Prefer", "return=representation")
+            .build()
+        runCatching {
+            client.newCall(req).execute().use { resp ->
+                val raw = resp.body?.string() ?: ""
+                if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}: ${raw.take(200)}")
+                val arr = JSONArray(raw)
+                val o = arr.getJSONObject(0)
+                SupabaseFolder(o.optLong("id"), o.optString("name"), o.optString("storage_type"))
+            }
+        }
+    }
+
+    suspend fun deleteFolder(id: Long): Boolean = withContext(Dispatchers.IO) {
+        val req = requestBuilder("/rest/v1/folders?id=eq.$id", "DELETE", null, auth = true).build()
+        runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
+    }
+
+    suspend fun renameFolder(id: Long, name: String): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("name", name)
+        val req = requestBuilder("/rest/v1/folders?id=eq.$id", "PATCH", jsonBody(body), auth = true)
+            .header("Prefer", "return=minimal")
+            .build()
+        runCatching { client.newCall(req).execute().use { it.isSuccessful } }.getOrDefault(false)
+    }
+
     fun isSupabaseNote(uri: Uri): Boolean = uri.scheme == "supabase"
 
     fun noteIdFromUri(uri: Uri): Long? = uri.path?.substringAfterLast('/')?.toLongOrNull()

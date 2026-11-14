@@ -413,12 +413,13 @@ fun EggApp() {
                                                     rootFolderUri = vm.rootFolderUri,
                                                     rootFolderPath = vm.rootFolderPath,
                                                     expandedPaths = vm.expandedPaths,
-                                                    onNewFile = { vm.targetParentNode = null; vm.showNewFileDialog = true },
+                                                    onNewFile = { vm.targetParentNode = null; vm.createTargetFolder = null; vm.showNewFileDialog = true },
                                                     onNewFolder = { vm.targetParentNode = null; vm.showNewFolderDialog = true },
                                                     onRefresh = { vm.refreshFolder() },
                                                     onToggleCollapse = { vm.collapseAllOrExpandRoots() },
                                                     onCloseProject = { vm.closeProject() },
-                                                    actionDisabled = vm.isSupabaseMode
+                                                    actionDisabled = false,
+                                                    isSupabaseMode = vm.isSupabaseMode
                                                 )
                                                 "Git" -> GitActionBar(
                                                     gitRepo = vm.gitRepo,
