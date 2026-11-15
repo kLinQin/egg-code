@@ -105,6 +105,8 @@ fun MarkdownPreview(
         ".twitter-card{display:block;padding:10px 12px;margin:8px 0;background:" + hex(preBg) + ";border-left:4px solid " + hex(accentInfo) + ";border-radius:0;text-decoration:none;color:" + hex(fgColor) + "}" +
         ".twitter-card .tw-user{display:block;color:hex(accentInfo);font-weight:600;font-size:13px}" +
         ".twitter-card .tw-body{display:block;font-size:12px;opacity:0.7;margin-top:2px}" +
+        ".twitter-embed{margin:8px 0;border:1px solid " + hex(outlineVariant) + ";border-radius:8px;overflow:hidden;background:" + hex(preBg) + "}" +
+        ".twitter-embed iframe{width:100%;height:400px;border:0;display:block}" +
         ".discord-ts{color:" + hex(primary.toArgb()) + ";background:" + hex(surface.toArgb()) + ";padding:1px 4px;border-radius:3px;font-size:0.92em;cursor:default}" +
         ".callout{border-left:4px solid;padding:10px 12px;margin:10px 0;border-radius:0}" +
         ".callout-title{font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px}" +
@@ -198,7 +200,7 @@ fun MarkdownPreview(
         "<script>" +
         "marked.setOptions({breaks:true,gfm:true});" +
         "var md=" + jsMarkdown + ";" +
-        "function __restoreCb(s){return s.replace(/@@EGGCB(\\d+)@@/g,function(_,i){return __cb[parseInt(i)];});}" +
+        "function __restoreCb(s){return s.replace(/^> -# (.+)$/gm,'> <small>$1</small>').replace(/^-# (.+)$/gm,'<small>$1</small>').replace(/@@EGGCB(\\d+)@@/g,function(_,i){return __cb[parseInt(i)];});}" +
         "var __cb=[];md=md.replace(/```[\\s\\S]*?```/g,function(m){__cb.push(m);return '@@EGGCB'+(__cb.length-1)+'@@';});" +
         "md=md.replace(/<t:(\\d+)(?::([a-zA-Z]))?>/g,function(_,ts,fmt){return '<span class=\\\"discord-ts\\\" data-ts=\\\"'+ts+'\\\" data-format=\\\"'+(fmt||'f')+'\\\"></span>';});" +
         "var lines=md.split('\\n');var out=[];var i=0;" +
@@ -213,11 +215,12 @@ fun MarkdownPreview(
         "md=md.replace(/^- \\[ \\] (.+)$/gm,function(_,t){return '<div class=\\\"task-item\\\"><span class=\\\"task-check\\\"></span>'+t+'</div>';});" +
         "md=md.replace(/^- \\[x\\] (.+)$/gmi,function(_,t){return '<div class=\\\"task-item task-done\\\"><span class=\\\"task-check checked\\\"></span>'+t+'</div>';});" +
         "md=md.replace(/^(?:-# )(.+)$/gm,'<small>$1</small>');" +
+        "md=md.replace(/^> -# (.+)$/gm,'> <small>$1</small>');" +
         "md=md.replace(/==(.+?)==/g,'<u>$1</u>');" +
         "md=md.replace(/~~(.+?)~~/g,'<del>$1</del>');" +
         "md=md.replace(/\\|\\|(.+?)\\|\\|/g,'<span class=\\\"spoiler-inline\\\">$1</span>');" +
         "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})[^\\s]*/g,function(_,id){return '<div class=\\\"youtube-embed\\\"><iframe src=\\\"https://www.youtube.com/embed/'+id+'?rel=0\\\" allow=\\\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\\\" allowfullscreen referrerpolicy=\\\"strict-origin-when-cross-origin\\\"></iframe></div>';});" +
-        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:twitter\\.com|x\\.com)\\/([a-zA-Z0-9_]+)\\/status\\/(\\d+)[^\\s]*/g,function(_,user,tid){return '<a class=\\\"twitter-card\\\" href=\\\"https://twitter.com/'+user+'/status/'+tid+'\\\" target=\\\"_blank\\\" rel=\\\"noopener\\\"><span class=\\\"tw-user\\\">@'+user+'</span><span class=\\\"tw-body\\\">Lihat Tweet '+(tid||'')+' di Twitter</span></a>';});" +
+        "md=md.replace(/(?:https?:\\/\\/)?(?:www\\.)?(?:twitter\\.com|x\\.com)\\/([a-zA-Z0-9_]+)\\/status\\/(\\d+)[^\\s]*/g,function(_,user,tid){return '<div class=\\\"twitter-embed\\\"><iframe src=\\\"https://platform.twitter.com/embed/Tweet.html?id='+tid+'\\\" frameborder=\\\"0\\\" scrolling=\\\"no\\\" allowfullscreen=\\\"true\\\"></iframe></div>';});" +
         "var _al=md.split('\\n');var _aout=[];var _ai=0;while(_ai<_al.length){var _ac=_al[_ai];var _am=_ac.match(/^> \\[!accordion\\]\\s*(.*)$/i);if(_am){var _at=_am[1]||'Details';var _ab=[];_ai++;while(_ai<_al.length&&_al[_ai].startsWith('> ')){_ab.push(_al[_ai].slice(2));_ai++;}_aout.push('<details class=\\\"accordion\\\"><summary>'+_at+'</summary><div class=\\\"accordion-body\\\">'+marked.parse(__restoreCb(_ab.join('\\n')))+'</div></details>');}else{_aout.push(_ac);_ai++;}}md=_aout.join('\\n');" +
         "md=md.replace(/!\\[badge(?::(left|right))?\\]\\(([^)]+)\\)/g,function(_,pos,content){var parts=content.split(':');var st=(parts[0]||'info').toLowerCase().trim();var tx=(parts[1]||st).trim();var cls='badge-inline '+(pos?'badge-'+pos:'');return '<span class=\\\"'+cls+' badge-'+st+'\\\">'+tx.toUpperCase()+'</span>';});" +
         "md=md.replace(/!\\[audio\\]\\(([^)]*)\\)/g,function(_,url){return '<div class=\\\"audio-block\\\"><audio controls preload=\\\"none\\\" src=\\\"'+url+'\\\"></audio><div class=\\\"audio-label\\\">'+(url?'Audio':'Audio (no source)')+'</div></div>';});" +
