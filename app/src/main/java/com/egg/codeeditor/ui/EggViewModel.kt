@@ -359,7 +359,6 @@ class EggViewModel(private val context: Context) {
         }
         if (allFolderPaths.isEmpty() && supabaseNotes.isEmpty()) return emptyList()
 
-        // Normalisasi: untuk path "A/B", pastikan "A" ada sebagai folder juga
         val expanded = LinkedHashSet<String>()
         allFolderPaths.forEach { p ->
             val parts = p.split("/")
@@ -369,7 +368,6 @@ class EggViewModel(private val context: Context) {
                 expanded.add(acc)
             }
         }
-        // map: parentPath -> list of child folder names
         val childrenByParent = mutableMapOf<String, MutableList<String>>()
         expanded.forEach { p ->
             val idx = p.lastIndexOf("/")
@@ -377,7 +375,6 @@ class EggViewModel(private val context: Context) {
             val name = if (idx >= 0) p.substring(idx + 1) else p
             childrenByParent.getOrPut(parent) { mutableListOf() }.add(name)
         }
-        // map: folderPath -> notes with main_category == path
         val notesByFolder = supabaseNotes.groupBy { it.mainCategory.ifBlank { "Unfiled" } }
 
         fun walk(parent: String, depth: Int) {
@@ -389,10 +386,8 @@ class EggViewModel(private val context: Context) {
                 result.add(folderNode)
                 if (!supabaseExpandedPaths.value.contains(folderUri.toString())) continue
 
-                // Sub-folders
                 walk(fullPath, depth + 1)
 
-                // Notes langsung di folder ini
                 val folderNotes = notesByFolder[fullPath].orEmpty()
                 val subs = folderNotes.groupBy { it.category.ifBlank { "" } }
                 for ((cat, catNotes) in subs) {
@@ -414,7 +409,6 @@ class EggViewModel(private val context: Context) {
         }
         walk("", 0)
 
-        // Notes di folder "Unfiled" jika belum ada child folder "Unfiled" eksplisit
         if (!expanded.contains("Unfiled")) {
             val unfiled = notesByFolder["Unfiled"].orEmpty().filter { it.mainCategory.isBlank() }
             if (unfiled.isNotEmpty()) {
@@ -1107,7 +1101,6 @@ class EggViewModel(private val context: Context) {
                         else -> it
                     }
                 }
-                // Update semua note dengan main_category berprefix oldPath
                 val affected = supabaseNotes.filter { it.mainCategory == oldPath || it.mainCategory.startsWith(oldPath + "/") }
                 val updates = mutableListOf<SupabaseNote>()
                 for (n in affected) {
@@ -1131,7 +1124,6 @@ class EggViewModel(private val context: Context) {
         val oldPath = oldFolder?.name ?: name
         scope.launch {
             supabaseLoading = true
-            // Hapus note dulu (yang prefix-nya match)
             val affectedNotes = supabaseNotes.filter { it.mainCategory == oldPath || it.mainCategory.startsWith(oldPath + "/") }
             val deletedIds = mutableListOf<Long>()
             for (n in affectedNotes) {
@@ -1139,7 +1131,6 @@ class EggViewModel(private val context: Context) {
             }
             if (deletedIds.isNotEmpty()) {
                 supabaseNotes = supabaseNotes.filterNot { it.id in deletedIds }
-                // Tutup tab-tab supabase note yang terhapus
                 val toClose = tabs.filter { t ->
                     val s = t.uri?.toString() ?: return@filter false
                     s.startsWith("supabase://note/") && s.substringAfterLast("/").toLongOrNull() in deletedIds
@@ -1152,7 +1143,6 @@ class EggViewModel(private val context: Context) {
                     persistTabs()
                 }
             }
-            // Hapus child folders (yang prefix-nya match)
             val childFolderIds = supabaseFolders.filter { it.id != id && it.name.startsWith(oldPath + "/") }.map { it.id }
             for (cid in childFolderIds) SupabaseClient.deleteFolder(cid)
             val ok = SupabaseClient.deleteFolder(id)
